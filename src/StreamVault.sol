@@ -69,6 +69,29 @@ contract StreamVault is ReentrancyGuard {
     }
 
     /**
+     * @notice Deposits the `asset` from msg.sender added to `creditor`'s deposit.
+     * @notice Used for vault -> vault deposits on the user's behalf
+     * @param amount is the amount of `asset` to deposit
+     * @param creditor is the address that can claim/withdraw deposited amount
+     */
+    function depositFor(
+        uint256 amount,
+        address creditor
+    ) external nonReentrant {
+        require(amount > 0, "!amount");
+        require(creditor != address(0));
+
+        _depositFor(amount, creditor);
+
+        // An approve() by the msg.sender is required beforehand
+        IERC20(vaultParams.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+    }
+
+    /**
      * @notice Mints the vault shares to the creditor
      * @param amount is the amount of `asset` deposited
      * @param creditor is the address to receieve the deposit
