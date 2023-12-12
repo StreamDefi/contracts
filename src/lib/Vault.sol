@@ -2,10 +2,9 @@
 pragma solidity =0.8.4;
 
 /*
-  * @title Vault
-  * @dev Vault Data Type library for Stream Vaults
-  */
-*/
+ * @title Vault
+ * @dev Vault Data Type library for Stream Vaults
+ */
 library Vault {
     struct VaultParams {
         // Token decimals for vault shares
