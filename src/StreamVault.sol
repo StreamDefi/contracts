@@ -38,6 +38,11 @@ contract StreamVault is ReentrancyGuard {
     address public immutable WETH;
 
     /************************************************
+     *  EVENTS
+     ***********************************************/
+    event Deposit(address indexed account, uint256 amount, uint256 round);
+
+    /************************************************
      *  CONSTRUCTOR & INITIALIZATION
      ***********************************************/
 
@@ -63,7 +68,53 @@ contract StreamVault is ReentrancyGuard {
         IWETH(WETH).deposit{value: msg.value}();
     }
 
-    function _depositFor(uint256 _amount, address _creditor) private {}
+    /**
+     * @notice Mints the vault shares to the creditor
+     * @param amount is the amount of `asset` deposited
+     * @param creditor is the address to receieve the deposit
+     */
+    function _depositFor(uint256 amount, address creditor) private {
+        uint256 currentRound = vaultState.round;
+        uint256 totalWithDepositedAmount = totalBalance().add(amount);
+
+        require(totalWithDepositedAmount <= vaultParams.cap, "Exceed cap");
+        require(
+            totalWithDepositedAmount >= vaultParams.minimumSupply,
+            "Insufficient balance"
+        );
+
+        emit Deposit(creditor, amount, currentRound);
+
+        Vault.DepositReceipt memory depositReceipt = depositReceipts[creditor];
+
+        // If we have an unprocessed pending deposit from the previous rounds, we have to process it.
+        uint256 unredeemedShares = depositReceipt.getSharesFromReceipt(
+            currentRound,
+            roundPricePerShare[depositReceipt.round],
+            vaultParams.decimals
+        );
+
+        uint256 depositAmount = amount;
+
+        // If we have a pending deposit in the current round, we add on to the pending deposit
+        if (currentRound == depositReceipt.round) {
+            uint256 newAmount = uint256(depositReceipt.amount).add(amount);
+            depositAmount = newAmount;
+        }
+
+        ShareMath.assertUint104(depositAmount);
+
+        depositReceipts[creditor] = Vault.DepositReceipt({
+            round: uint16(currentRound),
+            amount: uint104(depositAmount),
+            unredeemedShares: uint128(unredeemedShares)
+        });
+
+        uint256 newTotalPending = uint256(vaultState.totalPending).add(amount);
+        ShareMath.assertUint128(newTotalPending);
+
+        vaultState.totalPending = uint128(newTotalPending);
+    }
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a short position
