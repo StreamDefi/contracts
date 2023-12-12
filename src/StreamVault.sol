@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.4;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {ShareMath} from "./lib/ShareMath.sol";
 import {Vault} from "./lib/Vault.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeMath} from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract StreamVault {
+contract StreamVault is ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
@@ -17,6 +17,22 @@ contract StreamVault {
     /************************************************
      *  IMMUTABLES & CONSTANTS
      ***********************************************/
+    /// @notice Stores the user's pending deposit for the round
+    mapping(address => Vault.DepositReceipt) public depositReceipts;
+
+    /// @notice On every round's close, the pricePerShare value of an rTHETA token is stored
+    /// This is used to determine the number of shares to be returned
+    /// to a user with their DepositReceipt.depositAmount
+    mapping(uint256 => uint256) public roundPricePerShare;
+
+    /// @notice Stores pending user withdrawals
+    mapping(address => Vault.Withdrawal) public withdrawals;
+
+    /// @notice Vault's parameters like cap, decimals
+    Vault.VaultParams public vaultParams;
+
+    /// @notice Vault's lifecycle state like round and locked amounts
+    Vault.VaultState public vaultState;
 
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
