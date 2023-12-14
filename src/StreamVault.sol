@@ -8,8 +8,9 @@ import {IWETH} from "./interfaces/IWETH.sol";
 import {SafeMath} from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract StreamVault is ReentrancyGuard {
+contract StreamVault is ReentrancyGuard, ERC20 {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
@@ -42,6 +43,15 @@ contract StreamVault is ReentrancyGuard {
      ***********************************************/
     event Deposit(address indexed account, uint256 amount, uint256 round);
 
+    event InitiateWithdraw(
+        address indexed account,
+        uint256 shares,
+        uint256 round
+    );
+    event Withdraw(address indexed account, uint256 amount, uint256 shares);
+
+    event Redeem(address indexed account, uint256 share, uint256 round);
+
     /************************************************
      *  CONSTRUCTOR & INITIALIZATION
      ***********************************************/
@@ -50,13 +60,17 @@ contract StreamVault is ReentrancyGuard {
      * @notice Initializes the contract with immutable variables
      * @param _weth is the Wrapped Ether contract
      */
-    constructor(address _weth) {
+    constructor(
+        address _weth,
+        string memory _tokenName,
+        string memory _tokenSymbol
+    ) ReentrancyGuard() ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
         WETH = _weth;
     }
 
     /************************************************
-     *  DEPOSIT & WITHDRAWALS
+     *  DEPOSITS
      ***********************************************/
 
     function depositETH() external payable nonReentrant {
@@ -156,6 +170,92 @@ contract StreamVault is ReentrancyGuard {
         vaultState.totalPending = uint128(newTotalPending);
     }
 
+    /************************************************
+     *  WITHDRAWALS
+     ***********************************************/
+
+    /**
+     * @notice Initiates a withdrawal that can be processed once the round completes
+     * @param numShares is the number of shares to withdraw
+     */
+    function _initiateWithdraw(uint256 numShares) internal {
+        require(numShares > 0, "!numShares");
+
+        // We do a max redeem before initiating a withdrawal
+        // But we check if they must first have unredeemed shares
+        if (
+            depositReceipts[msg.sender].amount > 0 ||
+            depositReceipts[msg.sender].unredeemedShares > 0
+        ) {
+            _redeem(0, true);
+        }
+
+        // This caches the `round` variable used in shareBalances
+        uint256 currentRound = vaultState.round;
+        Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
+
+        bool withdrawalIsSameRound = withdrawal.round == currentRound;
+
+        emit InitiateWithdraw(msg.sender, numShares, currentRound);
+
+        uint256 existingShares = uint256(withdrawal.shares);
+
+        uint256 withdrawalShares;
+        if (withdrawalIsSameRound) {
+            withdrawalShares = existingShares.add(numShares);
+        } else {
+            require(existingShares == 0, "Existing withdraw");
+            withdrawalShares = numShares;
+            withdrawals[msg.sender].round = uint16(currentRound);
+        }
+
+        ShareMath.assertUint128(withdrawalShares);
+        withdrawals[msg.sender].shares = uint128(withdrawalShares);
+
+        _transfer(msg.sender, address(this), numShares);
+    }
+
+    /**
+     * @notice Completes a scheduled withdrawal from a past round. Uses finalized pps for the round
+     * @return withdrawAmount the current withdrawal amount
+     */
+    function _completeWithdraw() internal returns (uint256) {
+        Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
+
+        uint256 withdrawalShares = withdrawal.shares;
+        uint256 withdrawalRound = withdrawal.round;
+
+        // This checks if there is a withdrawal
+        require(withdrawalShares > 0, "Not initiated");
+
+        require(withdrawalRound < vaultState.round, "Round not closed");
+
+        // We leave the round number as non-zero to save on gas for subsequent writes
+        withdrawals[msg.sender].shares = 0;
+        vaultState.queuedWithdrawShares = uint128(
+            uint256(vaultState.queuedWithdrawShares).sub(withdrawalShares)
+        );
+
+        uint256 withdrawAmount = ShareMath.sharesToAsset(
+            withdrawalShares,
+            roundPricePerShare[withdrawalRound],
+            vaultParams.decimals
+        );
+
+        emit Withdraw(msg.sender, withdrawAmount, withdrawalShares);
+
+        _burn(address(this), withdrawalShares);
+
+        require(withdrawAmount > 0, "!withdrawAmount");
+        transferAsset(msg.sender, withdrawAmount);
+
+        return withdrawAmount;
+    }
+
+    /************************************************
+     *  REDEMPTIONS
+     ***********************************************/
+
     /**
      * @notice Redeems shares that are owed to the account
      * @param numShares is the number of shares to redeem
@@ -224,5 +324,21 @@ contract StreamVault is ReentrancyGuard {
             uint256(vaultState.lockedAmount).add(
                 IERC20(vaultParams.asset).balanceOf(address(this))
             );
+    }
+
+    /**
+     * @notice Helper function to make either an ETH transfer or ERC20 transfer
+     * @param recipient is the receiving address
+     * @param amount is the transfer amount
+     */
+    function transferAsset(address recipient, uint256 amount) internal {
+        address asset = vaultParams.asset;
+        if (asset == WETH) {
+            IWETH(WETH).withdraw(amount);
+            (bool success, ) = recipient.call{value: amount}("");
+            require(success, "Transfer failed");
+            return;
+        }
+        IERC20(asset).safeTransfer(recipient, amount);
     }
 }
