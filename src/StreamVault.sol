@@ -63,6 +63,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     event Redeem(address indexed account, uint256 share, uint256 round);
 
+    event CapSet(uint256 oldCap, uint256 newCap);
+
     /************************************************
      *  MODIFIERS
      ***********************************************/
@@ -441,6 +443,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function setNewKeeper(address newKeeper) external onlyOwner {
         require(newKeeper != address(0), "!newKeeper");
         keeper = newKeeper;
+    }
+
+    /**
+     * @notice Sets a new cap for deposits
+     * @param newCap is the new cap for deposits
+     */
+    function setCap(uint256 newCap) external onlyOwner {
+        require(newCap > 0, "!newCap");
+        ShareMath.assertUint104(newCap);
+        emit CapSet(vaultParams.cap, newCap);
+        vaultParams.cap = uint104(newCap);
     }
 
     /************************************************
