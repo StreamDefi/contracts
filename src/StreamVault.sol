@@ -87,11 +87,13 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         address _weth,
         address _keeper,
         string memory _tokenName,
-        string memory _tokenSymbol
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
     ) ReentrancyGuard() Ownable() ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
         WETH = _weth;
         keeper = _keeper;
+        vaultParams = _vaultParams;
     }
 
     /************************************************
@@ -393,6 +395,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         uint256 newQueuedWithdrawShares = uint256(state.queuedWithdrawShares)
             .add(currentQueuedWithdrawShares);
+
         ShareMath.assertUint128(newQueuedWithdrawShares);
         vaultState.queuedWithdrawShares = uint128(newQueuedWithdrawShares);
 
