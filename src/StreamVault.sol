@@ -6,11 +6,12 @@ import {ShareMath} from "./lib/ShareMath.sol";
 import {Vault} from "./lib/Vault.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {SafeMath} from "lib/openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract StreamVault is ReentrancyGuard, ERC20 {
+contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
@@ -35,6 +36,16 @@ contract StreamVault is ReentrancyGuard, ERC20 {
     /// @notice Vault's lifecycle state like round and locked amounts
     Vault.VaultState public vaultState;
 
+    /// @notice The amount of 'asset' that was queued for withdrawal in the last round
+    uint256 public lastQueuedWithdrawAmount;
+
+    /// @notice The amount of shares that are queued for withdrawal in the current round
+    uint256 public currentQueuedWithdrawShares;
+
+    /// @notice role in charge of weekly vault operations such as rollToNextOption
+    // no access to critical vault changes
+    address public keeper;
+
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
@@ -53,6 +64,18 @@ contract StreamVault is ReentrancyGuard, ERC20 {
     event Redeem(address indexed account, uint256 share, uint256 round);
 
     /************************************************
+     *  MODIFIERS
+     ***********************************************/
+
+    /**
+     * @dev Throws if called by any account other than the keeper.
+     */
+    modifier onlyKeeper() {
+        require(msg.sender == keeper, "!keeper");
+        _;
+    }
+
+    /************************************************
      *  CONSTRUCTOR & INITIALIZATION
      ***********************************************/
 
@@ -62,11 +85,13 @@ contract StreamVault is ReentrancyGuard, ERC20 {
      */
     constructor(
         address _weth,
+        address _keeper,
         string memory _tokenName,
         string memory _tokenSymbol
-    ) ReentrancyGuard() ERC20(_tokenName, _tokenSymbol) {
+    ) ReentrancyGuard() Ownable() ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
         WETH = _weth;
+        keeper = _keeper;
     }
 
     /************************************************
@@ -178,7 +203,7 @@ contract StreamVault is ReentrancyGuard, ERC20 {
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param numShares is the number of shares to withdraw
      */
-    function _initiateWithdraw(uint256 numShares) internal {
+    function initiateWithdraw(uint256 numShares) external nonReentrant {
         require(numShares > 0, "!numShares");
 
         // We do a max redeem before initiating a withdrawal
@@ -213,13 +238,16 @@ contract StreamVault is ReentrancyGuard, ERC20 {
         withdrawals[msg.sender].shares = uint128(withdrawalShares);
 
         _transfer(msg.sender, address(this), numShares);
+
+        currentQueuedWithdrawShares = currentQueuedWithdrawShares.add(
+            numShares
+        );
     }
 
     /**
      * @notice Completes a scheduled withdrawal from a past round. Uses finalized pps for the round
-     * @return withdrawAmount the current withdrawal amount
      */
-    function _completeWithdraw() internal returns (uint256) {
+    function completeWithdraw() external nonReentrant {
         Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
 
         uint256 withdrawalShares = withdrawal.shares;
@@ -247,9 +275,11 @@ contract StreamVault is ReentrancyGuard, ERC20 {
         _burn(address(this), withdrawalShares);
 
         require(withdrawAmount > 0, "!withdrawAmount");
-        transferAsset(msg.sender, withdrawAmount);
+        _transferAsset(msg.sender, withdrawAmount);
 
-        return withdrawAmount;
+        lastQueuedWithdrawAmount = uint256(
+            uint256(lastQueuedWithdrawAmount).sub(withdrawAmount)
+        );
     }
 
     /************************************************
@@ -315,6 +345,72 @@ contract StreamVault is ReentrancyGuard, ERC20 {
         _transfer(address(this), msg.sender, numShares);
     }
 
+    /************************************************
+     *  VAULT OPERATIONS
+     ***********************************************/
+
+    /**
+     * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
+     * @notice assumes that the keeper has already deposited the asset into the vault
+     */
+    function rollToNextOption() external onlyKeeper nonReentrant {
+        Vault.VaultState memory state = vaultState;
+        uint256 currentRound = state.round;
+        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        );
+
+        uint256 newPricePerShare = ShareMath.pricePerShare(
+            totalSupply().sub(state.queuedWithdrawShares),
+            currentBalance.sub(lastQueuedWithdrawAmount),
+            state.totalPending,
+            vaultParams.decimals
+        );
+
+        roundPricePerShare[currentRound] = newPricePerShare;
+
+        vaultState.totalPending = 0;
+        vaultState.round = uint16(currentRound.add(1));
+
+        uint256 mintShares = ShareMath.assetToShares(
+            state.totalPending,
+            newPricePerShare,
+            vaultParams.decimals
+        );
+
+        _mint(address(this), mintShares);
+
+        // lastQueuedWithdrawAmount = queuedWithdrawAmount;
+        uint256 queuedWithdrawAmount = lastQueuedWithdrawAmount.add(
+            ShareMath.sharesToAsset(
+                currentQueuedWithdrawShares,
+                newPricePerShare,
+                vaultParams.decimals
+            )
+        );
+
+        lastQueuedWithdrawAmount = queuedWithdrawAmount;
+
+        uint256 newQueuedWithdrawShares = uint256(state.queuedWithdrawShares)
+            .add(currentQueuedWithdrawShares);
+        ShareMath.assertUint128(newQueuedWithdrawShares);
+        vaultState.queuedWithdrawShares = uint128(newQueuedWithdrawShares);
+
+        currentQueuedWithdrawShares = 0;
+
+        vaultState.lastLockedAmount = state.lockedAmount;
+
+        uint256 lockedBalance = currentBalance.sub(queuedWithdrawAmount);
+        ShareMath.assertUint104(lockedBalance);
+
+        vaultState.lockedAmount = uint104(lockedBalance);
+
+        IERC20(vaultParams.asset).transfer(
+            msg.sender, // will always be keeper --> msg.sender prevents extra SLOAD
+            lockedBalance
+        );
+    }
+
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a short position
      * @return total balance of the vault, including the amounts locked in third party protocols
@@ -331,7 +427,7 @@ contract StreamVault is ReentrancyGuard, ERC20 {
      * @param recipient is the receiving address
      * @param amount is the transfer amount
      */
-    function transferAsset(address recipient, uint256 amount) internal {
+    function _transferAsset(address recipient, uint256 amount) internal {
         address asset = vaultParams.asset;
         if (asset == WETH) {
             IWETH(WETH).withdraw(amount);
@@ -340,5 +436,18 @@ contract StreamVault is ReentrancyGuard, ERC20 {
             return;
         }
         IERC20(asset).safeTransfer(recipient, amount);
+    }
+
+    /************************************************
+     *  SETTERS
+     ***********************************************/
+
+    /**
+     * @notice Sets the new keeper
+     * @param newKeeper is the address of the new keeper
+     */
+    function setNewKeeper(address newKeeper) external onlyOwner {
+        require(newKeeper != address(0), "!newKeeper");
+        keeper = newKeeper;
     }
 }
