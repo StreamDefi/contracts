@@ -355,14 +355,16 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
-     * @notice assumes that the keeper has already deposited the asset into the vault
+     * @notice Keeper only deposits enough to fulfill withdraws and passes the true amount as 'currentBalance'
+     * @param currentBalance is the amount of `asset` that is currently being used for strategy 
+              + the amount in the contract right before the roll
+
      */
-    function rollToNextOption() external onlyKeeper nonReentrant {
+    function rollToNextOption(
+        uint256 currentBalance
+    ) external onlyKeeper nonReentrant {
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
-        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(
-            address(this)
-        );
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
             totalSupply().sub(state.queuedWithdrawShares),
@@ -412,7 +414,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         IERC20(vaultParams.asset).transfer(
             msg.sender, // will always be keeper --> msg.sender prevents extra SLOAD
-            lockedBalance
+            IERC20(vaultParams.asset).balanceOf(address(this)).sub(
+                queuedWithdrawAmount
+            )
         );
     }
 
@@ -550,5 +554,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     function totalPending() external view returns (uint256) {
         return vaultState.totalPending;
+    }
+
+    function round() external view returns (uint256) {
+        return vaultState.round;
     }
 }
