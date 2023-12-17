@@ -66,6 +66,12 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     event CapSet(uint256 oldCap, uint256 newCap);
 
+    event InstantWithdraw(
+        address indexed account,
+        uint256 amount,
+        uint256 round
+    );
+
     /************************************************
      *  MODIFIERS
      ***********************************************/
@@ -210,6 +216,33 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /************************************************
      *  WITHDRAWALS
      ***********************************************/
+
+    /**
+     * @notice Withdraws the assets on the vault using the outstanding `DepositReceipt.amount`
+     * @param amount is the amount to withdraw
+     */
+    function withdrawInstantly(uint256 amount) external nonReentrant {
+        Vault.DepositReceipt storage depositReceipt = depositReceipts[
+            msg.sender
+        ];
+
+        uint256 currentRound = vaultState.round;
+        require(amount > 0, "!amount");
+        require(depositReceipt.round == currentRound, "Invalid round");
+
+        uint256 receiptAmount = depositReceipt.amount;
+        require(receiptAmount >= amount, "Exceed amount");
+
+        // Subtraction underflow checks already ensure it is smaller than uint104
+        depositReceipt.amount = uint104(receiptAmount.sub(amount));
+        vaultState.totalPending = uint128(
+            uint256(vaultState.totalPending).sub(amount)
+        );
+
+        emit InstantWithdraw(msg.sender, amount, currentRound);
+
+        _transferAsset(msg.sender, amount);
+    }
 
     /**
      * @notice Initiates a withdrawal that can be processed once the round completes
@@ -567,4 +600,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function round() external view returns (uint256) {
         return vaultState.round;
     }
+
+    receive() external payable {}
 }
