@@ -134,18 +134,27 @@ contract StreamVaultTest is Test {
         vm.stopPrank();
     }
 
-    function test_singleDepositWETH() public {
+    function test_singleInstantWithdraw() public {
         uint104 depositAmount = 1 ether;
 
         vm.startPrank(depositer1);
         // deposit 1 WETH
-        vault.deposit(depositAmount);
+        vault.depositETH{value: depositAmount}();
 
         assertDepositReceipt(
             DepositReceiptChecker(depositer1, 1, depositAmount, 0)
         );
         assertVaultState(StateChecker(1, 0, 0, depositAmount, 0, 0, 0, 0, 0));
         assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        // instant withdraw
+        vault.withdrawInstantly(depositAmount);
+        assertDepositReceipt(DepositReceiptChecker(depositer1, 1, 0, 0));
+        assertVaultState(StateChecker(1, 0, 0, 0, 0, 0, 0, 0, 0));
+
+        assertEq(weth.balanceOf(address(vault)), 0);
+        assertEq(address(depositer1).balance, 100 * (10 ** 18));
+
         vm.stopPrank();
     }
 
@@ -153,7 +162,8 @@ contract StreamVaultTest is Test {
         // deposit
         uint104 depositAmount = 1 ether;
         vm.startPrank(depositer1);
-        vault.deposit(1 ether);
+        vault.depositETH{value: depositAmount}();
+
         assertDepositReceipt(
             DepositReceiptChecker(depositer1, 1, depositAmount, 0)
         );

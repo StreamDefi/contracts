@@ -20,4 +20,9 @@ contract MockERC20 is ERC20 {
     function deposit() external payable {
         _mint(msg.sender, msg.value);
     }
+
+    function withdraw(uint256 value) external {
+        _burn(msg.sender, value);
+        payable(msg.sender).transfer(value);
+    }
 }
