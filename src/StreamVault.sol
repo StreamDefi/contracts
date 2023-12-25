@@ -43,7 +43,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice The amount of shares that are queued for withdrawal in the current round
     uint256 public currentQueuedWithdrawShares;
 
-    /// @notice role in charge of weekly vault operations such as rollToNextOption
+    /// @notice role in charge of weekly vault operations such as rollToNextRound
     // no access to critical vault changes
     address public keeper;
 
@@ -401,7 +401,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
               + the amount in the contract right before the roll
 
      */
-    function rollToNextOption(
+    function rollToNextRound(
         uint256 currentBalance
     ) external onlyKeeper nonReentrant {
         Vault.VaultState memory state = vaultState;
@@ -504,6 +504,33 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /************************************************
      *  GETTERS
      ***********************************************/
+
+    /*
+        * @notice Returns the current amount of `asset` that is queued for withdrawal in the current round
+        * @param currentBalance is the amount of `asset` that is currently being used for strategy 
+                + the amount in the contract right now
+        * @return the amount of `asset` that is queued for withdrawal in the current round
+        */
+    function getCurrQueuedWithdrawAmount(
+        uint256 currentBalance
+    ) public view returns (uint256) {
+        Vault.VaultState memory state = vaultState;
+        uint256 newPricePerShare = ShareMath.pricePerShare(
+            totalSupply().sub(state.queuedWithdrawShares),
+            currentBalance.sub(lastQueuedWithdrawAmount),
+            state.totalPending,
+            vaultParams.decimals
+        );
+        return (
+            lastQueuedWithdrawAmount.add(
+                ShareMath.sharesToAsset(
+                    currentQueuedWithdrawShares,
+                    newPricePerShare,
+                    vaultParams.decimals
+                )
+            )
+        );
+    }
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a short position

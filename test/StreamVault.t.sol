@@ -63,6 +63,12 @@ contract StreamVaultTest is Test {
         uint128 unredeemedShares;
     }
 
+    struct WithdrawalReceiptChecker {
+        address withdrawer;
+        uint16 round;
+        uint256 shares;
+    }
+
     function setUp() public {
         depositer1 = vm.addr(1);
         depositer2 = vm.addr(2);
@@ -187,7 +193,7 @@ contract StreamVaultTest is Test {
 
         // rollover
         vm.startPrank(keeper);
-        vault.rollToNextOption(
+        vault.rollToNextRound(
             weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
         );
         vm.stopPrank();
@@ -248,7 +254,7 @@ contract StreamVaultTest is Test {
 
         // rollover
         vm.startPrank(keeper);
-        vault.rollToNextOption(
+        vault.rollToNextRound(
             weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
         );
         vm.stopPrank();
@@ -309,7 +315,34 @@ contract StreamVaultTest is Test {
         vm.stopPrank();
     }
 
-    function test_singleInitiateWithdraw() public {}
+    function test_singleInitiateWithdrawFull() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.startPrank(depositer1);
+        // deposit 1 WETH
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+        assertVaultState(StateChecker(1, 0, 0, depositAmount, 0, 0, 0, 0, 0));
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+        vm.startPrank(depositer1);
+        vault.initiateWithdraw(depositAmount);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, depositAmount)
+        );
+        assertEq(vault.balanceOf(address(vault)), depositAmount);
+    }
 
     function test_singleCompleteWithdraw() public {}
 
@@ -374,5 +407,14 @@ contract StreamVaultTest is Test {
         assertEq(round, receipt.round);
         assertEq(amount, receipt.amount);
         assertEq(unredeemedShares, receipt.unredeemedShares);
+    }
+
+    function assertWithdrawalReceipt(
+        WithdrawalReceiptChecker memory receipt
+    ) public {
+        (uint16 round, uint128 shares) = vault.withdrawals(receipt.withdrawer);
+
+        assertEq(round, receipt.round);
+        assertEq(shares, receipt.shares);
     }
 }
