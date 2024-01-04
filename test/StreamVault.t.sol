@@ -344,6 +344,35 @@ contract StreamVaultTest is Test {
         assertEq(vault.balanceOf(address(vault)), depositAmount);
     }
 
+    function test_singleInitaiteWithdrawPartly() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.startPrank(depositer1);
+        // deposit 1 WETH
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+        assertVaultState(StateChecker(1, 0, 0, depositAmount, 0, 0, 0, 0, 0));
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+        vm.startPrank(depositer1);
+        vault.initiateWithdraw(depositAmount / 2);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, depositAmount / 2)
+        );
+        assertEq(vault.balanceOf(address(vault)), depositAmount / 2);
+    }
+
     function test_singleCompleteWithdraw() public {}
 
     /************************************************
