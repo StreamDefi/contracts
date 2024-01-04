@@ -373,7 +373,83 @@ contract StreamVaultTest is Test {
         assertEq(vault.balanceOf(address(vault)), depositAmount / 2);
     }
 
-    function test_singleCompleteWithdraw() public {}
+    function test_singleCompleteWithdraw() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.startPrank(depositer1);
+        // deposit 1 WETH
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+        assertVaultState(StateChecker(1, 0, 0, depositAmount, 0, 0, 0, 0, 0));
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.stopPrank();
+
+        vm.startPrank(keeper);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+
+        assertVaultState(
+            StateChecker(
+                2,
+                depositAmount,
+                0,
+                0,
+                0,
+                0,
+                0,
+                depositAmount,
+                depositAmount
+            )
+        );
+
+        // initiate the withdraw
+        vm.startPrank(depositer1);
+        vault.initiateWithdraw(depositAmount);
+        vm.stopPrank();
+
+        // roll over to next round
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+
+        assertVaultState(
+            StateChecker(
+                3,
+                0,
+                depositAmount,
+                0,
+                depositAmount,
+                depositAmount,
+                0,
+                depositAmount,
+                depositAmount
+            )
+        );
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, depositAmount)
+        );
+
+        //complete the withdraw
+        vm.startPrank(depositer1);
+        vault.completeWithdraw();
+        vm.stopPrank();
+
+        assertVaultState(
+            StateChecker(3, 0, depositAmount, 0, 0, 0, 0, 0, depositAmount)
+        );
+
+        assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 2, 0));
+    }
 
     /************************************************
      *  MULTI  WITHDRAW TESTS
