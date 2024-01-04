@@ -275,9 +275,11 @@ contract StreamVaultTest is Test {
             )
         );
 
-        assertDepositReceipt(
-            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
-        );
+        for (uint i = 0; i < depositors.length; ++i) {
+            assertDepositReceipt(
+                DepositReceiptChecker(depositors[i], 1, depositAmount, 0)
+            );
+        }
 
         assertEq(weth.balanceOf(address(vault)), 0);
 
@@ -448,18 +450,197 @@ contract StreamVaultTest is Test {
             StateChecker(3, 0, depositAmount, 0, 0, 0, 0, 0, depositAmount)
         );
 
+        assertEq(weth.balanceOf(address(vault)), 0);
+
         assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 2, 0));
     }
 
     /************************************************
      *  MULTI  WITHDRAW TESTS
      ***********************************************/
+    function test_multiInitiateWithdraw() public {
+        // deposit
+        uint104 depositAmount = 1 ether;
+        for (uint256 i = 0; i < depositors.length; i++) {
+            vm.startPrank(depositors[i]);
+            vault.depositETH{value: depositAmount}();
+            assertDepositReceipt(
+                DepositReceiptChecker(depositors[i], 1, depositAmount, 0)
+            );
 
-    function test_multiWithdrawETH() public {}
+            assertEq(weth.balanceOf(address(vault)), depositAmount * (i + 1));
+            vm.stopPrank();
+        }
 
-    function test_multiInitiateWithdraw() public {}
+        assertVaultState(
+            StateChecker(
+                1,
+                0,
+                0,
+                uint128(depositAmount * depositors.length),
+                0,
+                0,
+                0,
+                0,
+                0
+            )
+        );
 
-    function test_multiCompleteWithdraw() public {}
+        // rollover
+        vm.startPrank(keeper);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+
+        // totalLocked amount should be 1 eth and price per share should be 1
+        // totalShare amount should be 1 eth
+        assertVaultState(
+            StateChecker(
+                2,
+                uint104(depositAmount * depositors.length),
+                0,
+                0,
+                0,
+                0,
+                0,
+                depositAmount * depositors.length,
+                depositAmount
+            )
+        );
+
+        for (uint i = 0; i < depositors.length; ++i) {
+            vm.startPrank(depositors[i]);
+            vault.initiateWithdraw(depositAmount);
+            vm.stopPrank();
+            assertWithdrawalReceipt(
+                WithdrawalReceiptChecker(depositors[i], 2, depositAmount)
+            );
+        }
+
+        assertEq(
+            vault.balanceOf(address(vault)),
+            depositAmount * depositors.length
+        );
+    }
+
+    function test_multiCompleteWithdraw() public {
+        uint104 depositAmount = 1 ether;
+        for (uint256 i = 0; i < depositors.length; i++) {
+            vm.startPrank(depositors[i]);
+            vault.depositETH{value: depositAmount}();
+            assertDepositReceipt(
+                DepositReceiptChecker(depositors[i], 1, depositAmount, 0)
+            );
+
+            assertEq(weth.balanceOf(address(vault)), depositAmount * (i + 1));
+            vm.stopPrank();
+        }
+
+        assertVaultState(
+            StateChecker(
+                1,
+                0,
+                0,
+                uint128(depositAmount * depositors.length),
+                0,
+                0,
+                0,
+                0,
+                0
+            )
+        );
+
+        // rollover
+        vm.startPrank(keeper);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+
+        // totalLocked amount should be 1 eth and price per share should be 1
+        // totalShare amount should be 1 eth
+        assertVaultState(
+            StateChecker(
+                2,
+                uint104(depositAmount * depositors.length),
+                0,
+                0,
+                0,
+                0,
+                0,
+                depositAmount * depositors.length,
+                depositAmount
+            )
+        );
+
+        assertEq(
+            weth.balanceOf(address(keeper)),
+            depositors.length * depositAmount
+        );
+
+        for (uint i = 0; i < depositors.length; ++i) {
+            vm.startPrank(depositors[i]);
+            vault.initiateWithdraw(depositAmount);
+            vm.stopPrank();
+            assertWithdrawalReceipt(
+                WithdrawalReceiptChecker(depositors[i], 2, depositAmount)
+            );
+        }
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount * depositors.length);
+        vault.rollToNextRound(
+            weth.balanceOf(address(vault)) + weth.balanceOf(address(keeper))
+        );
+        vm.stopPrank();
+
+        assertVaultState(
+            StateChecker(
+                3,
+                0,
+                uint104(depositAmount * depositors.length),
+                0,
+                uint128(depositAmount * depositors.length),
+                depositAmount * depositors.length,
+                0,
+                depositAmount * depositors.length,
+                depositAmount
+            )
+        );
+
+        for (uint i = 0; i < depositors.length; ++i) {
+            assertWithdrawalReceipt(
+                WithdrawalReceiptChecker(depositors[i], 2, depositAmount)
+            );
+        }
+
+        //complete the withdraw
+        for (uint i = 0; i < depositors.length; ++i) {
+            vm.startPrank(depositors[i]);
+            vault.completeWithdraw();
+            vm.stopPrank();
+            assertWithdrawalReceipt(
+                WithdrawalReceiptChecker(depositors[i], 2, 0)
+            );
+        }
+
+        assertVaultState(
+            StateChecker(
+                3,
+                0,
+                uint104(depositAmount * depositors.length),
+                0,
+                0,
+                0,
+                0,
+                0,
+                depositAmount
+            )
+        );
+
+        assertEq(weth.balanceOf(address(vault)), 0);
+    }
 
     /************************************************
      *  HELPER STATE ASSERTIONS
