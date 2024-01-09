@@ -42,6 +42,7 @@ contract StreamVaultTest is Test {
     address[] depositors;
 
     address keeper;
+    address keeper2;
     address owner;
 
     struct StateChecker {
@@ -82,6 +83,7 @@ contract StreamVaultTest is Test {
         depositer10 = vm.addr(10);
         keeper = vm.addr(11);
         owner = vm.addr(12);
+        keeper2 = vm.addr(13);
 
         depositors = [
             depositer1,
@@ -640,6 +642,49 @@ contract StreamVaultTest is Test {
         );
 
         assertEq(weth.balanceOf(address(vault)), 0);
+    }
+
+    /************************************************
+     *  SET KEEPER TESTS
+     ***********************************************/
+
+    function test_RevertWhenSettingKeeperToZeroAddress() public {
+        vm.startPrank(owner);
+        vm.expectRevert("!newKeeper");
+        vault.setNewKeeper(address(0));
+        vm.stopPrank();
+        // ensure vault keepers stays the same after attempting to set to zero adr
+        assertEq(vault.keeper(), keeper);
+    }
+
+    function test_RevertWhenNonOwnerChangesKeeper(address fakeOwner) public {
+        vm.assume(fakeOwner != owner);
+        vm.startPrank(fakeOwner);
+        vm.expectRevert();
+        vault.setNewKeeper(keeper2);
+        vm.stopPrank();
+        // ensure vault keepers stays the same after attempting to set to zero adr
+        assertEq(vault.keeper(), keeper);
+    }
+
+    function test_settingNewKeeper() public {
+        vm.prank(owner);
+        vault.setNewKeeper(keeper2);
+        assertEq(vault.keeper(), keeper2);
+        vm.prank(keeper2);
+        vault.rollToNextRound(0);
+    }
+
+    function test_RevertIfOldKeeperMakesCallAfterChanged() public {
+        vm.prank(owner);
+        vault.setNewKeeper(keeper2);
+        assertEq(vault.keeper(), keeper2);
+        vm.prank(keeper2);
+        vault.rollToNextRound(0);
+        vm.startPrank(keeper);
+        vm.expectRevert("!keeper");
+        vault.rollToNextRound(0);
+        vm.stopPrank();
     }
 
     /************************************************
