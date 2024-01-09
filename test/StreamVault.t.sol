@@ -27,6 +27,7 @@ import "forge-std/console.sol";
 contract StreamVaultTest is Test {
     StreamVault vault;
     MockERC20 weth;
+    MockERC20 dummyAsset;
 
     address depositer1;
     address depositer2;
@@ -99,6 +100,7 @@ contract StreamVaultTest is Test {
             depositer10
         ];
         weth = new MockERC20("wrapped ether", "WETH");
+        dummyAsset = new MockERC20("dummy asset", "DUMMY");
         vaultCap = uint104(10000000 * (10 ** 18));
 
         // valt cap of 10M WETH
@@ -644,6 +646,160 @@ contract StreamVaultTest is Test {
         );
 
         assertEq(weth.balanceOf(address(vault)), 0);
+    }
+
+    /************************************************
+     *  CONSTRUCTOR TESTS
+     ***********************************************/
+
+    function test_initializesCorrectly(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        (uint8 decimals, address asset, uint56 minSupply, uint104 cap) = vault
+            .vaultParams();
+
+        assertEq(vault.WETH(), _weth);
+        assertEq(vault.keeper(), _keeper);
+        assertEq(decimals, _vaultParams.decimals);
+        assertEq(asset, address(dummyAsset));
+        assertEq(minSupply, _vaultParams.minimumSupply);
+        assertEq(cap, _vaultParams.cap);
+
+        (
+            uint16 round,
+            uint104 lockedAmount,
+            uint104 lastLockedAmount,
+            uint128 totalPending,
+            uint128 queuedWithdrawShares
+        ) = vault.vaultState();
+
+        assertEq(round, 1);
+        assertEq(lockedAmount, 0);
+        assertEq(totalPending, 0);
+        assertEq(queuedWithdrawShares, 0);
+        assertEq(lastLockedAmount, 0);
+
+        assertEq(vault.name(), _tokenName);
+        assertEq(vault.symbol(), _tokenSymbol);
+        assertEq(vault.owner(), owner);
+    }
+
+    function test_RevertIfWrappedNativeTokenIsZeroAdr(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.asset = address(dummyAsset);
+        _weth = address(0);
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.startPrank(owner);
+        vm.expectRevert("!_weth");
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        vm.stopPrank();
+    }
+
+    function test_RevertIfKeeperIsZeroAdr(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        _keeper = address(0);
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.startPrank(owner);
+        vm.expectRevert("!_keeper");
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        vm.stopPrank();
+    }
+
+    function test_RevertIfCapIsZero(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        vm.assume(_keeper != address(0));
+        _vaultParams.cap = 0;
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.startPrank(owner);
+        vm.expectRevert("!_cap");
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        vm.stopPrank();
+    }
+
+    function test_RevertIfAssetIsZeroAdr(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        _vaultParams.asset = address(0);
+
+        vm.startPrank(owner);
+        vm.expectRevert("!_asset");
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        vm.stopPrank();
     }
 
     /************************************************
