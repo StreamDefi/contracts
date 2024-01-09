@@ -737,6 +737,21 @@ contract StreamVaultTest is Test {
     }
 
     // test if changing the cap in the middle of the round when the current round balance is already hire than cap
+    function test_canSetCapBelowCurrentDeposits() public {
+        vm.deal(depositer1, vaultCap);
+        vm.prank(depositer1);
+        vault.depositETH{value: vaultCap}();
+        vm.prank(owner);
+        vault.setCap(vaultCap - 1 ether);
+        (, , , uint104 cap) = vault.vaultParams();
+        assertEq(cap, vaultCap - 1 ether);
+
+        // ensure that the cap worked
+        vm.startPrank(depositer2);
+        vm.expectRevert();
+        vault.depositETH{value: 1 ether}();
+        vm.stopPrank();
+    }
 
     /************************************************
      *  HELPER STATE ASSERTIONS
