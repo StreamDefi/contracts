@@ -44,6 +44,7 @@ contract StreamVaultTest is Test {
     address keeper;
     address keeper2;
     address owner;
+    uint104 vaultCap;
 
     struct StateChecker {
         uint16 round;
@@ -98,13 +99,14 @@ contract StreamVaultTest is Test {
             depositer10
         ];
         weth = new MockERC20("wrapped ether", "WETH");
+        vaultCap = uint104(10000000 * (10 ** 18));
 
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 18,
             asset: address(weth),
             minimumSupply: uint56(1),
-            cap: uint104(10000000 * (10 ** 18))
+            cap: vaultCap
         });
 
         vm.prank(owner);
@@ -686,6 +688,55 @@ contract StreamVaultTest is Test {
         vault.rollToNextRound(0);
         vm.stopPrank();
     }
+
+    /************************************************
+     *  SET CAP TESTING
+     ***********************************************/
+
+    function test_RevertIfCapIsSetToZero() public {
+        (, , , uint104 cap) = vault.vaultParams();
+        vm.startPrank(owner);
+        vm.expectRevert("!newCap");
+        vault.setCap(0);
+        vm.stopPrank();
+        // ensure old cap remains
+        assertEq(cap, vaultCap);
+    }
+
+    function test_RevertIfCapDoesntFitIn104Bits(uint256 newCap) public {
+        (, , , uint104 cap) = vault.vaultParams();
+        vm.assume(newCap > type(uint104).max);
+        vm.startPrank(owner);
+        vm.expectRevert();
+        vault.setCap(newCap);
+        // ensure old cap remains
+        assertEq(cap, vaultCap);
+    }
+
+    function test_newCapGetsSet(uint104 newCap) public {
+        vm.assume(newCap > 0);
+        vm.prank(owner);
+        vault.setCap(newCap);
+        (, , , uint104 cap) = vault.vaultParams();
+        assertEq(cap, newCap);
+    }
+
+    function test_NonOwnerCannotCallSetCap(
+        address fakeOwner,
+        uint104 newCap
+    ) public {
+        (, , , uint104 capBefore) = vault.vaultParams();
+        vm.assume(newCap > 0);
+        vm.assume(fakeOwner != owner);
+        vm.startPrank(fakeOwner);
+        vm.expectRevert();
+        vault.setCap(newCap);
+        vm.stopPrank();
+        (, , , uint104 capAfter) = vault.vaultParams();
+        assertEq(capBefore, capAfter);
+    }
+
+    // test if changing the cap in the middle of the round when the current round balance is already hire than cap
 
     /************************************************
      *  HELPER STATE ASSERTIONS
