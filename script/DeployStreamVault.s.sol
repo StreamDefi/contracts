@@ -19,12 +19,6 @@ contract DeployStreamVault is Script {
             cap: uint104(10000000 * (10 ** 18))
         });
 
-        StreamVault vault = new StreamVault(
-            weth,
-            keeper,
-            "StreamVaultTest",
-            "SVT",
-            vaultParams
-        );
+        new StreamVault(weth, keeper, "StreamVaultTest", "SVT", vaultParams);
     }
 }
