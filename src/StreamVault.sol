@@ -90,7 +90,11 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Initializes the contract with immutable variables
-     * @param _weth is the Wrapped Ether contract
+     * @param _weth is the Wrapped Native token contract
+     * @param _keeper is the role that will handle funds and advancing rounds
+     * @param _tokenName is the token name of the share ERC-20
+     * @param _tokenSymbol is the token symbol of the share ERC-20
+     * @param _vaultParams is the `VaultParams` struct with general vault data
      */
     constructor(
         address _weth,
@@ -100,9 +104,14 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         Vault.VaultParams memory _vaultParams
     ) ReentrancyGuard() Ownable() ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
+        require(_keeper != address(0), "!_keeper");
+        require(_vaultParams.cap > 0, "!_cap");
+        require(_vaultParams.asset != address(0), "!_asset");
+
         WETH = _weth;
         keeper = _keeper;
         vaultParams = _vaultParams;
+
         uint256 assetBalance = IERC20(_vaultParams.asset).balanceOf(
             address(this)
         );
