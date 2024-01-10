@@ -47,6 +47,7 @@ contract StreamVaultTest is Test {
     address owner;
     uint104 vaultCap;
     uint56 minSupply;
+    uint256 singleShare = 10 ** 18;
 
     struct StateChecker {
         uint16 round;
@@ -914,15 +915,29 @@ contract StreamVaultTest is Test {
     /************************************************
      *  INTERNAL DEPOSIT FOR TESTS
      ***********************************************/
-    function test_depositRecieptIncreasesWhenDepositingSameRound(
-        uint16 depositAmount1,
-        uint16 depositAmount2
+
+    function test_depositReceiptCreatedForNewDepositer(
+        uint56 depositAmount
     ) public {
-        uint256 totalDeposit = uint256(depositAmount1) +
-            uint256(depositAmount2);
-        vm.assume(depositAmount1 > 0);
-        vm.assume(depositAmount2 > 0);
-        vm.deal(depositer1, totalDeposit);
+        vm.assume(depositAmount > minSupply);
+        assertDepositReceipt(DepositReceiptChecker(depositer1, 0, 0, 0));
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, uint104(depositAmount), 0)
+        );
+    }
+
+    function test_depositRecieptIncreasesWhenDepositingSameRound(
+        uint56 depositAmount1,
+        uint56 depositAmount2
+    ) public {
+        vm.assume(depositAmount1 > minSupply);
+        vm.assume(depositAmount2 > minSupply);
+        vm.deal(depositer1, depositAmount1);
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount1}();
 
@@ -950,7 +965,7 @@ contract StreamVaultTest is Test {
                 0 // currentRoundPricePerShare
             )
         );
-
+        vm.deal(depositer1, depositAmount2);
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount2}();
 
@@ -1022,6 +1037,270 @@ contract StreamVaultTest is Test {
         vm.startPrank(depositer1);
         vm.expectRevert("Insufficient balance");
         vault.depositETH{value: 0.000001 ether}();
+    }
+
+    function test_RevertIfTotalPendingDoesntFit128Bits(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _weth = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        vm.startPrank(depositer1);
+        vm.deal(depositer1, type(uint128).max);
+        vm.expectRevert("Exceed cap");
+        vault.depositETH{value: type(uint128).max}();
+    }
+
+    function test_vaultStateMaintainedThroughDeposits(
+        uint56 depositAmount1,
+        uint56 depositAmount2
+    ) public {
+        vm.assume(depositAmount1 > minSupply);
+        vm.assume(depositAmount2 > minSupply);
+        vm.deal(depositer1, depositAmount1);
+        vm.deal(depositer2, depositAmount2);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount1}();
+        vm.prank(depositer2);
+        vault.depositETH{value: depositAmount2}();
+
+        assertEq(
+            weth.balanceOf(address(vault)),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        // should have zero shares minted
+        assertEq(vault.balanceOf(address(vault)), 0);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount1, 0)
+        );
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer2, 1, depositAmount2, 0)
+        );
+
+        assertVaultState(
+            StateChecker(
+                1,
+                0,
+                0,
+                uint128(depositAmount1) + uint128(depositAmount2),
+                0,
+                0,
+                0,
+                0,
+                0
+            )
+        );
+
+        vm.prank(keeper);
+        vault.rollToNextRound(
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+
+        assertEq(
+            weth.balanceOf(keeper),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        assertEq(weth.balanceOf(address(vault)), 0);
+        assertEq(
+            vault.balanceOf(address(vault)),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        //deposit receipts shouldn't change yet
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount1, 0)
+        );
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer2, 1, depositAmount2, 0)
+        );
+
+        // vault state should change
+        assertVaultState(
+            StateChecker(
+                2,
+                uint104(depositAmount1) + uint104(depositAmount2),
+                0,
+                0,
+                0,
+                0,
+                0,
+                uint256(depositAmount1) + uint256(depositAmount2),
+                singleShare
+            )
+        );
+    }
+
+    function test_processesDepositFromPrevRound(
+        uint56 depositAmount1,
+        uint56 depositAmount2
+    ) public {
+        vm.assume(depositAmount1 > minSupply);
+        vm.assume(depositAmount2 > minSupply);
+        vm.deal(depositer1, depositAmount1);
+        vm.deal(depositer2, depositAmount2);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount1}();
+        vm.prank(depositer2);
+        vault.depositETH{value: depositAmount2}();
+
+        assertEq(
+            weth.balanceOf(address(vault)),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        // should have zero shares minted
+        assertEq(vault.balanceOf(address(vault)), 0);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount1, 0)
+        );
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer2, 1, depositAmount2, 0)
+        );
+
+        assertVaultState(
+            StateChecker(
+                1,
+                0,
+                0,
+                uint128(depositAmount1) + uint128(depositAmount2),
+                0,
+                0,
+                0,
+                0,
+                0
+            )
+        );
+
+        vm.prank(keeper);
+        vault.rollToNextRound(
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+
+        assertEq(
+            weth.balanceOf(keeper),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        assertEq(weth.balanceOf(address(vault)), 0);
+        assertEq(
+            vault.balanceOf(address(vault)),
+            uint256(depositAmount1) + uint256(depositAmount2)
+        );
+        //deposit receipts shouldn't change yet
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount1, 0)
+        );
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer2, 1, depositAmount2, 0)
+        );
+
+        // vault state should change
+        assertVaultState(
+            StateChecker(
+                2,
+                uint104(depositAmount1) + uint104(depositAmount2),
+                0,
+                0,
+                0,
+                0,
+                0,
+                uint256(depositAmount1) + uint256(depositAmount2),
+                singleShare
+            )
+        );
+
+        uint256 secondaryDepositAmt = 1 ether;
+        vm.deal(depositer1, secondaryDepositAmt);
+        vm.deal(depositer2, secondaryDepositAmt);
+        vm.prank(depositer1);
+        vault.depositETH{value: secondaryDepositAmt}();
+        vm.prank(depositer2);
+        vault.depositETH{value: secondaryDepositAmt}();
+
+        assertEq(weth.balanceOf(address(vault)), secondaryDepositAmt * 2);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(
+                depositer1,
+                2,
+                uint104(secondaryDepositAmt),
+                uint128(depositAmount1)
+            )
+        );
+
+        assertDepositReceipt(
+            DepositReceiptChecker(
+                depositer2,
+                2,
+                uint104(secondaryDepositAmt),
+                uint128(depositAmount2)
+            )
+        );
+
+        assertVaultState(
+            StateChecker(
+                2,
+                uint104(depositAmount1) + uint104(depositAmount2),
+                0,
+                uint128(secondaryDepositAmt * 2),
+                0,
+                0,
+                0,
+                uint256(depositAmount1) + uint256(depositAmount2),
+                singleShare
+            )
+        );
+    }
+
+    function test_RevertIfOverflowDepositAmt(
+        address _weth,
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _weth = address(dummyAsset);
+        vm.assume(_weth != address(0));
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            _weth,
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+        uint256 depositAmount = uint256(type(uint104).max) + uint256(1 ether);
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vm.expectRevert();
+        vault.depositETH{value: depositAmount}();
     }
 
     /************************************************
