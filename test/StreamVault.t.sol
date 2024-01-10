@@ -1304,6 +1304,62 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  DEPOSIT ETH TESTS
+     ***********************************************/
+
+    function test_RevertsIfVaultAssetIsntWETH(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vm.expectRevert("!WETH");
+        vault.depositETH{value: depositAmount}();
+    }
+
+    function test_RevertIfValueNotGreaterThanZero() public {
+        vm.startPrank(depositer1);
+        vm.expectRevert("!value");
+        vault.depositETH{value: 0}();
+    }
+
+    function test_contractReceivesWETH(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+    }
+
+    function test_RevertsIfInsufficientBalance(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount - 1);
+        vm.startPrank(depositer1);
+        vm.expectRevert();
+        vault.depositETH{value: depositAmount}();
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
