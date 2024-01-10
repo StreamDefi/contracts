@@ -46,6 +46,7 @@ contract StreamVaultTest is Test {
     address keeper2;
     address owner;
     uint104 vaultCap;
+    uint56 minSupply;
 
     struct StateChecker {
         uint16 round;
@@ -102,12 +103,13 @@ contract StreamVaultTest is Test {
         weth = new MockERC20("wrapped ether", "WETH");
         dummyAsset = new MockERC20("dummy asset", "DUMMY");
         vaultCap = uint104(10000000 * (10 ** 18));
+        minSupply = 0.001 ether;
 
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 18,
             asset: address(weth),
-            minimumSupply: uint56(1),
+            minimumSupply: minSupply,
             cap: vaultCap
         });
 
@@ -673,14 +675,14 @@ contract StreamVaultTest is Test {
             _tokenSymbol,
             _vaultParams
         );
-        (uint8 decimals, address asset, uint56 minSupply, uint104 cap) = vault
+        (uint8 decimals, address asset, uint56 _minSupply, uint104 cap) = vault
             .vaultParams();
 
         assertEq(vault.WETH(), _weth);
         assertEq(vault.keeper(), _keeper);
         assertEq(decimals, _vaultParams.decimals);
         assertEq(asset, address(dummyAsset));
-        assertEq(minSupply, _vaultParams.minimumSupply);
+        assertEq(_minSupply, _vaultParams.minimumSupply);
         assertEq(cap, _vaultParams.cap);
 
         (
@@ -978,6 +980,48 @@ contract StreamVaultTest is Test {
                 0 // currentRoundPricePerShare
             )
         );
+    }
+
+    function test_RevertIfDepositExceedsCap() public {
+        vm.deal(depositer1, vaultCap);
+        vm.prank(depositer1);
+        vault.depositETH{value: vaultCap}();
+
+        assertEq(weth.balanceOf(address(vault)), vaultCap);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(
+                depositer1, // depositer
+                1, // round
+                uint104(vaultCap), // amount
+                0 // unredeemed shares
+            )
+        );
+
+        assertVaultState(
+            StateChecker(
+                1, // round
+                0, // locked amount
+                0, // last lockedAmount
+                uint128(vaultCap), // total pending
+                0, // queuedWithdrawShares
+                0, // lastQueuedWithdrawAmount
+                0, // currentQueuedWithdrawShares
+                0, // totalShareSupply
+                0 // currentRoundPricePerShare
+            )
+        );
+
+        vm.deal(depositer1, 1 ether);
+        vm.startPrank(depositer1);
+        vm.expectRevert("Exceed cap");
+        vault.depositETH{value: 1 ether}();
+    }
+
+    function test_RevertIfDepositUnderMinSupply() public {
+        vm.startPrank(depositer1);
+        vm.expectRevert("Insufficient balance");
+        vault.depositETH{value: 0.000001 ether}();
     }
 
     /************************************************
