@@ -175,7 +175,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Mints the vault shares to the creditor
+     * @notice Manages the deposit receipts for a depositer
      * @param amount is the amount of `asset` deposited
      * @param creditor is the address to receieve the deposit
      */
