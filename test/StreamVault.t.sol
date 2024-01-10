@@ -910,6 +910,77 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  INTERNAL DEPOSIT FOR TESTS
+     ***********************************************/
+    function test_depositRecieptIncreasesWhenDepositingSameRound(
+        uint16 depositAmount1,
+        uint16 depositAmount2
+    ) public {
+        uint256 totalDeposit = uint256(depositAmount1) +
+            uint256(depositAmount2);
+        vm.assume(depositAmount1 > 0);
+        vm.assume(depositAmount2 > 0);
+        vm.deal(depositer1, totalDeposit);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount1}();
+
+        assertEq(weth.balanceOf(address(vault)), depositAmount1);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(
+                depositer1, // depositer
+                1, // round
+                depositAmount1, // amount
+                0 // unredeemed shares
+            )
+        );
+
+        assertVaultState(
+            StateChecker(
+                1, // round
+                0, // locked amount
+                0, // last lockedAmount
+                uint128(depositAmount1), // total pending
+                0, // queuedWithdrawShares
+                0, // lastQueuedWithdrawAmount
+                0, // currentQueuedWithdrawShares
+                0, // totalShareSupply
+                0 // currentRoundPricePerShare
+            )
+        );
+
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount2}();
+
+        assertEq(
+            weth.balanceOf(address(vault)),
+            uint256(depositAmount2) + uint256(depositAmount1)
+        );
+        assertDepositReceipt(
+            DepositReceiptChecker(
+                depositer1,
+                1,
+                uint104(depositAmount1) + uint104(depositAmount2),
+                0
+            )
+        );
+
+        assertVaultState(
+            StateChecker(
+                1, // round
+                0, // locked amount
+                0, // last lockedAmount
+                uint128(depositAmount1) + uint128(depositAmount2), // total pending
+                0, // queuedWithdrawShares
+                0, // lastQueuedWithdrawAmount
+                0, // currentQueuedWithdrawShares
+                0, // totalShareSupply
+                0 // currentRoundPricePerShare
+            )
+        );
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
@@ -925,6 +996,7 @@ contract StreamVaultTest is Test {
         uint256 currentQueuedWithdrawShares = vault
             .currentQueuedWithdrawShares();
         uint256 currentRoundPricePerShare;
+
         if (state.round == 1) {
             currentRoundPricePerShare = vault.roundPricePerShare(round);
         } else {
