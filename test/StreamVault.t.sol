@@ -1304,6 +1304,112 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  DEPOSIT TESTS
+     ***********************************************/
+
+    function test_RevertIfAmountNotGreaterThanZero() public {
+        vm.startPrank(depositer1);
+        vm.expectRevert("!amount");
+        vault.deposit(0);
+    }
+
+    function test_vaultReceivesToken(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        dummyAsset.mint(depositer1, depositAmount);
+
+        vm.startPrank(depositer1);
+        dummyAsset.approve(address(vault), depositAmount);
+        vault.deposit(depositAmount);
+
+        assertEq(dummyAsset.balanceOf(address(vault)), depositAmount);
+    }
+
+    function test_RevertsIfInsufficientBalanceToken(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        dummyAsset.mint(depositer1, depositAmount - 1);
+
+        vm.startPrank(depositer1);
+        dummyAsset.approve(address(vault), depositAmount - 1);
+        vm.expectRevert();
+        vault.deposit(depositAmount);
+    }
+
+    function test_RevertIfDepositingWrongAsset(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        weth.mint(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        weth.approve(address(vault), depositAmount);
+        vm.expectRevert();
+        vault.deposit(depositAmount);
+    }
+
+    /************************************************
      *  DEPOSIT ETH TESTS
      ***********************************************/
 
@@ -1342,7 +1448,7 @@ contract StreamVaultTest is Test {
         vault.depositETH{value: 0}();
     }
 
-    function test_contractReceivesWETH(uint56 depositAmount) public {
+    function test_vaultReceivesWETH(uint56 depositAmount) public {
         vm.assume(depositAmount > minSupply);
         vm.deal(depositer1, depositAmount);
         vm.prank(depositer1);
@@ -1351,7 +1457,7 @@ contract StreamVaultTest is Test {
         assertEq(weth.balanceOf(address(vault)), depositAmount);
     }
 
-    function test_RevertsIfInsufficientBalance(uint56 depositAmount) public {
+    function test_RevertsIfInsufficientBalanceETH(uint56 depositAmount) public {
         vm.assume(depositAmount > minSupply);
         vm.deal(depositer1, depositAmount - 1);
         vm.startPrank(depositer1);
