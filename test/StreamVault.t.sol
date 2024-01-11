@@ -1642,6 +1642,221 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  SHARES GETTER TESTS
+     ***********************************************/
+
+    function test_returnsUnredeemedSharesSingle(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        // shouldn't have any shares until round rollover
+        assertEq(vault.shares(depositer1), 0);
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        // should now have shares
+        assertEq(vault.shares(depositer1), depositAmount);
+    }
+
+    function test_returnUnredeemedSharesMultiple(
+        uint56[5] memory depositAmounts
+    ) public {
+        uint256 totalAmount;
+        for (uint i = 0; i < 5; ++i) {
+            vm.assume(depositAmounts[i] > minSupply);
+            vm.deal(depositors[i], depositAmounts[i]);
+            vm.prank(depositors[i]);
+            vault.depositETH{value: depositAmounts[i]}();
+            totalAmount += uint256(depositAmounts[i]);
+        }
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(vault.shares(depositors[i]), 0);
+        }
+
+        vm.prank(keeper);
+        vault.rollToNextRound(totalAmount);
+
+        uint256 pricePerShare = vault.roundPricePerShare(1);
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(
+                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                vault.shares(depositors[i])
+            );
+        }
+    }
+
+    function test_returnsRedeemedSharesSingle(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        // shouldn't have any shares until round rollover
+        assertEq(vault.shares(depositer1), 0);
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.maxRedeem();
+
+        assertEq(vault.shares(depositer1), depositAmount);
+    }
+
+    function test_returnsRedeemedSharesMultiple(
+        uint56[5] memory depositAmounts
+    ) public {
+        uint256 totalAmount;
+        for (uint i = 0; i < 5; ++i) {
+            vm.assume(depositAmounts[i] > minSupply);
+            vm.deal(depositors[i], depositAmounts[i]);
+            vm.prank(depositors[i]);
+            vault.depositETH{value: depositAmounts[i]}();
+            totalAmount += uint256(depositAmounts[i]);
+        }
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(vault.shares(depositors[i]), 0);
+        }
+
+        vm.prank(keeper);
+        vault.rollToNextRound(totalAmount);
+
+        for (uint i = 0; i < 5; ++i) {
+            vm.prank(depositors[i]);
+            vault.maxRedeem();
+        }
+
+        uint256 pricePerShare = vault.roundPricePerShare(1);
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(
+                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                vault.shares(depositors[i])
+            );
+        }
+    }
+
+    function test_returnsUnredeemedAndRedeemedSharesSingle(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        // shouldn't have any shares until round rollover
+        assertEq(vault.shares(depositer1), 0);
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.maxRedeem();
+
+        assertEq(vault.shares(depositer1), depositAmount);
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(uint256(depositAmount) * 2);
+
+        assertEq(vault.shares(depositer1), uint256(depositAmount) * 2);
+    }
+
+    function test_returnsUnredeemedAndRedeemedSharesMultiple(
+        uint56[5] memory depositAmounts
+    ) public {
+        uint256 totalAmount;
+        for (uint i = 0; i < 5; ++i) {
+            vm.assume(depositAmounts[i] > minSupply);
+            vm.deal(depositors[i], depositAmounts[i]);
+            vm.prank(depositors[i]);
+            vault.depositETH{value: depositAmounts[i]}();
+            totalAmount += uint256(depositAmounts[i]);
+        }
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(vault.shares(depositors[i]), 0);
+        }
+
+        vm.prank(keeper);
+        vault.rollToNextRound(totalAmount);
+
+        for (uint i = 0; i < 5; ++i) {
+            vm.prank(depositors[i]);
+            vault.maxRedeem();
+        }
+
+        uint256 pricePerShare = vault.roundPricePerShare(1);
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(
+                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                vault.shares(depositors[i])
+            );
+        }
+
+        for (uint i = 0; i < 5; ++i) {
+            vm.deal(depositors[i], depositAmounts[i]);
+            vm.prank(depositors[i]);
+            vault.depositETH{value: depositAmounts[i]}();
+        }
+
+        vm.prank(keeper);
+        vault.rollToNextRound(totalAmount * 2);
+
+        pricePerShare = vault.roundPricePerShare(2);
+
+        for (uint i = 0; i < 5; ++i) {
+            assertEq(
+                (uint256(depositAmounts[i]) * 2 * (10 ** 18)) / pricePerShare,
+                vault.shares(depositors[i])
+            );
+        }
+    }
+
+    function test_returnsSharesAfterDoubleDeposit(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        // shouldn't have any shares until round rollover
+        assertEq(vault.shares(depositer1), 0);
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.maxRedeem();
+
+        assertEq(vault.shares(depositer1), depositAmount);
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(uint256(depositAmount) * 2);
+
+        assertEq(vault.shares(depositer1), uint256(depositAmount) * 2);
+
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+
+        assertEq(vault.shares(depositer1), uint256(depositAmount) * 2);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
