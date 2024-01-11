@@ -1937,6 +1937,155 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  WITHDRAW INSTANTLY TESTS
+     ***********************************************/
+
+    function test_RevertsIfAmountIsNotGreaterThanZero() public {
+        uint256 depositAmount = 1 ether;
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.expectRevert("!amount");
+        vault.withdrawInstantly(0);
+    }
+
+    function test_RevertsIfInstantWithdrawExceedsDepositAmount(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.expectRevert("Exceed amount");
+        vault.withdrawInstantly(uint256(depositAmount) + 1);
+    }
+
+    function test_RevertsIfAttemptingInstantWithdrawInPrevRound(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.startPrank(depositer1);
+        vm.expectRevert("Invalid round");
+        vault.withdrawInstantly(depositAmount);
+    }
+
+    function test_fullInstantWithdrawUpdatesDepositReceipt(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount);
+
+        assertDepositReceipt(DepositReceiptChecker(depositer1, 1, 0, 0));
+    }
+
+    function test_partialInstantWIthdrawUpdatesDepositReceipt() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount / 2);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount / 2, 0)
+        );
+    }
+
+    function test_fullInstantWithdrawUpdatesTotalPending(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        (, , , uint128 totalPending, ) = vault.vaultState();
+        assertEq(totalPending, depositAmount);
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount);
+
+        (, , , totalPending, ) = vault.vaultState();
+        assertEq(totalPending, 0);
+    }
+
+    function test_partialInstantWithdrawUpdatesTotalPending() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        (, , , uint128 totalPending, ) = vault.vaultState();
+        assertEq(totalPending, depositAmount);
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount / 2);
+        (, , , totalPending, ) = vault.vaultState();
+        assertEq(totalPending, depositAmount / 2);
+    }
+
+    function test_fullInstantWithdrawUpdatesBalancesProperly(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(address(depositer1).balance, 0);
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount);
+
+        assertEq(address(depositer1).balance, depositAmount);
+        assertEq(weth.balanceOf(address(vault)), 0);
+    }
+
+    function test_partialInstantWithdrawUpdatesBalancesProperly() public {
+        uint104 depositAmount = 1 ether;
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertEq(address(depositer1).balance, 0);
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.prank(depositer1);
+        vault.withdrawInstantly(depositAmount / 2);
+
+        assertEq(address(depositer1).balance, depositAmount / 2);
+        assertEq(weth.balanceOf(address(vault)), depositAmount / 2);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
