@@ -2086,6 +2086,26 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  INITIATE WITHDRAW TESTS
+     ***********************************************/
+
+    function test_RevertIfInitatingZeroShareWithdraw(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.startPrank(depositer1);
+        vm.expectRevert("!numShares");
+        vault.initiateWithdraw(0);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
