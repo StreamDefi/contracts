@@ -1344,6 +1344,10 @@ contract StreamVaultTest is Test {
         vault.deposit(depositAmount);
 
         assertEq(dummyAsset.balanceOf(address(vault)), depositAmount);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
     }
 
     function test_RevertsIfInsufficientBalanceToken(
@@ -1410,6 +1414,175 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  DEPOSIT FOR TESTS
+     ***********************************************/
+
+    function test_vaultReceivesDepositForTokenOnCreditorBehalf(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        dummyAsset.mint(depositer2, depositAmount);
+
+        uint256 preCreditorBalance = dummyAsset.balanceOf(depositer1);
+
+        vm.startPrank(depositer2);
+        dummyAsset.approve(address(vault), depositAmount);
+        vault.depositFor(depositAmount, depositer1);
+
+        uint256 postCreditorBalance = dummyAsset.balanceOf(depositer1);
+        assertEq(preCreditorBalance, postCreditorBalance);
+
+        assertEq(dummyAsset.balanceOf(address(vault)), depositAmount);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+    }
+
+    function test_RevertIfDepositForAmtIsNotGreaterThanZero(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        vm.startPrank(depositer2);
+
+        vm.expectRevert("!amount");
+        vault.depositFor(0, depositer1);
+    }
+
+    function test_RevertIfDepositForZeroAdr(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        dummyAsset.mint(depositer2, depositAmount);
+
+        vm.startPrank(depositer2);
+        dummyAsset.approve(address(vault), depositAmount);
+        vm.expectRevert("!creditor");
+        vault.depositFor(depositAmount, address(0));
+    }
+
+    function test_RevertsIfInsufficientBalanceTokenInDepositFor(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        dummyAsset.mint(depositer2, depositAmount - 1);
+
+        vm.startPrank(depositer2);
+        dummyAsset.approve(address(vault), depositAmount - 1);
+        vm.expectRevert();
+        vault.depositFor(depositAmount, depositer1);
+    }
+
+    function test_RevertIfDepositingWrongAssetInDepositFor(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        _vaultParams.minimumSupply = minSupply;
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        weth.mint(depositer2, depositAmount);
+        vm.startPrank(depositer2);
+        weth.approve(address(vault), depositAmount);
+        vm.expectRevert();
+        vault.depositFor(depositAmount, depositer1);
+    }
+
+    /************************************************
      *  DEPOSIT ETH TESTS
      ***********************************************/
 
@@ -1455,6 +1628,9 @@ contract StreamVaultTest is Test {
         vault.depositETH{value: depositAmount}();
 
         assertEq(weth.balanceOf(address(vault)), depositAmount);
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
     }
 
     function test_RevertsIfInsufficientBalanceETH(uint56 depositAmount) public {

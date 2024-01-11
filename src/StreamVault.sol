@@ -162,7 +162,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         address creditor
     ) external nonReentrant {
         require(amount > 0, "!amount");
-        require(creditor != address(0));
+        require(creditor != address(0), "!creditor");
 
         _depositFor(amount, creditor);
 
