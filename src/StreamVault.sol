@@ -174,6 +174,16 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         );
     }
 
+    function depositETHFor(address creditor) external payable nonReentrant {
+        require(vaultParams.asset == WETH, "!WETH");
+        require(msg.value > 0, "!value");
+        require(creditor != address(0), "!creditor");
+
+        _depositFor(msg.value, creditor);
+
+        IWETH(WETH).deposit{value: msg.value}();
+    }
+
     /**
      * @notice Manages the deposit receipts for a depositer
      * @param amount is the amount of `asset` deposited
