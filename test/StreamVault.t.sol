@@ -1414,7 +1414,87 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
-     *  DEPOSIT FOR TESTS
+     *  EXTERNAL DEPOSIT ETH FOR TESTS
+     ***********************************************/
+    function test_vaultReceivesDepositETHForOnCreditorBehalf(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        uint256 preCreditorBalance = address(depositer1).balance;
+        vm.startPrank(depositer2);
+        vm.deal(depositer2, depositAmount);
+        vault.depositETHFor{value: depositAmount}(depositer1);
+
+        uint256 postCreditorBalance = address(depositer1).balance;
+        assertEq(preCreditorBalance, postCreditorBalance);
+
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        assertDepositReceipt(
+            DepositReceiptChecker(depositer1, 1, depositAmount, 0)
+        );
+
+        assertDepositReceipt(DepositReceiptChecker(depositer2, 0, 0, 0));
+    }
+
+    function test_RevertIfDepositETHForAmtIsNotGreaterThanZero() public {
+        vm.startPrank(depositer2);
+        vm.expectRevert("!value");
+        vault.depositETHFor{value: 0}(depositer1);
+    }
+
+    function test_RevertIfDepositETHForZeroAdr(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+
+        vm.deal(depositer2, depositAmount);
+
+        vm.startPrank(depositer2);
+        dummyAsset.approve(address(vault), depositAmount);
+        vm.expectRevert("!creditor");
+        vault.depositFor(depositAmount, address(0));
+    }
+
+    function test_RevertsIfVaultAssetIsntWETHInDepositForETH(
+        address _keeper,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams,
+        uint56 depositAmount
+    ) public {
+        _vaultParams.cap = type(uint104).max;
+        _vaultParams.asset = address(dummyAsset);
+        vm.assume(_keeper != address(0));
+        vm.assume(_vaultParams.cap > 0);
+        vm.assume(_vaultParams.asset != address(0));
+        vm.assume(depositAmount > minSupply);
+
+        vm.prank(owner);
+        vault = new StreamVault(
+            address(weth),
+            _keeper,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
+
+        vm.deal(depositer2, depositAmount);
+        vm.startPrank(depositer2);
+        vm.expectRevert("!WETH");
+        vault.depositETHFor{value: depositAmount}(depositer1);
+    }
+
+    function test_RevertsIfInsufficientBalanceETHInDepositFor(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer2, depositAmount - 1);
+        vm.startPrank(depositer2);
+        vm.expectRevert();
+        vault.depositETHFor{value: depositAmount}(depositer1);
+    }
+
+    /************************************************
+     *  EXTERNAL DEPOSIT FOR TESTS
      ***********************************************/
 
     function test_vaultReceivesDepositForTokenOnCreditorBehalf(
