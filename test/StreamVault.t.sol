@@ -2274,6 +2274,218 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  COMPLETE WITHDRAW TESTS
+     ***********************************************/
+
+    function test_RevertIfNoWithdrawInitiated(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.startPrank(depositer1);
+        vm.expectRevert("Not initiated");
+        vault.completeWithdraw();
+    }
+
+    function test_RevertIfCompletingWithdrawPreMaturely(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.startPrank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+        vm.expectRevert("Round not closed");
+        vault.completeWithdraw();
+    }
+
+    function test_updatesWithdrawReceiptAfterCompleting(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 0, 0));
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, withdrawAmount)
+        );
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        vm.prank(depositer1);
+        vault.completeWithdraw();
+
+        assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 2, 0));
+    }
+
+    function test_withdrawerReceivesFundsFromVault(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        assertEq(weth.balanceOf(address(vault)), depositAmount);
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertEq(weth.balanceOf(keeper), depositAmount);
+        assertEq(weth.balanceOf(address(vault)), 0);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        assertEq(weth.balanceOf(keeper), depositAmount);
+        assertEq(weth.balanceOf(address(vault)), 0);
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        assertEq(weth.balanceOf(address(vault)), withdrawAmount);
+        assertEq(weth.balanceOf(keeper), depositAmount - withdrawAmount);
+
+        uint256 preBal = depositer1.balance;
+
+        vm.prank(depositer1);
+        vault.completeWithdraw();
+
+        uint256 postBal = depositer1.balance;
+
+        assertEq(weth.balanceOf(keeper), depositAmount - withdrawAmount);
+        assertEq(weth.balanceOf(address(vault)), 0);
+        assertEq(preBal + uint256(withdrawAmount), postBal);
+    }
+
+    function test_queuedWithdrawSharesIsProperlyMaintained(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        (, , , , uint128 queuedWithdrawShares) = vault.vaultState();
+
+        assertEq(queuedWithdrawShares, withdrawAmount);
+
+        vm.prank(depositer1);
+        vault.completeWithdraw();
+        (, , , , queuedWithdrawShares) = vault.vaultState();
+        assertEq(queuedWithdrawShares, 0);
+    }
+
+    function test_sharesGetBurnedOnComplete(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        assertEq(vault.totalSupply(), depositAmount);
+
+        vm.prank(depositer1);
+        vault.completeWithdraw();
+
+        assertEq(
+            vault.totalSupply(),
+            uint256(depositAmount) - uint256(withdrawAmount)
+        );
+    }
+
+    function test_lastQueuedWithdrawAmountIsProperlyMaintained(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        assertEq(vault.lastQueuedWithdrawAmount(), withdrawAmount);
+
+        vm.prank(depositer1);
+        vault.completeWithdraw();
+
+        assertEq(vault.lastQueuedWithdrawAmount(), 0);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
