@@ -1845,8 +1845,10 @@ contract StreamVaultTest is Test {
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount}();
 
-        vm.prank(keeper);
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
         vault.rollToNextRound(uint256(depositAmount) * 2);
+        vm.stopPrank();
 
         assertEq(vault.shares(depositer1), uint256(depositAmount) * 2);
     }
@@ -1890,8 +1892,10 @@ contract StreamVaultTest is Test {
             vault.depositETH{value: depositAmounts[i]}();
         }
 
-        vm.prank(keeper);
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), totalAmount);
         vault.rollToNextRound(totalAmount * 2);
+        vm.stopPrank();
 
         pricePerShare = vault.roundPricePerShare(2);
 
@@ -1924,8 +1928,10 @@ contract StreamVaultTest is Test {
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount}();
 
-        vm.prank(keeper);
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
         vault.rollToNextRound(uint256(depositAmount) * 2);
+        vm.stopPrank();
 
         assertEq(vault.shares(depositer1), uint256(depositAmount) * 2);
 
@@ -2103,6 +2109,168 @@ contract StreamVaultTest is Test {
         vm.startPrank(depositer1);
         vm.expectRevert("!numShares");
         vault.initiateWithdraw(0);
+    }
+
+    function test_maxRedeemsIfDepositerHasUnredeemedShares(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertEq(vault.balanceOf(address(vault)), depositAmount);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        // vault max redeems and transfers back to value the amount withdrawn
+        assertEq(vault.balanceOf(depositer1), depositAmount - withdrawAmount);
+        assertEq(vault.balanceOf(address(vault)), withdrawAmount);
+    }
+
+    function test_RevertIfDepositerHasNoUnreedeemedShares(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        vm.expectRevert();
+        vault.initiateWithdraw(depositAmount);
+    }
+
+    function test_withdrawReceiptCreatedForNewWithdraw(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 0, 0));
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, withdrawAmount)
+        );
+    }
+
+    function test_doubleWithdrawAddsToWithdrawalReceipt(
+        uint56 depositAmount,
+        uint56 withdrawAmount1,
+        uint56 withdrawAmount2
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount1 < depositAmount);
+        vm.assume(withdrawAmount2 > 0);
+        vm.assume(withdrawAmount2 < depositAmount);
+        vm.assume(
+            uint256(withdrawAmount1) + uint256(withdrawAmount2) <=
+                uint256(depositAmount)
+        );
+        vm.assume(withdrawAmount1 > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertWithdrawalReceipt(WithdrawalReceiptChecker(depositer1, 0, 0));
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount1);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(depositer1, 2, withdrawAmount1)
+        );
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount2);
+
+        assertWithdrawalReceipt(
+            WithdrawalReceiptChecker(
+                depositer1,
+                2,
+                withdrawAmount1 + withdrawAmount2
+            )
+        );
+    }
+
+    function test_RevertIfUserHasInsufficientShares(
+        uint56 depositAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.startPrank(depositer1);
+        vm.expectRevert();
+        vault.initiateWithdraw(depositAmount + 1);
+    }
+
+    function test_RevertIfDoubleInitiatingWithdrawInSepRounds() public {
+        uint256 depositAmount = 1 ether;
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(depositAmount / 2);
+
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount);
+        vm.stopPrank();
+
+        vm.startPrank(depositer1);
+        vm.expectRevert("Existing withdraw");
+        vault.initiateWithdraw(depositAmount / 2);
+    }
+
+    function test_currentQueuedWithdrawSharesIsMaintained(
+        uint56 depositAmount,
+        uint56 withdrawAmount
+    ) public {
+        vm.assume(depositAmount > minSupply);
+        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(withdrawAmount > 0);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        assertEq(vault.currentQueuedWithdrawShares(), 0);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(withdrawAmount);
+
+        assertEq(vault.currentQueuedWithdrawShares(), withdrawAmount);
     }
 
     /************************************************
