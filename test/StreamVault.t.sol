@@ -2594,6 +2594,60 @@ contract StreamVaultTest is Test {
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
+    function test_shareBalancesReturnsProperly(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        (uint256 heldByAccount, uint256 heldByVault) = vault.shareBalances(
+            depositer1
+        );
+        assertEq(heldByAccount, 0, "heldByAccount should be 0");
+        assertEq(heldByVault, 0, "heldByVault should be 0");
+
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+
+        (heldByAccount, heldByVault) = vault.shareBalances(depositer1);
+        assertEq(heldByAccount, 0, "heldByAccount should still be 0");
+        assertEq(heldByVault, 0, "heldByVault should still be 0");
+
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        (heldByAccount, heldByVault) = vault.shareBalances(depositer1);
+        assertEq(heldByAccount, 0, "heldByAccount should still be 0");
+        assertEq(
+            heldByVault,
+            depositAmount,
+            "heldByVault should hold depositAMount"
+        );
+
+        vm.prank(depositer1);
+        vault.redeem(depositAmount - 100);
+
+        (heldByAccount, heldByVault) = vault.shareBalances(depositer1);
+        assertEq(
+            heldByAccount,
+            depositAmount - 100,
+            "heldByAccount should hold depositAmount - 100"
+        );
+        assertEq(heldByVault, 100, "heldByVault should hold 100");
+
+        vm.prank(depositer1);
+        vault.maxRedeem();
+
+        (heldByAccount, heldByVault) = vault.shareBalances(depositer1);
+        assertEq(
+            heldByAccount,
+            depositAmount,
+            "heldByAccount should hold depositAmount"
+        );
+        assertEq(heldByVault, 0, "heldByVault should hold 0");
+    }
+
+    /************************************************
+     *  HELPER STATE ASSERTIONS
+     ***********************************************/
+
     function assertVaultState(StateChecker memory state) public {
         (
             uint16 round,

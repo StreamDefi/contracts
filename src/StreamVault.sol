@@ -590,8 +590,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         address account
     ) public view returns (uint256 heldByAccount, uint256 heldByVault) {
         Vault.DepositReceipt memory depositReceipt = depositReceipts[account];
-        console.log("round ", depositReceipt.round);
-        console.log("balanceOf ", balanceOf(account));
+
         if (depositReceipt.round < ShareMath.PLACEHOLDER_UINT) {
             return (balanceOf(account), 0);
         }
