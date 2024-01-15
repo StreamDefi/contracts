@@ -2588,10 +2588,14 @@ contract StreamVaultTest is Test {
 
     function test_pricePerShare() public {
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        vm.deal(depositer1, 1 ether);
+        vm.deal(depositer1, 3 ether);
         vm.prank(depositer1);
         vault.depositETH{value: 1 ether}();
-        console.log(vault.pricePerShare());
-        // assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        weth.deposit{value: 1 ether}();
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+        weth.transfer(address(vault), 1 ether);
+        assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
     }
 }
