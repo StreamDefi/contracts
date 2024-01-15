@@ -2617,8 +2617,25 @@ contract StreamVaultTest is Test {
         vm.deal(depositer1, 3 ether);
         vm.prank(depositer1);
         vault.depositETH{value: 1 ether}();
+        console.log(vault.balanceOf(depositer1));
         vm.prank(keeper);
         vault.rollToNextRound(1 ether);
         assertEq(vault.totalBalance(), 1 ether);
     }
+
+    function test_getCurrQueuedWithdrawAmount() public {
+        assertEq(vault.getCurrQueuedWithdrawAmount(0), 0);
+        vm.deal(depositer1, 3 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(1 ether / 2);
+        assertEq(vault.getCurrQueuedWithdrawAmount(1 ether), 1 ether / 2);
+    }
+
+    
 }
