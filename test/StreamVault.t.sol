@@ -2599,26 +2599,26 @@ contract StreamVaultTest is Test {
         assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
     }
 
-    // ######## shareBalances
+    // function test_accountVaultBalance() public {
+    //     vm.prank(keeper);
+    //     vault.rollToNextRound(0);
 
-    function test_shareBalances() public {
-        (uint256 heldByAccount, uint256 heldByVault) = vault.shareBalances(
-            depositer1
-        );
-        assertEq(heldByAccount, 0, "heldByAccount should be 0");
-        assertEq(heldByVault, 0, "heldByVault should be 0");
+    //     assertEq(vault.accountVaultBalance(depositer1), 0);
+    //     vm.deal(depositer1, 3 ether);
+    //     vm.prank(depositer1);
+    //     vault.depositETH{value: 1 ether}();
+    //     assertEq(vault.accountVaultBalance(depositer1), 1 ether);
+    // }
 
+    function test_totalBalance() public {
+        vm.prank(keeper);
+        vault.rollToNextRound(0);
+
+        vm.deal(depositer1, 3 ether);
         vm.prank(depositer1);
-        vm.deal(depositer1, 2 ether);
         vault.depositETH{value: 1 ether}();
         vm.prank(keeper);
         vault.rollToNextRound(1 ether);
-        vm.prank(depositer1);
-        (heldByAccount, heldByVault) = vault.shareBalances(address(depositer1));
-        assertEq(heldByAccount, 1 ether, "heldByAccount should be 1 eth");
-        assertEq(heldByVault, 0 ether, "heldByVault should be 0 eth");
-
-
-
+        assertEq(vault.totalBalance(), 1 ether);
     }
 }
