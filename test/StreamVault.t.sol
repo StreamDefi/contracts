@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.4;
+pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {StreamVault} from "../src/StreamVault.sol";
@@ -2548,7 +2548,7 @@ contract StreamVaultTest is Test {
         assertEq(shares, receipt.shares);
     }
 
-    // #############
+    // ############# Utils
 
     function test_decimals() public {
         assertEq(vault.decimals(), 18);
@@ -2582,5 +2582,16 @@ contract StreamVaultTest is Test {
         vm.prank(depositer1);
         (payable(address(vault))).transfer(1 ether);
         assertEq(address(vault).balance, 1 ether);
+    }
+
+    // #########
+
+    function test_pricePerShare() public {
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+        console.log(vault.pricePerShare());
+        // assertEq(vault.pricePerShare(), 10 ** vault.decimals());
     }
 }

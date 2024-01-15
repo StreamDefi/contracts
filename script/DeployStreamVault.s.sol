@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.4;
+pragma solidity =0.8.20;
 import "forge-std/Script.sol";
 import {StreamVault} from "../src/StreamVault.sol";
 import {Vault} from "../src/lib/Vault.sol";

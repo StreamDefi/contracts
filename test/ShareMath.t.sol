@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.4;
+pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {ShareMath} from "../src/lib/ShareMath.sol";
