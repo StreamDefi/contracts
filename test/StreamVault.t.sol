@@ -2486,6 +2486,111 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  UTILS TEST
+     ***********************************************/
+
+    function test_decimals() public {
+        assertEq(vault.decimals(), 18);
+    }
+
+    function test_cap() public {
+        assertEq(vault.cap(), uint104(10000000 * (10 ** 18)));
+    }
+
+    function test_totalPending() public {
+        assertEq(vault.totalPending(), 0);
+
+        uint256 depositAmount = 1 ether;
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(vault.totalPending(), depositAmount);
+    }
+
+    function test_round() public {
+        assertEq(vault.round(), 1);
+        vm.prank(keeper);
+        vault.rollToNextRound(0);
+        assertEq(vault.round(), 2);
+    }
+
+    function test_receive() public {
+        assertEq(address(vault).balance, 0);
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        (payable(address(vault))).transfer(1 ether);
+        assertEq(address(vault).balance, 1 ether);
+    }
+
+    /************************************************
+     * PRICE PER SHARE TESTS
+     ***********************************************/
+
+    function test_pricePerShare() public {
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.deal(depositer1, 3 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        weth.deposit{value: 1 ether}();
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+        weth.transfer(address(vault), 1 ether);
+        assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
+    }
+
+    /************************************************
+     * ACCOUNT VAULT BALANCE TESTS
+     ***********************************************/
+
+    // function test_accountVaultBalance() public {
+    //     vm.prank(keeper);
+    //     vault.rollToNextRound(0);
+
+    //     assertEq(vault.accountVaultBalance(depositer1), 0);
+    //     vm.deal(depositer1, 3 ether);
+    //     vm.prank(depositer1);
+    //     vault.depositETH{value: 1 ether}();
+    //     assertEq(vault.accountVaultBalance(depositer1), 1 ether);
+    // }
+
+    /************************************************
+     * TOTAL BALANCE TESTS
+     ***********************************************/
+
+    function test_totalBalance() public {
+        vm.prank(keeper);
+        vault.rollToNextRound(0);
+
+        vm.deal(depositer1, 3 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+        console.log(vault.balanceOf(depositer1));
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+        assertEq(vault.totalBalance(), 1 ether);
+    }
+
+    /************************************************
+     * GET CURRENT QUEUED WITHDRAW AMOUNT TESTS
+     ***********************************************/
+
+    function test_getCurrQueuedWithdrawAmount() public {
+        assertEq(vault.getCurrQueuedWithdrawAmount(0), 0);
+        vm.deal(depositer1, 3 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+
+        vm.prank(depositer1);
+        vault.initiateWithdraw(1 ether / 2);
+        assertEq(vault.getCurrQueuedWithdrawAmount(1 ether), 1 ether / 2);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
@@ -2547,95 +2652,4 @@ contract StreamVaultTest is Test {
         assertEq(round, receipt.round);
         assertEq(shares, receipt.shares);
     }
-
-    // ############# Utils
-
-    function test_decimals() public {
-        assertEq(vault.decimals(), 18);
-    }
-
-    function test_cap() public {
-        assertEq(vault.cap(), uint104(10000000 * (10 ** 18)));
-    }
-
-    function test_totalPending() public {
-        assertEq(vault.totalPending(), 0);
-
-        uint256 depositAmount = 1 ether;
-        vm.assume(depositAmount > minSupply);
-        vm.deal(depositer1, depositAmount);
-        vm.prank(depositer1);
-        vault.depositETH{value: depositAmount}();
-        assertEq(vault.totalPending(), depositAmount);
-    }
-
-    function test_round() public {
-        assertEq(vault.round(), 1);
-        vm.prank(keeper);
-        vault.rollToNextRound(0);
-        assertEq(vault.round(), 2);
-    }
-
-    function test_receive() public {
-        assertEq(address(vault).balance, 0);
-        vm.deal(depositer1, 1 ether);
-        vm.prank(depositer1);
-        (payable(address(vault))).transfer(1 ether);
-        assertEq(address(vault).balance, 1 ether);
-    }
-
-    // ######### price per share
-
-    function test_pricePerShare() public {
-        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        vm.deal(depositer1, 3 ether);
-        vm.prank(depositer1);
-        vault.depositETH{value: 1 ether}();
-        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        weth.deposit{value: 1 ether}();
-        vm.prank(keeper);
-        vault.rollToNextRound(1 ether);
-        weth.transfer(address(vault), 1 ether);
-        assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
-    }
-
-    // function test_accountVaultBalance() public {
-    //     vm.prank(keeper);
-    //     vault.rollToNextRound(0);
-
-    //     assertEq(vault.accountVaultBalance(depositer1), 0);
-    //     vm.deal(depositer1, 3 ether);
-    //     vm.prank(depositer1);
-    //     vault.depositETH{value: 1 ether}();
-    //     assertEq(vault.accountVaultBalance(depositer1), 1 ether);
-    // }
-
-    function test_totalBalance() public {
-        vm.prank(keeper);
-        vault.rollToNextRound(0);
-
-        vm.deal(depositer1, 3 ether);
-        vm.prank(depositer1);
-        vault.depositETH{value: 1 ether}();
-        console.log(vault.balanceOf(depositer1));
-        vm.prank(keeper);
-        vault.rollToNextRound(1 ether);
-        assertEq(vault.totalBalance(), 1 ether);
-    }
-
-    function test_getCurrQueuedWithdrawAmount() public {
-        assertEq(vault.getCurrQueuedWithdrawAmount(0), 0);
-        vm.deal(depositer1, 3 ether);
-        vm.prank(depositer1);
-        vault.depositETH{value: 1 ether}();
-
-        vm.prank(keeper);
-        vault.rollToNextRound(1 ether);
-
-        vm.prank(depositer1);
-        vault.initiateWithdraw(1 ether / 2);
-        assertEq(vault.getCurrQueuedWithdrawAmount(1 ether), 1 ether / 2);
-    }
-
-    
 }
