@@ -2602,7 +2602,23 @@ contract StreamVaultTest is Test {
     // ######## shareBalances
 
     function test_shareBalances() public {
-        // TODO: shareBalances
+        (uint256 heldByAccount, uint256 heldByVault) = vault.shareBalances(
+            depositer1
+        );
+        assertEq(heldByAccount, 0, "heldByAccount should be 0");
+        assertEq(heldByVault, 0, "heldByVault should be 0");
+
+        vm.prank(depositer1);
+        vm.deal(depositer1, 2 ether);
+        vault.depositETH{value: 1 ether}();
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+        vm.prank(depositer1);
+        (heldByAccount, heldByVault) = vault.shareBalances(address(depositer1));
+        assertEq(heldByAccount, 1 ether, "heldByAccount should be 1 eth");
+        assertEq(heldByVault, 0 ether, "heldByVault should be 0 eth");
+
+
 
     }
 }

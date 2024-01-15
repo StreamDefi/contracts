@@ -433,7 +433,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.totalPending = 0;
         vaultState.round = uint16(currentRound + 1);
-        console.log("round ", vaultState.round);
 
         uint256 mintShares = ShareMath.assetToShares(
             state.totalPending,
