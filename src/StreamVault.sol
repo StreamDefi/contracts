@@ -442,7 +442,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         _mint(address(this), mintShares);
 
-        // lastQueuedWithdrawAmount = queuedWithdrawAmount;
         uint256 queuedWithdrawAmount = lastQueuedWithdrawAmount +
             ShareMath.sharesToAsset(
                 currentQueuedWithdrawShares,
