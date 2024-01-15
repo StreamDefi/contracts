@@ -2645,6 +2645,19 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
+     *  EXTERNAL REDEEM TESTS
+     ***********************************************/
+
+    function test_RevertIfRedeemingZero(uint56 depositAmount) public {
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.startPrank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        vm.expectRevert("!numShares");
+        vault.redeem(0);
+    }
+
+    /************************************************
      *  HELPER STATE ASSERTIONS
      ***********************************************/
 
