@@ -2547,4 +2547,40 @@ contract StreamVaultTest is Test {
         assertEq(round, receipt.round);
         assertEq(shares, receipt.shares);
     }
+
+    // #############
+
+    function test_decimals() public {
+        assertEq(vault.decimals(), 18);
+    }
+
+    function test_cap() public {
+        assertEq(vault.cap(), uint104(10000000 * (10 ** 18)));
+    }
+
+    function test_totalPending() public {
+        assertEq(vault.totalPending(), 0);
+
+        uint256 depositAmount = 1 ether;
+        vm.assume(depositAmount > minSupply);
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(vault.totalPending(), depositAmount);
+    }
+
+    function test_round() public {
+        assertEq(vault.round(), 1);
+        vm.prank(keeper);
+        vault.rollToNextRound(0);
+        assertEq(vault.round(), 2);
+    }
+
+    function test_receive() public {
+        assertEq(address(vault).balance, 0);
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        (payable(address(vault))).transfer(1 ether);
+        assertEq(address(vault).balance, 1 ether);
+    }
 }
