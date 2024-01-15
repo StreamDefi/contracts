@@ -9,6 +9,7 @@ import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "forge-std/console.sol";
 
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -432,6 +433,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.totalPending = 0;
         vaultState.round = uint16(currentRound + 1);
+        console.log("round ", vaultState.round);
 
         uint256 mintShares = ShareMath.assetToShares(
             state.totalPending,
@@ -590,7 +592,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         address account
     ) public view returns (uint256 heldByAccount, uint256 heldByVault) {
         Vault.DepositReceipt memory depositReceipt = depositReceipts[account];
-
+        console.log("round ", depositReceipt.round);
+        console.log("balanceOf ", balanceOf(account));
         if (depositReceipt.round < ShareMath.PLACEHOLDER_UINT) {
             return (balanceOf(account), 0);
         }

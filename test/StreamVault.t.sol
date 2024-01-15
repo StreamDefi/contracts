@@ -2584,7 +2584,7 @@ contract StreamVaultTest is Test {
         assertEq(address(vault).balance, 1 ether);
     }
 
-    // #########
+    // ######### price per share
 
     function test_pricePerShare() public {
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
@@ -2597,5 +2597,12 @@ contract StreamVaultTest is Test {
         vault.rollToNextRound(1 ether);
         weth.transfer(address(vault), 1 ether);
         assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
+    }
+
+    // ######## shareBalances
+
+    function test_shareBalances() public {
+        // TODO: shareBalances
+
     }
 }
