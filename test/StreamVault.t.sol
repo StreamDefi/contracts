@@ -2628,16 +2628,18 @@ contract StreamVaultTest is Test {
      * ACCOUNT VAULT BALANCE TESTS
      ***********************************************/
 
-    // function test_accountVaultBalance() public {
-    //     vm.prank(keeper);
-    //     vault.rollToNextRound(0);
+    function test_accountVaultBalance() public {
+        assertEq(vault.accountVaultBalance(depositer1), 0);
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
+        // doesn't account for current round deposits
+        assertEq(vault.accountVaultBalance(depositer1), 0);
 
-    //     assertEq(vault.accountVaultBalance(depositer1), 0);
-    //     vm.deal(depositer1, 3 ether);
-    //     vm.prank(depositer1);
-    //     vault.depositETH{value: 1 ether}();
-    //     assertEq(vault.accountVaultBalance(depositer1), 1 ether);
-    // }
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+        assertEq(vault.accountVaultBalance(depositer1), 1 ether);
+    }
 
     /************************************************
      * TOTAL BALANCE TESTS
