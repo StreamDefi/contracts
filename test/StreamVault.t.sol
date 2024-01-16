@@ -2526,17 +2526,95 @@ contract StreamVaultTest is Test {
      * PRICE PER SHARE TESTS
      ***********************************************/
 
-    function test_pricePerShare() public {
+    function test_pricePerShareNoDeposits() public {
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        vm.deal(depositer1, 3 ether);
+        // vm.deal(depositer1, 3 ether);
+        // vm.prank(depositer1);
+        // vault.depositETH{value: 1 ether}();
+        // assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        // weth.deposit{value: 1 ether}();
+        // vm.prank(keeper);
+        // vault.rollToNextRound(1 ether);
+        // weth.transfer(address(vault), 1 ether);
+        // assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
+    }
+
+    function test_pricePerShareStaysConsistentWithNoProfit() public {
+        uint256 depositAmount = 1 ether;
+        uint256 depositAmount2 = 0.4 ether;
+        vm.deal(depositer1, depositAmount);
         vm.prank(depositer1);
-        vault.depositETH{value: 1 ether}();
+        vault.depositETH{value: depositAmount}();
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        weth.deposit{value: 1 ether}();
         vm.prank(keeper);
-        vault.rollToNextRound(1 ether);
-        weth.transfer(address(vault), 1 ether);
-        assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
+        vault.rollToNextRound(depositAmount);
+        vm.deal(depositer2, depositAmount2);
+        vm.prank(depositer2);
+        vault.depositETH{value: depositAmount2}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.startPrank(keeper);
+        weth.transfer(address(vault), depositAmount);
+        vault.rollToNextRound(depositAmount + depositAmount2);
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+    }
+
+    function test_pricePerShareWithProfit() public {
+        uint256 depositAmount = 1 ether;
+        uint256 depositAmount2 = 0.4 ether;
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.deal(depositer2, depositAmount2);
+        vm.prank(depositer2);
+        vault.depositETH{value: depositAmount2}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+
+        // assume vault operator returned 0.6 ETH profit from the initial 1 ether deposit
+        // this means 0.4/1.6 shares are minted on top of the 1 share already making total 1.25 shares outstanding
+        vm.startPrank(keeper);
+        vm.deal(keeper, 1 ether + 0.6 ether);
+        weth.deposit{value: 1 ether + 0.6 ether}();
+        weth.transfer(address(vault), 1 ether + 0.6 ether);
+        vault.rollToNextRound(depositAmount2 + depositAmount + 0.6 ether);
+
+        assertEq(
+            vault.pricePerShare(),
+            (2 ether * (10 ** vault.decimals())) / (depositAmount + 0.25 ether)
+        );
+    }
+
+    function test_pricePerShareWithLoss() public {
+        uint256 depositAmount = 1 ether;
+        uint256 depositAmount2 = 0.4 ether;
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.deal(depositer2, depositAmount2);
+        vm.prank(depositer2);
+        vault.depositETH{value: depositAmount2}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+
+        // assume vault operator incurred 0.2 ETH loss and returns 0.8 ETH
+        // this means 0.4/0.8 shares are minted on top of the 1 share for depositor 2
+        // making the total outstanding shares 1.5
+        vm.startPrank(keeper);
+        vm.deal(keeper, 0.8 ether);
+        weth.deposit{value: 0.8 ether}();
+        weth.transfer(address(vault), 0.8 ether);
+        vault.rollToNextRound(depositAmount2 + 0.8 ether);
+
+        assertEq(
+            vault.pricePerShare(),
+            (1.2 ether * (10 ** vault.decimals())) / (depositAmount + 0.5 ether)
+        );
     }
 
     /************************************************
