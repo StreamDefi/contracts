@@ -560,7 +560,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Returns the asset balance held on the vault for the account
+     * @notice Returns the asset balance held on the vault for the account not
+               accounting for current round deposits
      * @param account is the address to lookup balance for
      * @return the amount of `asset` custodied by the vault for the user
      */
