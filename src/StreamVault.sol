@@ -287,7 +287,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
+        Vault.Withdrawal memory withdrawal = withdrawals[msg.sender];
 
         bool withdrawalIsSameRound = withdrawal.round == currentRound;
 
