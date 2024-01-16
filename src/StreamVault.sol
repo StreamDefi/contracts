@@ -381,7 +381,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
             roundPricePerShare[depositReceipt.round],
             vaultParams.decimals
         );
-
+        console.log("currentRound ", currentRound);
+        console.log("depositReceipt.round ", depositReceipt.round);
+        console.log("roundPricePerShare[depositReceipt.round] ", roundPricePerShare[depositReceipt.round]);
+        console.log("unredeemedShares ", unredeemedShares);
         numShares = isMax ? unredeemedShares : numShares;
         if (numShares == 0) {
             return;

@@ -2683,5 +2683,7 @@ contract StreamVaultTest is Test {
         assertEq(weth.balanceOf(keeper), 1 ether);
     }
 
-    
+    function test_redeem() public {
+        vm.expectRevert("!numShares");
+    }
 }
