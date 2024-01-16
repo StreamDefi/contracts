@@ -2617,7 +2617,6 @@ contract StreamVaultTest is Test {
         vm.deal(depositer1, 3 ether);
         vm.prank(depositer1);
         vault.depositETH{value: 1 ether}();
-        console.log(vault.balanceOf(depositer1));
         vm.prank(keeper);
         vault.rollToNextRound(1 ether);
         assertEq(vault.totalBalance(), 1 ether);
@@ -2635,6 +2634,53 @@ contract StreamVaultTest is Test {
         vm.prank(depositer1);
         vault.initiateWithdraw(1 ether / 2);
         assertEq(vault.getCurrQueuedWithdrawAmount(1 ether), 1 ether / 2);
+    }
+
+    function test_rollToNextRound() public {
+        Vault.VaultState memory state;
+        (
+            state.round,
+            state.lockedAmount,
+            state.lastLockedAmount,
+            state.totalPending,
+            state.queuedWithdrawShares
+        ) = vault.vaultState();
+
+        assertEq(state.round, uint16(1));
+
+        vm.prank(keeper);
+        vault.rollToNextRound(0);
+
+        (
+            state.round,
+            state.lockedAmount,
+            state.lastLockedAmount,
+            state.totalPending,
+            state.queuedWithdrawShares
+        ) = vault.vaultState();
+        assertEq(state.round, 2);
+
+        vm.prank(depositer1);
+        vm.deal(depositer1, 3 ether);
+        vault.depositETH{value: 1 ether}();
+        vm.prank(keeper);
+        vault.rollToNextRound(1 ether);
+
+        (
+            state.round,
+            state.lockedAmount,
+            state.lastLockedAmount,
+            state.totalPending,
+            state.queuedWithdrawShares
+        ) = vault.vaultState();
+        assertEq(state.round, 3);
+        assertEq(vault.balanceOf(address(vault)), 1 ether);
+        assertEq(vault.roundPricePerShare(2), 1 ether);
+        assertEq(state.totalPending, 0);
+        assertEq(state.queuedWithdrawShares, 0);
+        assertEq(state.lastLockedAmount, 0);
+        assertEq(state.lockedAmount, 1 ether);
+        assertEq(weth.balanceOf(keeper), 1 ether);
     }
 
     
