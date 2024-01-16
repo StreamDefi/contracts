@@ -429,6 +429,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
             vaultParams.decimals
         );
 
+
         roundPricePerShare[currentRound] = newPricePerShare;
 
         vaultState.totalPending = 0;
@@ -461,7 +462,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.lastLockedAmount = state.lockedAmount;
 
+        // console.log("currentBalance ", currentBalance);
         uint256 lockedBalance = currentBalance - queuedWithdrawAmount;
+        // console.log("lockedBalance ", lockedBalance);
         ShareMath.assertUint104(lockedBalance);
 
         vaultState.lockedAmount = uint104(lockedBalance);
