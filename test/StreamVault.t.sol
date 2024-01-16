@@ -2528,15 +2528,6 @@ contract StreamVaultTest is Test {
 
     function test_pricePerShareNoDeposits() public {
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        // vm.deal(depositer1, 3 ether);
-        // vm.prank(depositer1);
-        // vault.depositETH{value: 1 ether}();
-        // assertEq(vault.pricePerShare(), 10 ** vault.decimals());
-        // weth.deposit{value: 1 ether}();
-        // vm.prank(keeper);
-        // vault.rollToNextRound(1 ether);
-        // weth.transfer(address(vault), 1 ether);
-        // assertEq(vault.pricePerShare(), 2 * 10 ** vault.decimals());
     }
 
     function test_pricePerShareStaysConsistentWithNoProfit() public {

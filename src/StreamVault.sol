@@ -9,7 +9,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "forge-std/console.sol";
 
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -469,9 +468,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.lastLockedAmount = state.lockedAmount;
 
-        // console.log("currentBalance ", currentBalance);
         uint256 lockedBalance = currentBalance - queuedWithdrawAmount;
-        // console.log("lockedBalance ", lockedBalance);
+
         ShareMath.assertUint104(lockedBalance);
 
         vaultState.lockedAmount = uint104(lockedBalance);
