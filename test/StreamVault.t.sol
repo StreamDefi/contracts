@@ -806,7 +806,7 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
-     *  SET KEEPER TESTS
+     *  SET NEW KEEPER TESTS
      ***********************************************/
 
     function test_RevertWhenSettingKeeperToZeroAddress() public {
@@ -895,7 +895,6 @@ contract StreamVaultTest is Test {
         assertEq(capBefore, capAfter);
     }
 
-    // test if changing the cap in the middle of the round when the current round balance is already hire than cap
     function test_canSetCapBelowCurrentDeposits() public {
         vm.deal(depositer1, vaultCap);
         vm.prank(depositer1);
@@ -2589,6 +2588,10 @@ contract StreamVaultTest is Test {
         assertEq(vault.getCurrQueuedWithdrawAmount(1 ether), 1 ether / 2);
     }
 
+    /************************************************
+     * ROLL TO NEXT ROUND TESTS
+     ***********************************************/
+
     function test_rollToNextRound() public {
         Vault.VaultState memory state;
         (
@@ -2637,7 +2640,7 @@ contract StreamVaultTest is Test {
     }
 
     /************************************************
-     *  HELPER STATE ASSERTIONS
+     *  SHARE BALANCE TESTS
      ***********************************************/
 
     function test_shareBalancesReturnsProperly(uint56 depositAmount) public {
@@ -2702,6 +2705,18 @@ contract StreamVaultTest is Test {
         vm.expectRevert("!numShares");
         vault.redeem(0);
     }
+
+    /************************************************
+     * MAX REDEEM TESTS
+     ***********************************************/
+
+    /************************************************
+     *  INTERNAL REDEEM TESTS
+     ***********************************************/
+
+    /************************************************
+     *  INTERNAL TRANSFER ASSET TESTS
+     ***********************************************/
 
     /************************************************
      *  HELPER STATE ASSERTIONS

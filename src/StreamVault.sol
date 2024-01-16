@@ -123,6 +123,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      *  DEPOSITS
      ***********************************************/
 
+    /**
+     * @notice Deposits the native asset from msg.sender.
+     */
     function depositETH() external payable nonReentrant {
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
@@ -172,6 +175,11 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         );
     }
 
+    /**
+     * @notice Deposits the native asset  from msg.sender added to `creditor`'s deposit.
+     * @notice Used for vault -> vault deposits on the user's behalf
+     * @param creditor is the address that can claim/withdraw deposited amount
+     */
     function depositETHFor(address creditor) external payable nonReentrant {
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
@@ -428,7 +436,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
             state.totalPending,
             vaultParams.decimals
         );
-
 
         roundPricePerShare[currentRound] = newPricePerShare;
 
