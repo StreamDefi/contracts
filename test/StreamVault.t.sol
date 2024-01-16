@@ -2617,6 +2617,22 @@ contract StreamVaultTest is Test {
         );
     }
 
+    function test_unorthodoxDepositRemainsAccountedFor() public {
+        uint256 depositAmount = 1 ether;
+        vm.deal(depositer1, depositAmount);
+        vm.prank(depositer1);
+        vault.depositETH{value: depositAmount}();
+        assertEq(vault.pricePerShare(), 10 ** vault.decimals());
+        vm.prank(keeper);
+        vault.rollToNextRound(depositAmount);
+
+        vm.prank(depositer2);
+        weth.transfer(address(vault), 0.5 ether);
+
+        // depositors benefit from a user depositing without it being accounted for
+        assertEq(vault.pricePerShare(), 1.5 ether);
+    }
+
     /************************************************
      * ACCOUNT VAULT BALANCE TESTS
      ***********************************************/
