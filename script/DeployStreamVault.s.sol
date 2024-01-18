@@ -13,11 +13,11 @@ contract DeployStreamVault is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
         // comment out if mainnet and replace with actual token
-        MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK");
+        // MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK");
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 18,
-            asset: address(token),
-            minimumSupply: uint56(1),
+            asset: weth,
+            minimumSupply: uint56(0.000001 ether),
             cap: uint104(100000 ether)
         });
 
