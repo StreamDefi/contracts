@@ -545,7 +545,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Returns the vault's total balance, including the amounts locked into a short position
+     * @notice Returns the vault's total balance, including the amounts locked into a position
      * @return total balance of the vault, including the amounts locked in third party protocols
      */
     function totalBalance() public view returns (uint256) {
