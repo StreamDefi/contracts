@@ -60,6 +60,11 @@ contract VaultKeeper is Ownable {
         delete vaults[ticker];
     }
 
+    /*
+     * @notice - Emergency withdraw assets from the contract
+     * @param token - Address of the token to withdraw. 0x0 for native token
+     * @param amount - Amount to withdraw
+     */
     function withdraw(address token, uint256 amount) external onlyOwner {
         if (token == address(0)) {
             payable(owner()).transfer(amount);
