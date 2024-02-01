@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {StreamVault} from "../../src/StreamVault.sol";
-import {MockERC20} from "../../mocks/MockERC20.sol";
-import {Vault} from "../../src/lib/Vault.sol";
+import {StreamVault} from "../src/StreamVault.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {Vault} from "../src/lib/Vault.sol";
 
 contract Base is Test {
     StreamVault vault;

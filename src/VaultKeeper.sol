@@ -27,7 +27,7 @@ contract VaultKeeper is Ownable {
     /**
      * @notice - Roll round for a list of vaults. Vaults should be added to state before rolling round
      * @param tickers - List of vault tickers
-     * @param lockedBalances - List of locked balances
+     * @param lockedBalances - List of locked balances (includes pending withdrawals)
      */
     function rollRound(
         string[] calldata tickers,
@@ -53,6 +53,11 @@ contract VaultKeeper is Ownable {
         string calldata ticker,
         address vault
     ) external onlyOwner {
+        require(
+            vaults[ticker] == address(0),
+            "VaultKeeper: Vault already exists"
+        );
+        require(vault != address(0), "VaultKeeper: Invalid vault");
         vaults[ticker] = vault;
     }
 
@@ -87,21 +92,22 @@ contract VaultKeeper is Ownable {
             "VaultKeeper: Invalid ticker"
         );
         uint256 currBalance = asset.balanceOf(address(vault)) + lockedBalance;
-        uint256 queuedWithdrawShares = _enoughAssets(address(asset), vault);
-        asset.transferFrom(owner(), address(vault), queuedWithdrawShares);
+        _transferAssets(address(asset), vault);
+
         vault.rollToNextRound(currBalance);
         asset.transfer(owner(), asset.balanceOf(address(this)));
     }
 
-    function _enoughAssets(
-        address asset,
-        StreamVault vault
-    ) internal view returns (uint256) {
+    function _transferAssets(address asset, StreamVault vault) internal {
         uint256 queuedWithdrawShares = vault.currentQueuedWithdrawShares();
+        ERC20(asset).transferFrom(
+            owner(),
+            address(vault),
+            queuedWithdrawShares
+        );
         require(
-            ERC20(asset).balanceOf(address(this)) >= queuedWithdrawShares,
+            ERC20(asset).balanceOf(address(vault)) >= queuedWithdrawShares,
             "VaultKeeper: Not enough assets"
         );
-        return queuedWithdrawShares;
     }
 }
