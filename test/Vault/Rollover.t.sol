@@ -47,18 +47,6 @@ contract StreamVaultRolloverTest is Test, Base {
 
         assertEq(state.round, uint16(1));
 
-        vm.prank(keeper);
-        vault.rollToNextRound(0);
-
-        (
-            state.round,
-            state.lockedAmount,
-            state.lastLockedAmount,
-            state.totalPending,
-            state.queuedWithdrawShares
-        ) = vault.vaultState();
-        assertEq(state.round, 2);
-
         vm.prank(depositer1);
         vm.deal(depositer1, 3 ether);
         vault.depositETH{value: 1 ether}();
@@ -72,9 +60,9 @@ contract StreamVaultRolloverTest is Test, Base {
             state.totalPending,
             state.queuedWithdrawShares
         ) = vault.vaultState();
-        assertEq(state.round, 3);
+        assertEq(state.round, 2);
         assertEq(vault.balanceOf(address(vault)), 1 ether);
-        assertEq(vault.roundPricePerShare(2), 1 ether);
+        assertEq(vault.roundPricePerShare(1), 1 ether);
         assertEq(state.totalPending, 0);
         assertEq(state.queuedWithdrawShares, 0);
         assertEq(state.lastLockedAmount, 0);

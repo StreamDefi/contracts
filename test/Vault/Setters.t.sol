@@ -56,16 +56,12 @@ contract StreamVaultSettersTest is Test, Base {
         vm.prank(owner);
         vault.setNewKeeper(keeper2);
         assertEq(vault.keeper(), keeper2);
-        vm.prank(keeper2);
-        vault.rollToNextRound(0);
     }
 
     function test_RevertIfOldKeeperMakesCallAfterChanged() public {
         vm.prank(owner);
         vault.setNewKeeper(keeper2);
         assertEq(vault.keeper(), keeper2);
-        vm.prank(keeper2);
-        vault.rollToNextRound(0);
         vm.startPrank(keeper);
         vm.expectRevert("!keeper");
         vault.rollToNextRound(0);

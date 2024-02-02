@@ -421,6 +421,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function rollToNextRound(
         uint256 currentBalance
     ) external onlyKeeper nonReentrant {
+        require(
+            currentBalance >= uint256(vaultParams.minimumSupply),
+            "Insufficient balance"
+        );
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
 

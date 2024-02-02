@@ -54,8 +54,11 @@ contract StreamVaultUtilsTest is Test, Base {
 
     function test_round() public {
         assertEq(vault.round(), 1);
+        vm.deal(depositer1, 1 ether);
+        vm.prank(depositer1);
+        vault.depositETH{value: 1 ether}();
         vm.prank(keeper);
-        vault.rollToNextRound(0);
+        vault.rollToNextRound(1 ether);
         assertEq(vault.round(), 2);
     }
 
