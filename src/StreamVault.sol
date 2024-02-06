@@ -482,7 +482,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.lockedAmount = uint104(lockedBalance);
 
-        IERC20(vaultParams.asset).transfer(
+        IERC20(vaultParams.asset).safeTransfer(
             keeper,
             IERC20(vaultParams.asset).balanceOf(address(this)) -
                 queuedWithdrawAmount
