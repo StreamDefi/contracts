@@ -11,12 +11,20 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "forge-std/console.sol";
 
+/**
+ * @title StreamVault
+ * @notice A vault that allows users to deposit and withdraw from an off-chain managed Stream strategy
+ * @notice Users receive shares for their deposits, which can be redeemed for assets
+ * @notice The vault is managed by a keeper, who is responsible for rolling to the next round
+ * @notice The rounds will be rolled over on a weekly basis
+ */
+
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.DepositReceipt;
 
     /************************************************
-     *  IMMUTABLES & CONSTANTS
+     *  STATE
      ***********************************************/
     /// @notice Stores the user's pending deposit for the round
     mapping(address => Vault.DepositReceipt) public depositReceipts;
