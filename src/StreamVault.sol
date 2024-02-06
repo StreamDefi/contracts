@@ -422,6 +422,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
      * @notice Keeper only deposits enough to fulfill withdraws and passes the true amount as 'currentBalance'
+     * @notice Keeper should be a contract so currentBalance and the call to the func happens atomically
      * @param currentBalance is the amount of `asset` that is currently being used for strategy 
               + the amount in the contract right before the roll
 
@@ -429,6 +430,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function rollToNextRound(
         uint256 currentBalance
     ) external onlyKeeper nonReentrant {
+        require(
+            currentBalance >= uint256(vaultParams.minimumSupply),
+            "Insufficient balance"
+        );
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
 

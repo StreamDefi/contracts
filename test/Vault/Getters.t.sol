@@ -378,9 +378,6 @@ contract StreamVaultGettersTest is Test, Base {
      ***********************************************/
 
     function test_totalBalance() public {
-        vm.prank(keeper);
-        vault.rollToNextRound(0);
-
         vm.deal(depositer1, 3 ether);
         vm.prank(depositer1);
         vault.depositETH{value: 1 ether}();
