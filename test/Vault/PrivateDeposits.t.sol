@@ -59,7 +59,7 @@ contract StreamVaultPrivateDepositTest is Test, Base {
       "StreamVault",
       "SV",
       Vault.VaultParams({
-        decimals: 18,
+        decimals:uint8(_decimals),
         asset: address(weth),
         minimumSupply: minSupply,
         cap: vaultCap
