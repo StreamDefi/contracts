@@ -29,7 +29,8 @@ contract Base is Test {
     address owner;
     uint104 vaultCap;
     uint56 minSupply;
-    uint256 singleShare = 10 ** 18;
+    uint256 _decimals = 18;
+    uint256 singleShare = 10 ** _decimals;
 
     struct StateChecker {
         uint16 round;
@@ -90,7 +91,7 @@ contract Base is Test {
 
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
-            decimals: 18,
+            decimals: uint8(_decimals),
             asset: address(weth),
             minimumSupply: minSupply,
             cap: vaultCap
