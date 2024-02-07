@@ -161,7 +161,12 @@ contract StreamVaultDepositTest is Test, Base {
     function test_RevertIfDepositUnderMinSupply() public {
         vm.startPrank(depositer1);
         vm.expectRevert("Insufficient balance");
-        vault.depositETH{value: 0.000001 ether}();
+        if (_decimals == 18) {
+            vault.depositETH{value: 10000000}();
+        } else {
+            vault.depositETH{value: 10 ** (_decimals - 6)}();
+        }
+       
     }
 
     function test_RevertIfTotalPendingDoesntFit128Bits(

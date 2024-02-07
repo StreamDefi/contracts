@@ -36,7 +36,7 @@ contract StreamVaultUtilsTest is Test, Base {
   
 
     function test_cap() public {
-        assertEq(vault.cap(), uint104(10000000 * (10 ** 18)));
+        assertEq(vault.cap(), vaultCap);
     }
 
     function test_totalPending() public {

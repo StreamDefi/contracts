@@ -1,0 +1,31 @@
+{
+  "LevUSDC": {
+    "USDCAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "WETHAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "OwnerAddress": "0xf8a9Ca9B95668E9Ad1401569195807DdAe96EE37",
+    "ShareSymbol": "sLevUSDC",
+    "ShareName": "Stream LevUSDC",
+    "ShareDecimals": 6,
+    "MinVaultShareSupply": "1000",
+    "VaultCap": "1000000000000000000000000"
+  },
+  "HodlwBTC": {
+    "WBTCAddress": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "WETHAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "OwnerAddress": "0xf8a9Ca9B95668E9Ad1401569195807DdAe96EE37",
+    "ShareSymbol": "sHodlwBTC",
+    "ShareName": "Stream HodlwBTC",
+    "ShareDecimals": 8,
+    "MinVaultShareSupply": "1000",
+    "VaultCap": "1000000000000000000000000"
+  },
+  "HodlwETH": {
+    "WETHAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "OwnerAddress": "0xf8a9Ca9B95668E9Ad1401569195807DdAe96EE37",
+    "ShareSymbol": "sHodlwETH",
+    "ShareName": "Stream HodlwETH",
+    "ShareDecimals": 18,
+    "MinVaultShareSupply": "100000000",
+    "VaultCap": "1000000000000000000000000"
+  }
+}

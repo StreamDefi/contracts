@@ -86,8 +86,8 @@ contract Base is Test {
         ];
         weth = new MockERC20("wrapped ether", "WETH");
         dummyAsset = new MockERC20("dummy asset", "DUMMY");
-        vaultCap = uint104(10000000 * (10 ** 18));
-        minSupply = (0.0001 ether);
+        vaultCap = uint104(1000000000000000000000000);
+        minSupply = (100000000);
 
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
