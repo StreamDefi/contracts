@@ -62,7 +62,7 @@ contract StreamVaultRolloverTest is Test, Base {
         ) = vault.vaultState();
         assertEq(state.round, 2);
         assertEq(vault.balanceOf(address(vault)), 1 ether);
-        assertEq(vault.roundPricePerShare(1), 1 ether);
+        assertEq(vault.roundPricePerShare(1), 1 * (10 ** vault.decimals()));
         assertEq(state.totalPending, 0);
         assertEq(state.queuedWithdrawShares, 0);
         assertEq(state.lastLockedAmount, 0);
@@ -105,7 +105,7 @@ contract StreamVaultRolloverTest is Test, Base {
                 0,
                 0,
                 depositAmount,
-                depositAmount
+                1 * (10 ** vault.decimals())
             )
         );
 
@@ -167,7 +167,7 @@ contract StreamVaultRolloverTest is Test, Base {
                 0,
                 0,
                 depositAmount * depositors.length,
-                depositAmount
+                1 * (10 ** vault.decimals())
             )
         );
 

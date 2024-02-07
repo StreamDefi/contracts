@@ -692,7 +692,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 0,
                 0,
                 depositAmount,
-                depositAmount
+                singleShare
             )
         );
 
@@ -719,7 +719,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 depositAmount,
                 0,
                 depositAmount,
-                depositAmount
+                singleShare
             )
         );
 
@@ -733,7 +733,7 @@ contract StreamVaultWithdrawTest is Test, Base {
         vm.stopPrank();
 
         assertVaultState(
-            StateChecker(3, 0, depositAmount, 0, 0, 0, 0, 0, depositAmount)
+            StateChecker(3, 0, depositAmount, 0, 0, 0, 0, 0, singleShare)
         );
 
         assertEq(weth.balanceOf(address(vault)), 0);
@@ -791,7 +791,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 0,
                 0,
                 depositAmount * depositors.length,
-                depositAmount
+                singleShare
             )
         );
 
@@ -856,7 +856,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 0,
                 0,
                 depositAmount * depositors.length,
-                depositAmount
+                singleShare
             )
         );
 
@@ -891,7 +891,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 depositAmount * depositors.length,
                 0,
                 depositAmount * depositors.length,
-                depositAmount
+                singleShare
             )
         );
 
@@ -921,7 +921,7 @@ contract StreamVaultWithdrawTest is Test, Base {
                 0,
                 0,
                 0,
-                depositAmount
+                singleShare
             )
         );
 

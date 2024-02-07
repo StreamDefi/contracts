@@ -76,7 +76,7 @@ contract StreamVaultGettersTest is Test, Base {
 
         for (uint i = 0; i < 5; ++i) {
             assertEq(
-                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                (uint256(depositAmounts[i]) * (10 ** _decimals)) / pricePerShare,
                 vault.shares(depositors[i])
             );
         }
@@ -128,7 +128,7 @@ contract StreamVaultGettersTest is Test, Base {
 
         for (uint i = 0; i < 5; ++i) {
             assertEq(
-                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                (uint256(depositAmounts[i]) * (10 ** _decimals)) / pricePerShare,
                 vault.shares(depositors[i])
             );
         }
@@ -193,7 +193,7 @@ contract StreamVaultGettersTest is Test, Base {
 
         for (uint i = 0; i < 5; ++i) {
             assertEq(
-                (uint256(depositAmounts[i]) * (10 ** 18)) / pricePerShare,
+                (uint256(depositAmounts[i]) * (10 ** _decimals)) / pricePerShare,
                 vault.shares(depositors[i])
             );
         }
@@ -213,7 +213,7 @@ contract StreamVaultGettersTest is Test, Base {
 
         for (uint i = 0; i < 5; ++i) {
             assertEq(
-                (uint256(depositAmounts[i]) * 2 * (10 ** 18)) / pricePerShare,
+                (uint256(depositAmounts[i]) * 2 * (10 ** _decimals)) / pricePerShare,
                 vault.shares(depositors[i])
             );
         }
@@ -345,6 +345,7 @@ contract StreamVaultGettersTest is Test, Base {
         vm.deal(depositer1, depositAmount);
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount}();
+
         assertEq(vault.pricePerShare(), 10 ** vault.decimals());
         vm.prank(keeper);
         vault.rollToNextRound(depositAmount);
@@ -353,7 +354,7 @@ contract StreamVaultGettersTest is Test, Base {
         weth.transfer(address(vault), 0.5 ether);
 
         // depositors benefit from a user depositing without it being accounted for
-        assertEq(vault.pricePerShare(), 1.5 ether);
+        assertEq(vault.pricePerShare(), 15 * (10 ** (vault.decimals() - 1)));
     }
 
     /************************************************
