@@ -57,6 +57,7 @@ contract VaultKeeperTest is Test {
             vaultParams
         );
         contractKeeper.addVault("WETH", address(vault));
+        vault.setPublic(true);
         vm.stopPrank();
 
         vm.startPrank(depositer1);
