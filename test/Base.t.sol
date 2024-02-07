@@ -97,7 +97,7 @@ contract Base is Test {
             cap: vaultCap
         });
 
-        vm.prank(owner);
+        vm.startPrank(owner);
         vault = new StreamVault(
             address(weth),
             keeper,
@@ -105,6 +105,8 @@ contract Base is Test {
             "SV",
             vaultParams
         );
+        vault.setPublic(true);
+        vm.stopPrank();
 
         // fund deposirs with 1000 WETH and 100 ETH each and approve vault
         for (uint256 i = 0; i < depositors.length; i++) {
