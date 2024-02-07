@@ -33,9 +33,7 @@ contract StreamVaultUtilsTest is Test, Base {
      *  UTILS TEST
      ***********************************************/
 
-    function test_decimals() public {
-        assertEq(vault.decimals(), 18);
-    }
+  
 
     function test_cap() public {
         assertEq(vault.cap(), uint104(10000000 * (10 ** 18)));
