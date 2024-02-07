@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import {Vault} from "../../src/lib/Vault.sol";
 import {StreamVault} from "../../src/StreamVault.sol";
 import {Base} from "../Base.t.sol";
+import "forge-std/console.sol";
 
 /*
   TESTS

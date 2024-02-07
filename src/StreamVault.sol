@@ -529,6 +529,15 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         vaultParams.cap = uint104(newCap);
     }
 
+    /**
+      * @notice Sets the new vault parameters
+    */
+    function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
+        require(newVaultParams.cap > 0, "!newCap");
+        require(newVaultParams.asset != address(0), "!newAsset");
+        vaultParams = newVaultParams;
+    }
+
     /************************************************
      *  GETTERS
      ***********************************************/
