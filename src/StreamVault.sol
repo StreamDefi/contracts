@@ -9,7 +9,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "forge-std/console.sol";
+import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
+
 
 /**
  * @title StreamVault
@@ -22,6 +23,7 @@ import "forge-std/console.sol";
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.DepositReceipt;
+    using MerkleProofLib for bytes32[];
 
     /************************************************
      *  STATE
@@ -127,17 +129,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         vaultState.round = 1;
     }
 
+
+
     /************************************************
-     *  DEPOSITS
+     *  PUBLIC DEPOSITS
      ***********************************************/
 
     /**
      * @notice Deposits the native asset from msg.sender.
      */
     function depositETH() external payable nonReentrant {
-        if (!isPublic) {
-           
-        }
+        require(isPublic, "!public");
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
 
@@ -151,9 +153,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param amount is the amount of `asset` to deposit
      */
     function deposit(uint256 amount) external nonReentrant {
-        if (!isPublic) {
-            
-        }
+        require(isPublic, "!public");
         require(amount > 0, "!amount");
 
         _depositFor(amount, msg.sender);
@@ -253,6 +253,51 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.totalPending = uint128(newTotalPending);
     }
+
+    /************************************************
+     *  PRIVATE DEPOSITS
+     ***********************************************/
+
+    /**
+     * @notice Deposits the native asset from msg.sender.
+     * @notice msg.sender must be whitelisted
+     * @param proof is the merkle proof
+     */
+    function privateDepositETH(bytes32[] memory proof) external payable nonReentrant {
+        if (!isPublic) {
+            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+        }
+        require(vaultParams.asset == WETH, "!WETH");
+        require(msg.value > 0, "!value");
+
+        _depositFor(msg.value, msg.sender);
+
+        IWETH(WETH).deposit{value: msg.value}();
+    }
+
+    /**
+     * @notice Deposits the `asset` from msg.sender.
+     * @notice msg.sender must be whitelisted
+     * @param amount is the amount of `asset` to deposit
+     * @param proof is the merkle proof
+     */
+    function privateDeposit(uint256 amount, bytes32[] memory proof) external nonReentrant {
+        if (!isPublic) {
+            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+        }
+
+        require(amount > 0, "!amount");
+
+        _depositFor(amount, msg.sender);
+
+        // An approve() by the msg.sender is required beforehand
+        IERC20(vaultParams.asset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+    }
+
 
     /************************************************
      *  WITHDRAWALS
@@ -671,6 +716,15 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
                 vaultState.totalPending,
                 vaultParams.decimals
             );
+    }
+
+    /**
+        * @notice returns if account can deposit
+        * @param account is the account to check
+        * @param proof is the merkle proof
+     */
+    function canDeposit(address account, bytes32[] memory proof ) external view returns (bool) {
+        return isPublic || proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
