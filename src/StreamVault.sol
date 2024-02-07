@@ -56,6 +56,12 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
+    /// @notice private or public 
+    bool public isPublic;
+
+    /// @notice merkle root for private whitelist
+    bytes32 public merkleRoot;
+
     /************************************************
      *  EVENTS
      ***********************************************/
@@ -129,6 +135,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @notice Deposits the native asset from msg.sender.
      */
     function depositETH() external payable nonReentrant {
+        if (!isPublic) {
+           
+        }
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
 
@@ -142,6 +151,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param amount is the amount of `asset` to deposit
      */
     function deposit(uint256 amount) external nonReentrant {
+        if (!isPublic) {
+            
+        }
         require(amount > 0, "!amount");
 
         _depositFor(amount, msg.sender);
@@ -164,6 +176,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         uint256 amount,
         address creditor
     ) external nonReentrant {
+        require(isPublic, "!public");
         require(amount > 0, "!amount");
         require(creditor != address(0), "!creditor");
 
@@ -183,6 +196,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param creditor is the address that can claim/withdraw deposited amount
      */
     function depositETHFor(address creditor) external payable nonReentrant {
+        require(isPublic, "!public");
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
         require(creditor != address(0), "!creditor");
@@ -508,6 +522,22 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /************************************************
      *  SETTERS
      ***********************************************/
+
+    /**
+        * @notice Sets the vault to public or private
+        * @param _isPublic is the new public state
+    */
+    function setPublic(bool _isPublic) external onlyOwner {
+        isPublic = _isPublic;
+    }
+
+    /**
+        * @notice Sets the merkle root for the private whitelist
+        * @param _merkleRoot is the new merkle root
+    */
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+    }
 
     /**
      * @notice Sets the new keeper
