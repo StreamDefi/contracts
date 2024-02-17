@@ -10,19 +10,22 @@ import "forge-std/console.sol";
 contract FormMerkleTree is Script {
     function run() public {
       Merkle m = new Merkle();
-      bytes32[] memory data = new bytes32[](6);
+      bytes32[] memory data = new bytes32[](8);
       data[0] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST1")));
       data[1] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST2")));
       data[2] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST3")));
       data[3] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST4")));
       data[4] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST5")));
       data[5] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST6")));
+      data[6] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST7")));
+      data[7] = keccak256(abi.encodePacked(vm.envAddress("WHITELIST8")));
 
 
       // Get Root, Proof, and Verify
       bytes32 root = m.getRoot(data);
-      bytes32[] memory proof = m.getProof(data, 5);
       console.logBytes32(root);
+      bytes32[] memory proof = m.getProof(data, 1);
+
       for (uint256 i = 0; i < proof.length; i++) {
         console.logBytes32(proof[i]);
       }

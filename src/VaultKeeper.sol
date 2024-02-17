@@ -98,8 +98,14 @@ contract VaultKeeper is Ownable {
         asset.transfer(owner(), asset.balanceOf(address(this)));
     }
 
-    function _transferAssets(address asset, StreamVault vault, uint256 lockedBalance) internal {
-        uint256 queuedWithdrawAmount = vault.getCurrQueuedWithdrawAmount(lockedBalance);
+    function _transferAssets(
+        address asset,
+        StreamVault vault,
+        uint256 lockedBalance
+    ) internal {
+        uint256 queuedWithdrawAmount = vault.getCurrQueuedWithdrawAmount(
+            lockedBalance
+        );
         ERC20(asset).transferFrom(
             owner(),
             address(vault),
@@ -110,5 +116,4 @@ contract VaultKeeper is Ownable {
             "VaultKeeper: Not enough assets"
         );
     }
-
 }

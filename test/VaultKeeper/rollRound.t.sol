@@ -13,7 +13,9 @@ contract VaultKeeperTest is Test {
     VaultKeeper contractKeeper;
 
     StreamVault vault;
+    StreamVault vault2;
     MockERC20 weth;
+    MockERC20 mock;
     address depositer1;
     address owner;
     uint104 vaultCap;
@@ -34,6 +36,7 @@ contract VaultKeeperTest is Test {
 
     function setUp() public {
         weth = new MockERC20("wrapped ether", "WETH");
+        mock = new MockERC20("mock", "MOCK");
 
         vaultCap = uint104(10000000 * (10 ** 18));
         minSupply = 0.001 ether;
@@ -47,6 +50,13 @@ contract VaultKeeperTest is Test {
             cap: vaultCap
         });
 
+        Vault.VaultParams memory vaultParamsMock = Vault.VaultParams({
+            decimals: 18,
+            asset: address(mock),
+            minimumSupply: minSupply,
+            cap: vaultCap
+        });
+
         vm.startPrank(owner);
         contractKeeper = new VaultKeeper();
         vault = new StreamVault(
@@ -56,13 +66,25 @@ contract VaultKeeperTest is Test {
             "SV",
             vaultParams
         );
+        vault2 = new StreamVault(
+            address(weth),
+            address(contractKeeper),
+            "StreamVault",
+            "SV",
+            vaultParamsMock
+        );
+
         contractKeeper.addVault("WETH", address(vault));
+        contractKeeper.addVault("MOCK", address(vault2));
         vault.setPublic(true);
+        vault2.setPublic(true);
         vm.stopPrank();
 
         vm.startPrank(depositer1);
         weth.mint(depositer1, 1000 * (10 ** 18));
+        mock.mint(depositer1, 1000 * (10 ** 18));
         weth.approve(address(vault), 1000 * (10 ** 18));
+        mock.approve(address(vault2), 1000 * (10 ** 18));
         vm.deal(depositer1, 100 * (10 ** 18));
         vm.stopPrank();
     }
@@ -70,18 +92,26 @@ contract VaultKeeperTest is Test {
     function test_rollRound(uint56 depositAmount) public {
         vm.assume(depositAmount > minSupply);
         vm.deal(depositer1, depositAmount);
-        vm.prank(depositer1);
+        vm.startPrank(depositer1);
         vault.depositETH{value: depositAmount}();
+        mock.mint(depositer1, depositAmount);
+        mock.approve(address(vault2), depositAmount);
+        console.logUint(mock.balanceOf(depositer1));
+        console.logUint(depositAmount);
+        vault2.deposit(depositAmount);
+        vm.stopPrank();
         assertEq(weth.balanceOf(address(vault)), uint256(depositAmount));
         assertVaultState(
             StateChecker(1, 0, 0, uint128(depositAmount), 0, 0, 0, 0, 0)
         );
         vm.startPrank(owner);
         // none should be locked up yet
-        uint256[] memory lockedAmounts = new uint256[](1);
+        uint256[] memory lockedAmounts = new uint256[](2);
         lockedAmounts[0] = 0;
-        string[] memory vaults = new string[](1);
+        lockedAmounts[1] = 0;
+        string[] memory vaults = new string[](2);
         vaults[0] = "WETH";
+        vaults[1] = "MOCK";
         contractKeeper.rollRound(vaults, lockedAmounts);
         assertVaultState(
             StateChecker(
@@ -100,14 +130,21 @@ contract VaultKeeperTest is Test {
         assertEq(weth.balanceOf(address(vault)), 0);
         assertEq(weth.balanceOf(address(contractKeeper)), 0);
         assertEq(weth.balanceOf(owner), depositAmount);
+        assertEq(mock.balanceOf(address(vault2)), 0);
+        assertEq(mock.balanceOf(address(contractKeeper)), 0);
+        assertEq(mock.balanceOf(owner), depositAmount);
 
         lockedAmounts[0] = depositAmount;
+        lockedAmounts[1] = depositAmount;
         weth.approve(address(contractKeeper), depositAmount);
         contractKeeper.rollRound(vaults, lockedAmounts);
 
         assertEq(weth.balanceOf(address(vault)), 0);
         assertEq(weth.balanceOf(address(contractKeeper)), 0);
         assertEq(weth.balanceOf(owner), depositAmount);
+        assertEq(mock.balanceOf(address(vault2)), 0);
+        assertEq(mock.balanceOf(address(contractKeeper)), 0);
+        assertEq(mock.balanceOf(owner), depositAmount);
 
         assertVaultState(
             StateChecker(
