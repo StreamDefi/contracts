@@ -92,7 +92,7 @@ contract VaultKeeper is Ownable {
             "VaultKeeper: Invalid ticker"
         );
         uint256 currBalance = asset.balanceOf(address(vault)) + lockedBalance;
-        _transferAssets(address(asset), vault, lockedBalance);
+        _transferAssets(address(asset), vault, currBalance);
 
         vault.rollToNextRound(currBalance);
         asset.transfer(owner(), asset.balanceOf(address(this)));
@@ -101,16 +101,18 @@ contract VaultKeeper is Ownable {
     function _transferAssets(
         address asset,
         StreamVault vault,
-        uint256 lockedBalance
+        uint256 currBalance
     ) internal {
         uint256 queuedWithdrawAmount = vault.getCurrQueuedWithdrawAmount(
-            lockedBalance
+            currBalance
         );
+
         ERC20(asset).transferFrom(
             owner(),
             address(vault),
             queuedWithdrawAmount
         );
+
         require(
             ERC20(asset).balanceOf(address(vault)) >= queuedWithdrawAmount,
             "VaultKeeper: Not enough assets"

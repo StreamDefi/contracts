@@ -13,10 +13,10 @@ contract DeployStreamVault is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        // // comment out if mainnet and replace with actual token
-        // MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK6");
-        // token.mint(keeper, 100000 ether);
-        // 1. deploy the keeper contract
+        // // // comment out if mainnet and replace with actual token
+        // // MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK6");
+        // // token.mint(keeper, 100000 ether);
+        // // 1. deploy the keeper contract
         VaultKeeper vaultKeeper = new VaultKeeper();
 
         // 2. prep vault params
@@ -41,10 +41,12 @@ contract DeployStreamVault is Script {
             cap: uint104(1000000000000000000000000)
         });
 
-        // 3. deploy vaults
+        // // 3. deploy vaults
         StreamVault USDCVault = new StreamVault(weth, address(vaultKeeper), "Stream LevUSDC", "sLevUSDC", vaultParamsUSDC);
         StreamVault BTCVault = new StreamVault(weth, address(vaultKeeper), "Stream HodlwBTC", "sHodlwBTC", vaultParamsBTC);
         StreamVault ETHVault = new StreamVault(weth, address(vaultKeeper), "Stream HodlwETH", "sHodlwETH", vaultParamsETH);
+
+     
 
         // 4. add vaults to keeper
         vaultKeeper.addVault("USDC", address(USDCVault));
@@ -60,6 +62,7 @@ contract DeployStreamVault is Script {
         BTCVault.setMerkleRoot(merkleRoot);
         ETHVault.setMerkleRoot(merkleRoot);
 
+        vaultKeeper.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
         
     
         vm.stopBroadcast();
