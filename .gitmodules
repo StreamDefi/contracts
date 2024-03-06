@@ -10,3 +10,6 @@
 [submodule "lib/murky"]
 	path = lib/murky
 	url = https://github.com/dmfxyz/murky
+[submodule "lib/dss-proxy-actions"]
+	path = lib/dss-proxy-actions
+	url = https://github.com/makerdao/dss-proxy-actions
