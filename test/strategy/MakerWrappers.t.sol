@@ -111,6 +111,7 @@ contract TestMakerWrappers is Test {
     vm.startPrank(owner);
     ERC20(wstETH).approve(address(mll), depositAmount);
     mll.depositCollateralAndBorrowDai(ilk, depositAmount, borrowAmount, false);
+    verifyVatState(depositAmount, borrowAmount);
     ERC20(dai).approve(address(mll), borrowAmount);
     mll.repayDebt(ilk, borrowAmount);
     assertEq(ERC20(dai).balanceOf(address(mll)), 0);
@@ -147,9 +148,16 @@ contract TestMakerWrappers is Test {
   ) public {
     bytes32 ilkBytes = cdpManager.ilks(mll.cdps(ilk));
     IVat.Ilk memory ilkObj = vat.ilks(ilkBytes);
+    // console.logUint(ilkObj.Art);
+    // console.logUint(ilkObj.rate);
+    // console.logUint(ilkObj.spot);
+    // console.logUint(ilkObj.line);
+    // console.logUint(ilkObj.dust);
+
     address urnAddress = cdpManager.urns(mll.cdps(ilk));
     IVat.Urn memory urn = vat.urns(ilkBytes, urnAddress);
     assertEq(urn.ink, _properCollateral);
+
     // TO DO calculate proper debt by factoring in fee rate
     // assertEq(urn.art, _properDebt);
   }

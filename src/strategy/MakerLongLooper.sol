@@ -8,14 +8,16 @@ import {IDssProxyActions} from "./IDssProxyActions.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/console.sol";
 
-
-
-
 /**
  * @title - MakerLongLooper
  * @notice - This contract is responsible for opening leveraged margin long positions on maker
  */
 contract MakerLongLooper is Ownable {
+
+
+  /************************************************
+    *  MAKER CDP STATE
+  ***********************************************/
 
   IDSProxy public proxy;
   IDSProxyFactory public proxyFactory;
@@ -27,7 +29,6 @@ contract MakerLongLooper is Ownable {
   mapping (bytes32 => address) public tokens;
   mapping (bytes32 => address) public jugs;
   mapping (bytes32 => address) public daiPools;
-
 
   constructor (
     address _proxyFactory,
@@ -61,6 +62,10 @@ contract MakerLongLooper is Ownable {
     }
   }
 
+
+  /************************************************
+    *  CDP ACTION WRAPPERS
+  ***********************************************/
   function createProxy() public onlyOwner {
     IDSProxy _proxy = proxyFactory.build();
     require(address(_proxy) != address(0), "MakerLongLooper: Failed to create proxy");
@@ -207,4 +212,61 @@ contract MakerLongLooper is Ownable {
       ERC20(dai).transfer(msg.sender, _daiAmount);
     }
   }
+
+  /************************************************
+    *  SETTERS
+  ************************************************/
+  function setProxyActions(address _proxyActions) public onlyOwner {
+    proxyActions = _proxyActions;
+  }
+
+  function setDai(address _dai) public onlyOwner {
+    dai = _dai;
+  }
+
+  function setToken(bytes32 _ilk, address _token) public onlyOwner {
+    tokens[_ilk] = _token;
+  }
+
+  function setJug(bytes32 _ilk, address _jug) public onlyOwner {
+    jugs[_ilk] = _jug;
+  }
+
+  function setDaiPool(bytes32 _ilk, address _daiPool) public onlyOwner {
+    daiPools[_ilk] = _daiPool;
+  }
+
+  function setProxy(address _proxy) public onlyOwner {
+    proxy = IDSProxy(_proxy);
+  }
+
+  function setCDP(bytes32 _ilk, uint _cdp) public onlyOwner {
+    cdps[_ilk] = _cdp;
+  }
+
+  function setCollateralPool(bytes32 _ilk, address _collateralPool) public onlyOwner {
+    collateralPools[_ilk] = _collateralPool;
+  }
+  function setCDPManager(address _CDPManager) public onlyOwner {
+    CDPManager = _CDPManager;
+  }
+
+  function setProxyFactory(address _proxyFactory) public onlyOwner {
+    proxyFactory = IDSProxyFactory(_proxyFactory);
+  }
+
+
+
+  /************************************************
+    *  EMERGENCY WITHDRAW
+  *************************************************/
+  function withdraw(address _token, uint _amount) public onlyOwner {
+    if (_token == address(0)) {
+      payable(owner()).transfer(_amount);
+    } else {
+      ERC20(_token).transfer(owner(), _amount);
+    }
+  }
+
+
 }
