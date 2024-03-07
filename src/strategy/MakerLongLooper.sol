@@ -161,6 +161,8 @@ contract MakerLongLooper is Ownable {
       ERC20(dai).transferFrom(msg.sender, address(this), _daiAmount);
     }
 
+    // approve proxy to spend token
+    ERC20(dai).approve(address(proxy), _daiAmount);
     // repay dai debt and free collateral
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.wipeAndFreeGem.selector,

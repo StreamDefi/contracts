@@ -129,6 +129,18 @@ contract TestMakerWrappers is Test {
     verifyVatState(0, 0);
   }
 
+  function test_canRepayDebtAndFreeCollateral() public {
+    vm.selectFork(mainnetFork);
+    vm.startPrank(owner);
+    ERC20(wstETH).approve(address(mll), depositAmount);
+    mll.depositCollateralAndBorrowDai(ilk, depositAmount, borrowAmount, false);
+    ERC20(dai).approve(address(mll), borrowAmount);
+    mll.repayDebtAndFreeCollateral(ilk, borrowAmount, depositAmount, false);
+    assertEq(ERC20(dai).balanceOf(address(mll)), 0);
+    assertEq(ERC20(wstETH).balanceOf(address(mll)), depositAmount);
+    verifyVatState(0, 0);
+  }
+
   function verifyVatState(
     uint _properCollateral,
     uint _properDebt
