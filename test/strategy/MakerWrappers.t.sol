@@ -14,6 +14,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/console.sol";
 
 contract TestMakerWrappers is Test {
+
   uint mainnetFork;
   address dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address wstETHGemJoin = 0x248cCBf4864221fC0E840F29BB042ad5bFC89B5c;
@@ -23,6 +24,8 @@ contract TestMakerWrappers is Test {
   address owner = 0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444;
   address wstETHFunder = 0x5fEC2f34D80ED82370F733043B6A536d7e9D7f8d;
   address uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+  address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+  address spotter = 0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3;
   uint wstETHBalance = 500 ether;
   uint depositAmount = 100 ether;
   uint borrowAmount = 20000 ether;
@@ -41,37 +44,37 @@ contract TestMakerWrappers is Test {
     proxyFactory = IDSProxyFactory(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
     proxyActions = IDssProxyActions(0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038);
     cdpManager = ICDPManager(0x5ef30b9986345249bc32d8928B7ee64DE9435E39);
-    bytes32[] memory ilks = new bytes32[](1);
-    ilks[0] = bytes32("WSTETH-B");
-    address[] memory collateralPools = new address[](1);
-    collateralPools[0] = wstETHGemJoin;
-    address[] memory tokens = new address[](1);
-    tokens[0] = wstETH;
-    address[] memory jugs = new address[](1);
-    jugs[0] = jug;
-    address[] memory daiPools = new address[](1);
-    daiPools[0] = daiJoin;
 
+    MakerLongLooper.CDP[] memory cdps = new MakerLongLooper.CDP[](1);
+    cdps[0] = MakerLongLooper.CDP({
+      ilk: bytes32("WSTETH-B"),
+      cdpId: 0,
+      collateralPool: wstETHGemJoin,
+      token: wstETH,
+      spotter: spotter,
+      jug: jug,
+      daiPool: daiJoin
+    });
+
+   
     vm.selectFork(mainnetFork);
     vm.startPrank(owner);
     mll = new MakerLongLooper(
       address(proxyFactory),
       address(cdpManager),
       address(proxyActions),
-      uniswapRouter,
       dai,
-      ilks,
-      collateralPools,
-      tokens,
-      jugs,
-      daiPools
+      uniswapRouter,
+      weth,
+      cdps
     );
     mll.createProxy();
     proxy = mll.proxy();
     mll.openVault(ilk);
     vat = IVat(cdpManager.vat());
     assertEq(proxy.owner(), address(mll));
-    assertFalse(mll.cdps(ilk) == 0, "no cdp set");
+    (, uint id, , , , ,  ) = mll.cdps(ilk);
+    assertFalse(id == 0, "no cdp set");
     vm.stopPrank();
     vm.prank(wstETHFunder);
     ERC20(wstETH).transfer(address(owner), wstETHBalance);
@@ -145,19 +148,40 @@ contract TestMakerWrappers is Test {
     verifyVatState(0, 0);
   }
 
+  function test_canSwapDaiTowstETH() public {
+    vm.selectFork(mainnetFork);
+    vm.startPrank(owner);
+    ERC20(wstETH).approve(address(mll), depositAmount);
+    uint preBal = ERC20(wstETH).balanceOf(address(wstETHGemJoin));
+    mll.depositCollateralAndBorrowDai(ilk, depositAmount, borrowAmount, false);
+    uint postBal = ERC20(wstETH).balanceOf(address(wstETHGemJoin));
+    assertEq(ERC20(dai).balanceOf(address(mll)), borrowAmount);
+    assertEq(postBal - preBal, depositAmount);
+    verifyVatState(depositAmount, borrowAmount);
+    uint preWSTETHBal = ERC20(wstETH).balanceOf(address(mll));
+    mll.swapExactTokens(borrowAmount / 2, wstETH, 0);
+    uint postWSTETHBal = ERC20(wstETH).balanceOf(address(mll));
+    assertTrue(postWSTETHBal > preWSTETHBal);
+    console.logUint(preWSTETHBal);
+    console.logUint(postWSTETHBal);
+
+  }
+
   function verifyVatState(
     uint _properCollateral,
     uint _properDebt
   ) public {
-    bytes32 ilkBytes = cdpManager.ilks(mll.cdps(ilk));
-    IVat.Ilk memory ilkObj = vat.ilks(ilkBytes);
-    // console.logUint(ilkObj.Art);
-    // console.logUint(ilkObj.rate);
-    // console.logUint(ilkObj.spot);
-    // console.logUint(ilkObj.line);
-    // console.logUint(ilkObj.dust);
+    (, uint id, , , , ,  ) = mll.cdps(ilk);
+    bytes32 ilkBytes = cdpManager.ilks(id);
 
-    address urnAddress = cdpManager.urns(mll.cdps(ilk));
+    IVat.Ilk memory ilkObj = vat.ilks(ilkBytes);
+    console.logUint(ilkObj.Art);
+    console.logUint(ilkObj.rate);
+    console.logUint(ilkObj.spot);
+    console.logUint(ilkObj.line);
+    console.logUint(ilkObj.dust);
+
+    address urnAddress = cdpManager.urns(id);
     IVat.Urn memory urn = vat.urns(ilkBytes, urnAddress);
     assertEq(urn.ink, _properCollateral);
 

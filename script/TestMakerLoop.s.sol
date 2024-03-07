@@ -7,6 +7,7 @@ import { MockERC20 } from "../mocks/MockERC20.sol";
 import { MakerLongLooper } from "../src/strategy/MakerLongLooper.sol";
 import { IDSProxyFactory } from "../src/strategy/IDSProxyFactory.sol";
 import { IDSProxy } from "../src/strategy/IDSProxy.sol";
+import { ISpotter } from "../src/strategy/ISpotter.sol";
 import { IDssProxyActions } from "../src/strategy/IDssProxyActions.sol";
 import "forge-std/console.sol";
 
@@ -25,7 +26,10 @@ contract TestMakerLoop is Script {
   address wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
   address daiJoin = 0x9759A6Ac90977b93B58547b4A71c78317f391A28;
   address jug = 0x19c0976f590D67707E62397C87829d896Dc0f1F1;
+  address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address owner = 0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444;
+  address uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+  address spotter = 0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3;
   IDSProxy proxy;
   IDSProxyFactory proxyFactory;
   IDssProxyActions proxyActions;
@@ -43,15 +47,17 @@ contract TestMakerLoop is Script {
     proxyFactory = IDSProxyFactory(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
     proxyActions = IDssProxyActions(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
     bytes32[] memory ilks = new bytes32[](1);
-    ilks[0] = bytes32("WSTETH-B");
-    address[] memory collateralPools = new address[](1);
-    collateralPools[0] = wstETHGemJoin;
-    address[] memory tokens = new address[](1);
-    tokens[0] = wstETH;
-    address[] memory jugs = new address[](1);
-    jugs[0] = jug;
-    address[] memory daiPools = new address[](1);
-    daiPools[0] = daiJoin;
+     MakerLongLooper.CDP[] memory cdps = new MakerLongLooper.CDP[](1);
+    cdps[0] = MakerLongLooper.CDP({
+      ilk: bytes32("WSTETH-B"),
+      cdpId: 0,
+      collateralPool: wstETHGemJoin,
+      token: wstETH,
+      spotter: spotter,
+      jug: jug,
+      daiPool: daiJoin
+    });
+
 
 
     MakerLongLooper mll = new MakerLongLooper(
@@ -59,11 +65,9 @@ contract TestMakerLoop is Script {
       CDPManager,
       address(proxyActions),
       dai,
-      ilks,
-      collateralPools,
-      tokens,
-      jugs,
-      daiPools
+      uniswapRouter,
+      weth,
+     cdps
     );
     mll.createProxy();
     proxy = mll.proxy();

@@ -6,9 +6,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDSProxyFactory} from "./IDSProxyFactory.sol";
 import { IDSProxy} from "./IDSProxy.sol";
 import {IDssProxyActions} from "./IDssProxyActions.sol";
+import {ISpotter} from "./ISpotter.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "forge-std/console.sol";
 
 /**
@@ -22,22 +24,36 @@ contract MakerLongLooper is Ownable {
     *  MAKER CDP STATE
   ***********************************************/
 
+  struct CDP {
+    bytes32 ilk;
+    uint cdpId;
+    address collateralPool;
+    address token;
+    address spotter;
+    address jug;
+    address daiPool;
+  }
+
   IDSProxy public proxy;
   IDSProxyFactory public proxyFactory;
   address public CDPManager;
   address public proxyActions;
   address public dai;
-  mapping (bytes32 => address) public collateralPools;
-  mapping (bytes32 => uint) public cdps;
-  mapping (bytes32 => address) public tokens;
-  mapping (bytes32 => address) public jugs;
-  mapping (bytes32 => address) public daiPools;
+  address public weth;
+
+
+  mapping (bytes32 => CDP) public cdps;
+
+
+  
+
 
 
   /************************************************
     *  UNISWAP V3 STATE
   ***********************************************/
   ISwapRouter public immutable swapRouter;
+  mapping ( address tokenIn => mapping (address tokenOut => address pool)) public uniV3Pools;
 
   constructor (
     address _proxyFactory,
@@ -45,32 +61,23 @@ contract MakerLongLooper is Ownable {
     address _DssProxyActions,
     address _dai,
     address _swapRouter,
-    bytes32[] memory _ilks,
-    address[] memory _collateralPools,
-    address[] memory _tokens,
-    address[] memory _jugs,
-    address[] memory _daiPools
-
+    address _weth,
+    CDP[] memory _cdps
   ) Ownable(msg.sender) {
     proxyFactory = IDSProxyFactory(_proxyFactory);
     CDPManager = _CDPManager;
     proxyActions = _DssProxyActions;
     dai = _dai;
+    weth = _weth;
     swapRouter = ISwapRouter(_swapRouter);
-    require (
-    _ilks.length == _collateralPools.length && 
-    _ilks.length == _tokens.length &&
-    _jugs.length == _tokens.length &&
-    _ilks.length == _daiPools.length, 
-    "MakerLongLooper: Invalid input"
-    );
-    for (uint i = 0; i < _collateralPools.length;) {
-      collateralPools[_ilks[i]] = _collateralPools[i];
-      tokens[_ilks[i]] = _tokens[i];
-      jugs[_ilks[i]] = _jugs[i];
-      daiPools[_ilks[i]] = _daiPools[i];
-      unchecked {++i;}
+ 
+    for (uint i = 0; i < _cdps.length; i++) {
+      cdps[_cdps[i].ilk] = _cdps[i];
     }
+
+    uniV3Pools[dai][weth] = 0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8;
+    uniV3Pools[weth][cdps[bytes32("WSTETH-B")].token] = 0x109830a1AAaD605BbF02a9dFA7B0B92EC2FB7dAa;
+
   }
 
 
@@ -84,7 +91,7 @@ contract MakerLongLooper is Ownable {
   }
 
   function openVault(bytes32 _ilk) public onlyOwner {
-    require(collateralPools[_ilk] != address(0), "MakerLongLooper: Invalid ilk");
+    require(cdps[_ilk].collateralPool != address(0), "MakerLongLooper: Invalid ilk");
     // open CDP vault
     bytes32 response = proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.open.selector,
@@ -93,14 +100,14 @@ contract MakerLongLooper is Ownable {
       proxy
     ));
     // store CDP id
-    cdps[_ilk] = uint(response);
+    cdps[_ilk].cdpId = uint(response);
 
   }
 
 
   function depositCollateral(bytes32 _ilk, uint _depositAmount) public onlyOwner {
     // load token into memory
-    address token = tokens[_ilk];
+    address token = cdps[_ilk].token;
     // check if contract has enough balance, else transfer from sender
     if (ERC20(token).balanceOf(address(this)) < _depositAmount) {
       ERC20(token).transferFrom(msg.sender, address(this), _depositAmount);
@@ -112,8 +119,8 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.lockGem.selector,
       CDPManager,
-      collateralPools[_ilk],
-      cdps[_ilk], 
+      cdps[_ilk].collateralPool,
+      cdps[_ilk].cdpId, 
       _depositAmount,
       true
     ));
@@ -124,9 +131,9 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.draw.selector,
       CDPManager,
-      jugs[_ilk],
-      daiPools[_ilk],
-      cdps[_ilk],
+      cdps[_ilk].jug,
+      cdps[_ilk].daiPool,
+      cdps[_ilk].cdpId,
       _daiAmount
     ));
 
@@ -148,8 +155,8 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.wipe.selector,
       CDPManager,
-      daiPools[_ilk],
-      cdps[_ilk],
+      cdps[_ilk].daiPool,
+      cdps[_ilk].cdpId,
       _daiAmount
     ));
   }
@@ -159,19 +166,19 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.freeGem.selector,
       CDPManager,
-      collateralPools[_ilk],
-      cdps[_ilk],
+      cdps[_ilk].collateralPool,
+      cdps[_ilk].cdpId,
       _freeAmount
     ));
 
     // send collateral to owner
     if (_sendToOwner) {
-      ERC20(tokens[_ilk]).transfer(msg.sender, _freeAmount);
+      ERC20(cdps[_ilk].token).transfer(msg.sender, _freeAmount);
     }
   }
 
   function repayDebtAndFreeCollateral(bytes32 _ilk, uint _daiAmount, uint _freeAmount, bool _sendToOwner) public onlyOwner {
-    address token = tokens[_ilk];
+    address token = cdps[_ilk].token;
     // check if contract has enough balance, else transfer from sender
     if (ERC20(dai).balanceOf(address(this)) < _daiAmount) {
       ERC20(dai).transferFrom(msg.sender, address(this), _daiAmount);
@@ -183,9 +190,9 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.wipeAndFreeGem.selector,
       CDPManager,
-      collateralPools[_ilk],
-      daiPools[_ilk],
-      cdps[_ilk],
+      cdps[_ilk].collateralPool,
+      cdps[_ilk].daiPool,
+      cdps[_ilk].cdpId,
       _freeAmount,
       _daiAmount
     ));
@@ -197,7 +204,7 @@ contract MakerLongLooper is Ownable {
   }
 
   function depositCollateralAndBorrowDai(bytes32 _ilk, uint _depositAmount, uint _daiAmount, bool _sendToOwner) public onlyOwner {
-    address token = tokens[_ilk];
+    address token = cdps[_ilk].token;
     // check if contract has enough balance, else transfer from sender
     if (ERC20(token).balanceOf(address(this)) < _depositAmount) {
       ERC20(token).transferFrom(msg.sender, address(this), _depositAmount);
@@ -209,10 +216,10 @@ contract MakerLongLooper is Ownable {
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.lockGemAndDraw.selector,
       CDPManager,
-      jugs[_ilk],
-      collateralPools[_ilk],
-      daiPools[_ilk],
-      cdps[_ilk],
+      cdps[_ilk].jug,
+      cdps[_ilk].collateralPool,
+      cdps[_ilk].daiPool,
+      cdps[_ilk].cdpId,
       _depositAmount,
       _daiAmount,
       true
@@ -225,8 +232,53 @@ contract MakerLongLooper is Ownable {
   }
 
   /************************************************
+    *  LEVERAGE LOOPER
+  ************************************************/
+
+  /*
+    * @notice - Assumes that the vault is already opened
+    * @param _leverage - The amount of leverage to open the position with (18 decimals)
+  */
+  function openLeveragedPosition(bytes32 _ilk, uint _leverage, uint _daiToCollateralPrice) public onlyOwner {
+    
+  }
+
+
+  /************************************************
+    *  UNISWAP V3 SWAPPER
+  ************************************************/
+  function swapExactTokens(uint256 _amountIn, address _collateralToken, uint _amountOutMin) public onlyOwner returns(uint256 amountOut) {
+    if (ERC20(dai).balanceOf(address(this)) < _amountIn) {
+      ERC20(dai).transferFrom(msg.sender, address(this), _amountIn);
+    }
+
+    TransferHelper.safeApprove(dai, address(swapRouter), _amountIn);
+
+    IUniswapV3Pool daiToWETHPool = IUniswapV3Pool(uniV3Pools[dai][weth]);
+    IUniswapV3Pool wethToCollateralPool = IUniswapV3Pool(uniV3Pools[weth][_collateralToken]);
+
+    ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
+      path: abi.encodePacked(dai, daiToWETHPool.fee(), weth, wethToCollateralPool.fee(), _collateralToken),
+      recipient: address(this),
+      deadline: block.timestamp,
+      amountIn: _amountIn,
+      amountOutMinimum: _amountOutMin
+    });
+
+    amountOut = swapRouter.exactInput(params);
+  }
+
+  
+
+
+
+  /************************************************
     *  SETTERS
   ************************************************/
+
+  function setCDP(bytes32 _ilk, CDP memory _cdp) public onlyOwner {
+    cdps[_ilk] = _cdp;
+  }
   function setProxyActions(address _proxyActions) public onlyOwner {
     proxyActions = _proxyActions;
   }
@@ -235,29 +287,10 @@ contract MakerLongLooper is Ownable {
     dai = _dai;
   }
 
-  function setToken(bytes32 _ilk, address _token) public onlyOwner {
-    tokens[_ilk] = _token;
-  }
-
-  function setJug(bytes32 _ilk, address _jug) public onlyOwner {
-    jugs[_ilk] = _jug;
-  }
-
-  function setDaiPool(bytes32 _ilk, address _daiPool) public onlyOwner {
-    daiPools[_ilk] = _daiPool;
-  }
-
   function setProxy(address _proxy) public onlyOwner {
     proxy = IDSProxy(_proxy);
   }
 
-  function setCDP(bytes32 _ilk, uint _cdp) public onlyOwner {
-    cdps[_ilk] = _cdp;
-  }
-
-  function setCollateralPool(bytes32 _ilk, address _collateralPool) public onlyOwner {
-    collateralPools[_ilk] = _collateralPool;
-  }
   function setCDPManager(address _CDPManager) public onlyOwner {
     CDPManager = _CDPManager;
   }
