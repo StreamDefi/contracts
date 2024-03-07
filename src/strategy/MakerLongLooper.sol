@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
+pragma abicoder v2;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDSProxyFactory} from "./IDSProxyFactory.sol";
 import { IDSProxy} from "./IDSProxy.sol";
 import {IDssProxyActions} from "./IDssProxyActions.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import "forge-std/console.sol";
 
 /**
@@ -30,11 +33,18 @@ contract MakerLongLooper is Ownable {
   mapping (bytes32 => address) public jugs;
   mapping (bytes32 => address) public daiPools;
 
+
+  /************************************************
+    *  UNISWAP V3 STATE
+  ***********************************************/
+  ISwapRouter public immutable swapRouter;
+
   constructor (
     address _proxyFactory,
     address _CDPManager,
     address _DssProxyActions,
     address _dai,
+    address _swapRouter,
     bytes32[] memory _ilks,
     address[] memory _collateralPools,
     address[] memory _tokens,
@@ -46,6 +56,7 @@ contract MakerLongLooper is Ownable {
     CDPManager = _CDPManager;
     proxyActions = _DssProxyActions;
     dai = _dai;
+    swapRouter = ISwapRouter(_swapRouter);
     require (
     _ilks.length == _collateralPools.length && 
     _ilks.length == _tokens.length &&

@@ -8,6 +8,7 @@ import { IDSProxy } from "../../src/strategy/IDSProxy.sol";
 import { IDssProxyActions } from "../../src/strategy/IDssProxyActions.sol";
 import { ICDPManager } from "../../src/strategy/ICDPManager.sol";
 import { IVat } from "../../src/strategy/IVat.sol";
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "forge-std/console.sol";
@@ -21,6 +22,7 @@ contract TestMakerWrappers is Test {
   address jug = 0x19c0976f590D67707E62397C87829d896Dc0f1F1;
   address owner = 0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444;
   address wstETHFunder = 0x5fEC2f34D80ED82370F733043B6A536d7e9D7f8d;
+  address uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
   uint wstETHBalance = 500 ether;
   uint depositAmount = 100 ether;
   uint borrowAmount = 20000 ether;
@@ -56,6 +58,7 @@ contract TestMakerWrappers is Test {
       address(proxyFactory),
       address(cdpManager),
       address(proxyActions),
+      uniswapRouter,
       dai,
       ilks,
       collateralPools,
