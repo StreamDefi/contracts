@@ -30,7 +30,6 @@ contract MakerLongLooper is Ownable {
 
 
   constructor (
-    address _proxy,
     address _proxyFactory,
     address _CDPManager,
     address _DssProxyActions,
@@ -42,7 +41,6 @@ contract MakerLongLooper is Ownable {
     address[] memory _daiPools
 
   ) Ownable(msg.sender) {
-    proxy = IDSProxy(_proxy);
     proxyFactory = IDSProxyFactory(_proxyFactory);
     CDPManager = _CDPManager;
     proxyActions = _DssProxyActions;
@@ -70,14 +68,13 @@ contract MakerLongLooper is Ownable {
   }
 
   function openVault(bytes32 _ilk) public onlyOwner {
-
     require(collateralPools[_ilk] != address(0), "MakerLongLooper: Invalid ilk");
     // open CDP vault
     bytes32 response = proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.open.selector,
       CDPManager,
       _ilk,
-      proxyActions
+      proxy
     ));
     // store CDP id
     cdps[_ilk] = uint(response);
@@ -131,6 +128,7 @@ contract MakerLongLooper is Ownable {
       ERC20(dai).transferFrom(msg.sender, address(this), _daiAmount);
     }
     // repay dai debt
+    ERC20(dai).approve(address(proxy), _daiAmount);
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.wipe.selector,
       CDPManager,
@@ -140,7 +138,7 @@ contract MakerLongLooper is Ownable {
     ));
   }
 
-  function freeCollateral(bytes32 _ilk, uint _freeAmount, bool _sendToOwner) public onlyOwner {
+  function withdrawCollateral(bytes32 _ilk, uint _freeAmount, bool _sendToOwner) public onlyOwner {
     // free collateral from CDP vault
     proxy.execute(proxyActions, abi.encodeWithSelector(
       IDssProxyActions.freeGem.selector,
@@ -207,32 +205,4 @@ contract MakerLongLooper is Ownable {
       ERC20(dai).transfer(msg.sender, _daiAmount);
     }
   }
-
-
-
-
-
-
-
-
-  // function delegate() public {
-  //      DSProxy proxy = DSProxy(0x44E36d740aA2066669644AAFFA90f69aA74E3aa9);
-  //     (bool success, bytes memory data) = address(proxy).delegatecall(abi.encodeWithSelector(
-  //       DSProxy.execute.selector,
-  //       address(0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038),
-  //       abi.encodeWithSelector(
-  //       DssProxyActions.lockGem.selector,
-  //      address(0x5ef30b9986345249bc32d8928B7ee64DE9435E39),
-  //     address(0x248cCBf4864221fC0E840F29BB042ad5bFC89B5c),
-  //     31498, 
-  //     50 ether,
-  //     true
-  //       )
-  //        ));
-
-  //     console.logBytes(data);
-  //     require(success, "MakerLongLooper: delegatecall failed");
-    
-  // }
-
 }

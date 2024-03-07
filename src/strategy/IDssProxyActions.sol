@@ -58,9 +58,9 @@ interface IDssProxyActions {
   function freeGem(
     address manager,
     address gemJoin,
-    address end,
-    uint cdp
-  ) external;
+    uint cdp,
+    uint wad
+  )  external;
 
 
  

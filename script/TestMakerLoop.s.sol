@@ -5,6 +5,9 @@ import "forge-std/Script.sol";
 
 import { MockERC20 } from "../mocks/MockERC20.sol";
 import { MakerLongLooper } from "../src/strategy/MakerLongLooper.sol";
+import { IDSProxyFactory } from "../src/strategy/IDSProxyFactory.sol";
+import { IDSProxy } from "../src/strategy/IDSProxy.sol";
+import { IDssProxyActions } from "../src/strategy/IDssProxyActions.sol";
 import "forge-std/console.sol";
 
 interface DSProxy {
@@ -15,8 +18,19 @@ interface DSProxy {
 
 }
 contract TestMakerLoop is Script {
+
+  address CDPManager = 0x5ef30b9986345249bc32d8928B7ee64DE9435E39;
+  address dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+  address wstETHGemJoin = 0x248cCBf4864221fC0E840F29BB042ad5bFC89B5c;
+  address wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+  address daiJoin = 0x9759A6Ac90977b93B58547b4A71c78317f391A28;
+  address jug = 0x19c0976f590D67707E62397C87829d896Dc0f1F1;
+  address owner = 0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444;
+  IDSProxy proxy;
+  IDSProxyFactory proxyFactory;
+  IDssProxyActions proxyActions;
   function run() public {
-    // address owner = 0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444;
+  
     // address funder = 0x5313b39bf226ced2332C81eB97BB28c6fD50d1a3;
     // DssProxyActions makerProxy = DssProxyActions(0x82ecD135Dce65Fbc6DbdD0e4237E0AF93FFD5038);
     // MockERC20 wstETH = MockERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
@@ -25,8 +39,37 @@ contract TestMakerLoop is Script {
     // vm.prank(funder);
     // wstETH.transfer(address(owner), 100 ether);
     
-    // vm.startPrank(owner);
-    // MakerLongLooper makerLongLooper = new MakerLongLooper();
+    vm.startPrank(owner);
+    proxyFactory = IDSProxyFactory(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
+    proxyActions = IDssProxyActions(0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4);
+    bytes32[] memory ilks = new bytes32[](1);
+    ilks[0] = bytes32("WSTETH-B");
+    address[] memory collateralPools = new address[](1);
+    collateralPools[0] = wstETHGemJoin;
+    address[] memory tokens = new address[](1);
+    tokens[0] = wstETH;
+    address[] memory jugs = new address[](1);
+    jugs[0] = jug;
+    address[] memory daiPools = new address[](1);
+    daiPools[0] = daiJoin;
+
+
+    MakerLongLooper mll = new MakerLongLooper(
+      address(proxyFactory),
+      CDPManager,
+      address(proxyActions),
+      dai,
+      ilks,
+      collateralPools,
+      tokens,
+      jugs,
+      daiPools
+    );
+    mll.createProxy();
+    proxy = mll.proxy();
+    console.logAddress(proxy.owner());
+    console.logAddress(address(mll));
+
     // wstETH.approve(address(makerProxy), 50 ether);
     // makerProxy.lockGem(
     //   address(0x5ef30b9986345249bc32d8928B7ee64DE9435E39),
