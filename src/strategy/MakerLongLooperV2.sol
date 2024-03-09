@@ -233,150 +233,54 @@ contract MakerLongLooper is Ownable {
   /*
     * @notice - Assumes that the vault is already opened
     * @param _leverage - The amount of leverage to open the position with same amount of decimals as collateral token
+    * @notice - The principleVal must be one such that withdrawing currentEquity - principle val still keeps the position healthy
+
   */
-  function openLeveragedPosition(bytes32 _ilk, uint _leverage, uint _daiToCollateralPrice, uint _depositAmount) public onlyOwner {
+  function openLeveragedPosition(bytes32 _ilk, uint _leverage, uint _daiToCollateralPrice, uint _principleVal) public onlyOwner {
     address vat = ICDPManager(CDPManager).vat();
     IVat.Urn memory urn = IVat(vat).urns(_ilk, ICDPManager(CDPManager).urns(cdps[_ilk].cdpId));
-    uint collateral = urn.ink;
-    console.logString("collateral");
-    console.logUint(collateral / 10 ** 17);
-    if (collateral == 0) {
-      console.logString("collateral is 0");
-      openFreshLeveragedPosition(_ilk, _leverage, _daiToCollateralPrice, _depositAmount);
+    uint currCollateral = urn.ink;
+    uint currDebt = urn.art;
+    uint currCollateralVal = currCollateral * _daiToCollateralPrice / 10 ** 18;
+    uint currEquity = currCollateralVal - currDebt;
+    // need to deposit or withdraw collateral from vault
+    if (currEquity != _principleVal) handleEquity(_ilk, _daiToCollateralPrice, _principleVal, currEquity);
+
+    currCollateral = urn.ink;
+    currDebt = urn.art;
+    currCollateralVal = currCollateral * _daiToCollateralPrice / 10 ** 18;
+    currEquity = currCollateralVal - currDebt;
+
+    if (currDebt == 0) {
+      openFreshLeveragedPosition(_ilk, _leverage, _daiToCollateralPrice, _principleVal);
     } else {
-      uint debt = urn.art;
-      console.logString("debt");
-      console.logUint(debt / 10 ** 17);
-      CDP memory cdp = cdps[_ilk];
-      uint currentCollateralVal = collateral * _daiToCollateralPrice / 10 ** 18;
-      console.logString("current collateral val");
-      console.logUint(currentCollateralVal / 10 ** 17);
 
-      if (debt == 0) {
-        console.logString("debt is 0");
+    }
+   
 
-        // check if the leverage is too high to double loop
-        uint collateralRatio = ISpotter(cdp.spotter).ilks(_ilk).mat;
-        console.logString("collateral ratio");
-        console.logUint(collateralRatio / 10 ** 26);
+  }
 
-        // max borrowable dai = total collateral * collateral ratio * dai to collateral price
-        uint currentMaxBorrowableDai = collateral * _daiToCollateralPrice / 10 ** 18 / (collateralRatio / 10 ** (27 - 18)) * 10 ** 18;
-        console.logString("current max borrowable dai");
-        console.logUint(currentMaxBorrowableDai / 10 ** 17);
+  function handleEquity(bytes32 _ilk, uint _daiToCollateralPrice, uint _principleVal, uint _currEquity) internal {
+    if (_principleVal > _currEquity) {
+      // need to deposit collateral
+      uint depositAmount = (_principleVal - _currEquity) * 10 ** 18 / _daiToCollateralPrice;
+      depositCollateral(_ilk, depositAmount);
+    } else {
+      // need to withdraw collateral
 
-        uint maxLeverage = (currentCollateralVal + currentMaxBorrowableDai) * 10**18 / (currentCollateralVal);
-        console.logString("max leverage");
-        console.logUint(maxLeverage / 10 ** 17);
-
-        if (maxLeverage > _leverage) {
-          console.logString("max leverage is greater desired leverage");
-
-          // can loop without depositing more collateral
-          uint desiredTotalCollateral = collateral * _leverage / 10 ** ERC20(cdp.token).decimals();
-          console.logString("desired total collateral");
-          console.logUint(desiredTotalCollateral / 10 ** 17);
-          
-          uint daiToBorrow = (desiredTotalCollateral - collateral) * _daiToCollateralPrice / 10 ** 18;
-          console.logString("dai to borrow");
-          console.logUint(daiToBorrow / 10 ** 17);
-          borrowDai(_ilk, daiToBorrow, false);
-          // 3% slippage
-          uint amountOutMin = (daiToBorrow  / _daiToCollateralPrice * 10 ** 18) * ((100 - slippage)/100);
-          console.logString("amount out min");
-          console.logUint(amountOutMin / 10 ** 17);
-          uint amountOut = swapExactTokens(daiToBorrow, cdp.token, amountOutMin);
-          console.logString("amount out");
-          console.logUint(amountOut / 10 ** 17);
-          depositCollateral(_ilk, amountOut);
-        } else {
-          console.logString("max leverage is less desired leverage");
-          // need to deposit more collateral
-          uint desiredTotalCollateral = (collateral + _depositAmount) * _leverage / 10 ** ERC20(cdp.token).decimals();
-          console.logString("desired total collateral");
-          console.logUint(desiredTotalCollateral/ 10 ** 17);
-          uint daiToBorrow = (desiredTotalCollateral - (collateral + _depositAmount)) * _daiToCollateralPrice / 10 ** 18;
-          console.logString("dai to borrow");
-          console.logUint(daiToBorrow/ 10 ** 17);
-          depositCollateralAndBorrowDai(_ilk, _depositAmount, daiToBorrow, false);
-          // 3% slippage
-          uint amountOutMin = (daiToBorrow  / _daiToCollateralPrice * 10 ** 18) * ((100 - slippage)/100) ;
-          console.logString("amount out min");
-          console.logUint(amountOutMin / 10 ** 17);
-          uint amountOut = swapExactTokens(daiToBorrow, cdp.token, amountOutMin);
-          console.logString("amount out");
-          console.logUint(amountOut / 10 ** 17);
-          depositCollateral(_ilk, amountOut);
-        }
-      } else {
-        console.logString("debt is not 0");
-        uint currentEquity = currentCollateralVal - debt;
-        console.logString("current equity");
-        console.logUint(currentEquity / 10 ** 17);
-        uint currentLeverage = currentCollateralVal / currentEquity;
-        console.logString("current leverage");
-        console.logUint(currentLeverage / 10 ** 17);
-        if (currentLeverage > _leverage) {
-          console.logString("current leverage is greater than desired leverage");
-        } else {
-          console.logString("current leverage is less than desired leverage");
-
-          // need to deposit more collateral
-          uint desiredTotalCollateral = (collateral + _depositAmount) * (_leverage) / 10 ** ERC20(cdp.token).decimals();
-          console.logString("desired total collateral");
-          console.logUint(desiredTotalCollateral / 10 ** 17);
-          uint daiToBorrow = (desiredTotalCollateral - (collateral + _depositAmount)) * _daiToCollateralPrice / 10 ** 18;
-          console.logString("dai to borrow");
-          console.logUint(daiToBorrow / 10 ** 17);
-          depositCollateralAndBorrowDai(_ilk, _depositAmount, daiToBorrow, false);
-
-          // 3% slippage
-          uint amountOutMin = (daiToBorrow  / _daiToCollateralPrice * 10 ** 18) * ((100 - slippage)/100) ;
-          console.logString("amount out min");
-          console.logUint(amountOutMin / 10 ** 17);
-          uint amountOut = swapExactTokens(daiToBorrow, cdp.token, amountOutMin);
-          console.logString("amount out");
-          console.logUint(amountOut / 10 ** 17);
-          depositCollateral(_ilk, amountOut);
-        }
-
-      }
-
-
-
-
+      // first check if we can do so without repaying debt
+      uint withdrawAmount = (_currEquity - _principleVal) * 10 ** 18 / _daiToCollateralPrice;
+      withdrawCollateral(_ilk, withdrawAmount, true);
     }
   }
 
+  /*
+    * @notice - Assumes that the vault is already opened
+    * @notice - Assumes that the vault already has correct principle amount of equity
+
+  */
   function openFreshLeveragedPosition(bytes32 _ilk, uint _leverage, uint _daiToCollateralPrice, uint _depositAmount) internal {
-    CDP memory cdp = cdps[_ilk];
-    // check if the leverage is too high to double loop
-    uint collateralRatio = ISpotter(cdp.spotter).ilks(_ilk).mat;
-    console.logString("collateral ratio");
-    console.logUint(collateralRatio / 10 ** 26);
-    // total collateral = principle * leverage
-    uint desiredTotalCollateral = _depositAmount * _leverage / 10 ** ERC20(cdp.token).decimals();
-    console.logString("desired total collateral");
-    console.logUint(desiredTotalCollateral / 10 ** 17);
-    // max borrowable dai = total collateral * collateral ratio * dai to collateral price
-    uint maxBorrowableDai = _depositAmount * _daiToCollateralPrice / 10 ** 18 / (collateralRatio / 10 ** (27 - 18)) * 10 ** 18;
-    console.logString("max borrowable dai");
-    console.logUint(maxBorrowableDai / 10 ** 17);
-    
-    // dai to borrow = (total collateral - principle) * dai to collateral price
-    uint daiToBorrow = (desiredTotalCollateral - _depositAmount) * _daiToCollateralPrice / 10 ** 18;
-    console.logString("dai to borrow");
-    console.logUint(daiToBorrow / 10 ** 17);
-    require(daiToBorrow <= maxBorrowableDai, "MakerLongLooper: Leverage too high");
-    depositCollateralAndBorrowDai(_ilk, _depositAmount, daiToBorrow, false);
-    // 3% slippage
-    uint amountOutMin = (daiToBorrow  / _daiToCollateralPrice * 10 ** 18) * ((100 - slippage)/100) ;
-    console.logString("amount out min");
-    console.logUint(amountOutMin / 10 ** 17);
-    uint amountOut = swapExactTokens(daiToBorrow, cdp.token, amountOutMin);
-    console.logString("amount out");
-    console.logUint(amountOut / 10 ** 17);
-    depositCollateral(_ilk, amountOut);
+
   }
 
 

@@ -7,16 +7,25 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 
 contract DepositStreamVault is Script {
     function run() public {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
-        StreamVault vault = StreamVault(
-            payable(0x2938A650e9Bb6B0FD6eCb6a0584F6150a8edB20C)
-        );
-        bytes32[] memory proof = new bytes32[](2);
-        proof[0] = 0x858cfe3ff9ea7ea7544d1d074419b079499c5c24147036b10ad5011b23c8ff31;
-        proof[1] = 0xa5a63ffde85d9898fb9ba1328f94a348cb5cfca61f6eaf8a57a2826e9b2d6f89;
+        // build proof for certain address
+        bytes32[] memory proof = new bytes32[](6);
+        proof[0] = 0x35edacbc12443cff9b001f5e1c6678e0dee34be1fbd9627d2dc056dc542ac1a7;
+        proof[1] = 0xdac1fad5344e2782fb9e99bb7a7800fe07fda92fa96f2f7b3fadabc206f0c613;
+        proof[2] = 0xc972b1303675d066dc2343b49ad4d987d11ac803eecb70cba9c176f041da661a;
+        proof[3] = 0xee70d0483fcf5a5a946b9b3b10ce14a6817ae80ad47ea7d525f0e2901c51ca6b;
+        proof[4] = 0xcc541f5663a113ff67bb881f2a253bf9bc6ea220c26d7359ab864b5e4c5ec531;
+        proof[5] = 0x6f0177c5461bce124583ff96cf780172531a0ee3f1b89ace4bb370dc70e7f0a1;
 
-        vault.privateDeposit(0.28491 ether, proof);
-        vm.stopBroadcast();
+        // simulate calls from
+        vm.startPrank(0x99655b07F321B6B5a2809f43e1A143d7f7a1634f);
+        StreamVault vault = StreamVault(
+            payable(0x6efa12b38038A6249B7aBdd5a047D211fB0aD48E)
+        );
+        // simulate depositing
+        vault.privateDeposit(451051400, proof);
+
+
+
+
     }
 }

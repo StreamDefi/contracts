@@ -6,4 +6,5 @@ interface ICDPManager {
   function vat() external view returns (address);
   function ilks(uint cdpId) external view returns (bytes32);
   function urns(uint cdpId) external view returns (address);
+
 }

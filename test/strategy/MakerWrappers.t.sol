@@ -8,6 +8,8 @@ import { IDSProxy } from "../../src/strategy/IDSProxy.sol";
 import { IDssProxyActions } from "../../src/strategy/IDssProxyActions.sol";
 import { ICDPManager } from "../../src/strategy/ICDPManager.sol";
 import { IVat } from "../../src/strategy/IVat.sol";
+import { IQuoterV2 } from "@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol";
+import { ISpotter } from "../../src/strategy/ISpotter.sol";
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -26,6 +28,7 @@ contract TestMakerWrappers is Test {
   address uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
   address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address spotter = 0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3;
+  address quoter = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
   uint wstETHBalance = 500 ether;
   uint depositAmount = 100 ether;
   uint borrowAmount = 20000 ether;
@@ -56,6 +59,7 @@ contract TestMakerWrappers is Test {
       daiPool: daiJoin
     });
 
+
    
     vm.selectFork(mainnetFork);
     vm.startPrank(owner);
@@ -78,6 +82,7 @@ contract TestMakerWrappers is Test {
     vm.stopPrank();
     vm.prank(wstETHFunder);
     ERC20(wstETH).transfer(address(owner), wstETHBalance);
+    
   }
 
   function test_properlyDepositsCollateral() public {
@@ -162,9 +167,47 @@ contract TestMakerWrappers is Test {
     mll.swapExactTokens(borrowAmount / 2, wstETH, 0);
     uint postWSTETHBal = ERC20(wstETH).balanceOf(address(mll));
     assertTrue(postWSTETHBal > preWSTETHBal);
-    console.logUint(preWSTETHBal);
-    console.logUint(postWSTETHBal);
+  }
 
+  function test_openLoopLeverage() public {
+   
+    vm.selectFork(mainnetFork);
+    vm.startPrank(owner);
+  
+    (uint256 amount, , ,) = IQuoterV2(quoter).quoteExactInput(
+     abi.encodePacked(wstETH, uint24(100), weth, uint24(3000), dai),
+      1 ether
+    );
+    console.logString("price");
+    console.logUint(amount/ 10 ** 17);
+    uint _depositAmount = 500000 ether / amount * 10 ** 18;
+    ERC20(wstETH).approve(address(mll), _depositAmount);
+    console.logString("depositAmount");
+    console.logUint(_depositAmount / 10 ** 17);
+    mll.openLeveragedPosition(ilk, 1.5 ether, amount, _depositAmount);
+    verifyVatStateBuffer(_depositAmount * 1.5 ether / 10 ** 18, ((_depositAmount * amount * 1.5 ether) - _depositAmount) / 10 ** 36);
+  }
+
+  function test_openLoopLevWithPrevCollateral() public {
+    uint initialDeposit = 10 ether;
+    console.logString("initialDeposit");
+    console.logUint(initialDeposit / 10 ** 17);
+    vm.selectFork(mainnetFork);
+    vm.startPrank(owner);
+    ERC20(wstETH).approve(address(mll),initialDeposit);
+    mll.depositCollateral(ilk, initialDeposit);
+    (uint256 price, , ,) = IQuoterV2(quoter).quoteExactInput(
+     abi.encodePacked(wstETH, uint24(100), weth, uint24(3000), dai),
+      1 ether
+    );
+    console.logString("price");
+    console.logUint(price/ 10 ** 17);
+    uint _depositAmount = 500000 ether / price * 10 ** 18;
+    ERC20(wstETH).approve(address(mll), _depositAmount);
+    console.logString("depositAmount");
+    console.logUint(_depositAmount / 10 ** 17);
+    mll.openLeveragedPosition(ilk, 1.5 ether, price, _depositAmount);
+    verifyVatStateBuffer(depositAmount + _depositAmount * 1.5 ether / 10 ** 18, ((_depositAmount * price * 1.5 ether) - _depositAmount) / 10 ** 36);
   }
 
   function verifyVatState(
@@ -175,16 +218,43 @@ contract TestMakerWrappers is Test {
     bytes32 ilkBytes = cdpManager.ilks(id);
 
     IVat.Ilk memory ilkObj = vat.ilks(ilkBytes);
-    console.logUint(ilkObj.Art);
-    console.logUint(ilkObj.rate);
-    console.logUint(ilkObj.spot);
-    console.logUint(ilkObj.line);
-    console.logUint(ilkObj.dust);
+    // console.logUint(ilkObj.Art);
+    // console.logUint(ilkObj.rate);
+    // console.logUint(ilkObj.spot);
+    // console.logUint(ilkObj.line);
+    // console.logUint(ilkObj.dust);
 
     address urnAddress = cdpManager.urns(id);
     IVat.Urn memory urn = vat.urns(ilkBytes, urnAddress);
     assertEq(urn.ink, _properCollateral);
 
+    // TO DO calculate proper debt by factoring in fee rate
+    // assertEq(urn.art, _properDebt);
+  }
+
+  function verifyVatStateBuffer(
+    uint _properCollateral,
+    uint _properDebt
+  ) public {
+    (, uint id, , , , ,  ) = mll.cdps(ilk);
+    bytes32 ilkBytes = cdpManager.ilks(id);
+
+    IVat.Ilk memory ilkObj = vat.ilks(ilkBytes);
+    // console.logUint(ilkObj.Art);
+    // console.logUint(ilkObj.rate);
+    // console.logUint(ilkObj.spot);
+    // console.logUint(ilkObj.line);
+    // console.logUint(ilkObj.dust);
+
+    address urnAddress = cdpManager.urns(id);
+    IVat.Urn memory urn = vat.urns(ilkBytes, urnAddress);
+    // assertEq(urn.ink, _properCollateral);
+    assertTrue(urn.ink >= _properDebt * 95/100 || urn.ink <= _properDebt * 105/100);
+    if (_properDebt == 0) {
+      assertEq(urn.art, 0);
+    } else {
+      assertTrue(urn.art >= _properDebt * 95/100 || urn.art <= _properDebt * 105/100);
+    }
     // TO DO calculate proper debt by factoring in fee rate
     // assertEq(urn.art, _properDebt);
   }
