@@ -106,11 +106,12 @@ contract VaultKeeper is Ownable {
         uint256 queuedWithdrawAmount = vault.getCurrQueuedWithdrawAmount(
             currBalance
         );
+        uint256 lastQueuedWithdrawAmount = vault.lastQueuedWithdrawAmount();
 
         ERC20(asset).transferFrom(
             owner(),
             address(vault),
-            queuedWithdrawAmount
+            queuedWithdrawAmount - lastQueuedWithdrawAmount
         );
 
         require(
