@@ -17,5 +17,5 @@ interface IVat {
 
   function ilks(bytes32 ilk) external view returns (Ilk memory);
   function urns(bytes32 ilk, address urn) external view returns (Urn memory);
-  
+  function dai(address urn) external view returns (uint256);
 }
