@@ -96,9 +96,9 @@ contract DeployStreamVault is Script {
         vaultKeeper.transferOwnership(
             0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
         );
-        usdcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
-        btcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
-        wethVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        USDCVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        BTCVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        ETHVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
 
         console.logString("Transferred Ownership");
 
