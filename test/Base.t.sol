@@ -103,7 +103,8 @@ contract Base is Test {
             keeper,
             "StreamVault",
             "SV",
-            vaultParams
+            vaultParams,
+            true
         );
         vault.setPublic(true);
         vm.stopPrank();

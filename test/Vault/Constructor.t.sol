@@ -65,7 +65,8 @@ contract StreamVaultConstructorTest is Test, Base {
             _keeper,
             _tokenName,
             _tokenSymbol,
-            _vaultParams
+            _vaultParams,
+            true
         );
         (uint8 decimals, address asset, uint56 _minSupply, uint104 cap) = vault
             .vaultParams();
@@ -116,7 +117,8 @@ contract StreamVaultConstructorTest is Test, Base {
             _keeper,
             _tokenName,
             _tokenSymbol,
-            _vaultParams
+            _vaultParams,
+            true
         );
         vm.stopPrank();
     }
@@ -141,7 +143,8 @@ contract StreamVaultConstructorTest is Test, Base {
             _keeper,
             _tokenName,
             _tokenSymbol,
-            _vaultParams
+            _vaultParams,
+            true
         );
         vm.stopPrank();
     }
@@ -166,7 +169,8 @@ contract StreamVaultConstructorTest is Test, Base {
             _keeper,
             _tokenName,
             _tokenSymbol,
-            _vaultParams
+            _vaultParams,
+            true
         );
         vm.stopPrank();
     }
@@ -191,7 +195,8 @@ contract StreamVaultConstructorTest is Test, Base {
             _keeper,
             _tokenName,
             _tokenSymbol,
-            _vaultParams
+            _vaultParams,
+            true
         );
         vm.stopPrank();
     }

@@ -33,7 +33,8 @@ contract DeployTestStreamVault is Script {
             address(vaultKeeper),
             "Stream Hodl Wrapped ETH",
             "sHodlwETH",
-            vaultParamsUSDC
+            vaultParamsUSDC,
+            true
         );
 
         // 4. add vaults to keeper

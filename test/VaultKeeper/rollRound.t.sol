@@ -64,14 +64,16 @@ contract VaultKeeperTest is Test {
             address(contractKeeper),
             "StreamVault",
             "SV",
-            vaultParams
+            vaultParams,
+            true
         );
         vault2 = new StreamVault(
             address(weth),
             address(contractKeeper),
             "StreamVault",
             "SV",
-            vaultParamsMock
+            vaultParamsMock,
+            true
         );
 
         contractKeeper.addVault("WETH", address(vault));

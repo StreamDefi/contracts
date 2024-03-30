@@ -23,84 +23,87 @@ contract DeployStreamVault is Script {
         console.logString("Deployed VaultKeeper");
 
         // // 2. prep vault params
-        Vault.VaultParams memory vaultParamsUSDC = Vault.VaultParams({
-            decimals: 6,
-            asset: vm.envAddress("ARBITRUM_USDC"),
-            minimumSupply: uint56(1000),
-            cap: uint104(1000000000000000000000000)
-        });
+        // Vault.VaultParams memory vaultParamsUSDC = Vault.VaultParams({
+        //     decimals: 6,
+        //     asset: vm.envAddress("ARBITRUM_USDC"),
+        //     minimumSupply: uint56(1000),
+        //     cap: uint104(1000000000000000000000000)
+        // });
 
-        Vault.VaultParams memory vaultParamsBTC = Vault.VaultParams({
-            decimals: 8,
-            asset: vm.envAddress("ARBITRUM_WBTC"),
-            minimumSupply: uint56(1000),
-            cap: uint104(1000000000000000000000000)
-        });
+        // Vault.VaultParams memory vaultParamsBTC = Vault.VaultParams({
+        //     decimals: 8,
+        //     asset: vm.envAddress("ARBITRUM_WBTC"),
+        //     minimumSupply: uint56(1000),
+        //     cap: uint104(1000000000000000000000000)
+        // });
 
-        Vault.VaultParams memory vaultParamsETH = Vault.VaultParams({
-            decimals: 18,
-            asset: weth,
-            minimumSupply: uint56(100000000),
-            cap: uint104(1000000000000000000000000)
-        });
+        // Vault.VaultParams memory vaultParamsETH = Vault.VaultParams({
+        //     decimals: 18,
+        //     asset: weth,
+        //     minimumSupply: uint56(100000000),
+        //     cap: uint104(1000000000000000000000000)
+        // });
 
-        // 3. deploy vaults
-        StreamVault USDCVault = new StreamVault(
-            weth,
-            address(vaultKeeper),
-            "Stream LevUSDC",
-            "sLevUSDC",
-            vaultParamsUSDC
-        );
+        // // 3. deploy vaults
+        // StreamVault USDCVault = new StreamVault(
+        //     weth,
+        //     address(vaultKeeper),
+        //     "Stream LevUSDC",
+        //     "sLevUSDC",
+        //     vaultParamsUSDC,
+        //     false
+        // );
 
-        console.logString("Deployed USDC Vault");
+        // console.logString("Deployed USDC Vault");
 
-        StreamVault BTCVault = new StreamVault(
-            weth,
-            address(vaultKeeper),
-            "Stream HodlwBTC",
-            "sHodlwBTC",
-            vaultParamsBTC
-        );
+        // StreamVault BTCVault = new StreamVault(
+        //     weth,
+        //     address(vaultKeeper),
+        //     "Stream HodlwBTC",
+        //     "sHodlwBTC",
+        //     vaultParamsBTC,
+        //     false
+        // );
 
-        console.logString("Deployed WBTC Vault");
+        // console.logString("Deployed WBTC Vault");
 
-        StreamVault ETHVault = new StreamVault(
-            weth,
-            address(vaultKeeper),
-            "Stream HodlwETH",
-            "sHodlwETH",
-            vaultParamsETH
-        );
+        // StreamVault ETHVault = new StreamVault(
+        //     weth,
+        //     address(vaultKeeper),
+        //     "Stream HodlwETH",
+        //     "sHodlwETH",
+        //     vaultParamsETH,
+        //     false
+        // );
 
-        console.logString("Deployed WETH Vault");
+        // console.logString("Deployed WETH Vault");
 
-        // 4. add vaults to keeper
-        vaultKeeper.addVault("USDC", address(USDCVault));
-        console.logString("Added USDC Vault to Keeper");
-        vaultKeeper.addVault("WBTC", address(BTCVault));
-        console.logString("Added WBTC Vault to Keeper");
-        vaultKeeper.addVault("WETH", address(ETHVault));
-        console.logString("Added WETH Vault to Keeper");
+        // // 4. add vaults to keeper
+        // vaultKeeper.addVault("USDC", address(USDCVault));
+        // console.logString("Added USDC Vault to Keeper");
+        // vaultKeeper.addVault("WBTC", address(BTCVault));
+        // console.logString("Added WBTC Vault to Keeper");
+        // vaultKeeper.addVault("WETH", address(ETHVault));
+        // console.logString("Added WETH Vault to Keeper");
 
-        bytes32 merkleRoot = vm.envBytes32("MERKLE_ROOT");
+        // bytes32 merkleRoot = vm.envBytes32("MERKLE_ROOT");
 
-        // 5. add merkle roots to vaults
-        USDCVault.setMerkleRoot(merkleRoot);
-        console.logString("Set USDC Merkle Root");
-        BTCVault.setMerkleRoot(merkleRoot);
-        console.logString("Set WBTC Merkle Root");
-        ETHVault.setMerkleRoot(merkleRoot);
-        console.logString("Set WETH Merkle Root");
+        // // 5. add merkle roots to vaults
+        // USDCVault.setMerkleRoot(merkleRoot);
+        // console.logString("Set USDC Merkle Root");
+        // BTCVault.setMerkleRoot(merkleRoot);
+        // console.logString("Set WBTC Merkle Root");
+        // ETHVault.setMerkleRoot(merkleRoot);
+        // console.logString("Set WETH Merkle Root");
 
-        vaultKeeper.transferOwnership(
-            0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
-        );
-        usdcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
-        btcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
-        wethVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        // vaultKeeper.transferOwnership(
+        //     0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
+        // );
+        // USDCVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        // BTCVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        // ETHVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
 
-        console.logString("Transferred Ownership");
+        // console.logString("Transferred Ownership");
 
         vm.stopBroadcast();
     }

@@ -11,7 +11,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
 
-
 /**
  * @title StreamVault
  * @notice A vault that allows users to deposit and withdraw from an off-chain managed Stream strategy
@@ -58,11 +57,14 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
-    /// @notice private or public 
+    /// @notice private or public
     bool public isPublic;
 
     /// @notice merkle root for private whitelist
     bytes32 public merkleRoot;
+
+    /// @notice if the vault supports native ETH deposits
+    bool public supportsNativeETH;
 
     /************************************************
      *  EVENTS
@@ -115,7 +117,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         address _keeper,
         string memory _tokenName,
         string memory _tokenSymbol,
-        Vault.VaultParams memory _vaultParams
+        Vault.VaultParams memory _vaultParams,
+        bool _supportsNativeETH
     ) ReentrancyGuard() Ownable(msg.sender) ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
         require(_keeper != address(0), "!_keeper");
@@ -125,11 +128,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         WETH = _weth;
         keeper = _keeper;
         vaultParams = _vaultParams;
+        supportsNativeETH = _supportsNativeETH;
 
         vaultState.round = 1;
     }
-
-
 
     /************************************************
      *  PUBLIC DEPOSITS
@@ -141,6 +143,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function depositETH() external payable nonReentrant {
         require(isPublic, "!public");
         require(vaultParams.asset == WETH, "!WETH");
+        require(supportsNativeETH, "!supportsNativeETH");
         require(msg.value > 0, "!value");
 
         _depositFor(msg.value, msg.sender);
@@ -198,6 +201,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function depositETHFor(address creditor) external payable nonReentrant {
         require(isPublic, "!public");
         require(vaultParams.asset == WETH, "!WETH");
+        require(supportsNativeETH, "!supportsNativeETH");
         require(msg.value > 0, "!value");
         require(creditor != address(0), "!creditor");
 
@@ -263,11 +267,21 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @notice msg.sender must be whitelisted
      * @param proof is the merkle proof
      */
-    function privateDepositETH(bytes32[] memory proof) external payable nonReentrant {
+    function privateDepositETH(
+        bytes32[] memory proof
+    ) external payable nonReentrant {
         if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+            require(
+                proof.verify(
+                    merkleRoot,
+                    keccak256(abi.encodePacked(msg.sender))
+                ),
+                "Invalid proof"
+            );
         }
         require(vaultParams.asset == WETH, "!WETH");
+        require(supportsNativeETH, "!supportsNativeETH");
+
         require(msg.value > 0, "!value");
 
         _depositFor(msg.value, msg.sender);
@@ -281,9 +295,18 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param amount is the amount of `asset` to deposit
      * @param proof is the merkle proof
      */
-    function privateDeposit(uint256 amount, bytes32[] memory proof) external nonReentrant {
+    function privateDeposit(
+        uint256 amount,
+        bytes32[] memory proof
+    ) external nonReentrant {
         if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+            require(
+                proof.verify(
+                    merkleRoot,
+                    keccak256(abi.encodePacked(msg.sender))
+                ),
+                "Invalid proof"
+            );
         }
 
         require(amount > 0, "!amount");
@@ -297,7 +320,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
             amount
         );
     }
-
 
     /************************************************
      *  WITHDRAWALS
@@ -555,7 +577,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      */
     function _transferAsset(address recipient, uint256 amount) internal {
         address asset = vaultParams.asset;
-        if (asset == WETH) {
+        if ((asset == WETH) && supportsNativeETH) {
             IWETH(WETH).withdraw(amount);
             (bool success, ) = recipient.call{value: amount}("");
             require(success, "Transfer failed");
@@ -569,17 +591,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      ***********************************************/
 
     /**
-        * @notice Sets the vault to public or private
-        * @param _isPublic is the new public state
-    */
+     * @notice Sets the vault to public or private
+     * @param _isPublic is the new public state
+     */
     function setPublic(bool _isPublic) external onlyOwner {
         isPublic = _isPublic;
     }
 
     /**
-        * @notice Sets the merkle root for the private whitelist
-        * @param _merkleRoot is the new merkle root
-    */
+     * @notice Sets the merkle root for the private whitelist
+     * @param _merkleRoot is the new merkle root
+     */
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         merkleRoot = _merkleRoot;
     }
@@ -605,9 +627,11 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-      * @notice Sets the new vault parameters
-    */
-    function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
+     * @notice Sets the new vault parameters
+     */
+    function setVaultParams(
+        Vault.VaultParams memory newVaultParams
+    ) external onlyOwner {
         require(newVaultParams.cap > 0, "!newCap");
         require(newVaultParams.asset != address(0), "!newAsset");
         vaultParams = newVaultParams;
@@ -719,12 +743,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-        * @notice returns if account can deposit
-        * @param account is the account to check
-        * @param proof is the merkle proof
+     * @notice returns if account can deposit
+     * @param account is the account to check
+     * @param proof is the merkle proof
      */
-    function canDeposit(address account, bytes32[] memory proof ) external view returns (bool) {
-        return isPublic || proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
+    function canDeposit(
+        address account,
+        bytes32[] memory proof
+    ) external view returns (bool) {
+        return
+            isPublic ||
+            proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
