@@ -7,7 +7,7 @@ import {VaultKeeper} from "../src/VaultKeeper.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
 contract DeployStreamVault is Script {
-    address public weth = vm.envAddress("ETHEREUM_WETH");
+    address public weth = vm.envAddress("AVALANCHE_WETH");
     address public keeper = vm.envAddress("VAULT_KEEPER");
 
     function run() public {
@@ -17,19 +17,22 @@ contract DeployStreamVault is Script {
         // // MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK6");
         // // token.mint(keeper, 100000 ether);
         // // 1. deploy the keeper contract
+
         VaultKeeper vaultKeeper = new VaultKeeper();
 
-        // 2. prep vault params
+        console.logString("Deployed VaultKeeper");
+
+        // // 2. prep vault params
         Vault.VaultParams memory vaultParamsUSDC = Vault.VaultParams({
             decimals: 6,
-            asset: address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48),
+            asset: vm.envAddress("ARBITRUM_USDC"),
             minimumSupply: uint56(1000),
             cap: uint104(1000000000000000000000000)
         });
 
         Vault.VaultParams memory vaultParamsBTC = Vault.VaultParams({
             decimals: 8,
-            asset: address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599),
+            asset: vm.envAddress("ARBITRUM_WBTC"),
             minimumSupply: uint56(1000),
             cap: uint104(1000000000000000000000000)
         });
@@ -41,30 +44,64 @@ contract DeployStreamVault is Script {
             cap: uint104(1000000000000000000000000)
         });
 
-        // // 3. deploy vaults
-        StreamVault USDCVault = new StreamVault(weth, address(vaultKeeper), "Stream LevUSDC", "sLevUSDC", vaultParamsUSDC);
-        StreamVault BTCVault = new StreamVault(weth, address(vaultKeeper), "Stream HodlwBTC", "sHodlwBTC", vaultParamsBTC);
-        StreamVault ETHVault = new StreamVault(weth, address(vaultKeeper), "Stream HodlwETH", "sHodlwETH", vaultParamsETH);
+        // 3. deploy vaults
+        StreamVault USDCVault = new StreamVault(
+            weth,
+            address(vaultKeeper),
+            "Stream LevUSDC",
+            "sLevUSDC",
+            vaultParamsUSDC
+        );
 
-     
+        console.logString("Deployed USDC Vault");
+
+        StreamVault BTCVault = new StreamVault(
+            weth,
+            address(vaultKeeper),
+            "Stream HodlwBTC",
+            "sHodlwBTC",
+            vaultParamsBTC
+        );
+
+        console.logString("Deployed WBTC Vault");
+
+        StreamVault ETHVault = new StreamVault(
+            weth,
+            address(vaultKeeper),
+            "Stream HodlwETH",
+            "sHodlwETH",
+            vaultParamsETH
+        );
+
+        console.logString("Deployed WETH Vault");
 
         // 4. add vaults to keeper
         vaultKeeper.addVault("USDC", address(USDCVault));
+        console.logString("Added USDC Vault to Keeper");
         vaultKeeper.addVault("WBTC", address(BTCVault));
+        console.logString("Added WBTC Vault to Keeper");
         vaultKeeper.addVault("WETH", address(ETHVault));
+        console.logString("Added WETH Vault to Keeper");
 
-       
         bytes32 merkleRoot = vm.envBytes32("MERKLE_ROOT");
-        console.logBytes32(merkleRoot);
 
         // 5. add merkle roots to vaults
         USDCVault.setMerkleRoot(merkleRoot);
+        console.logString("Set USDC Merkle Root");
         BTCVault.setMerkleRoot(merkleRoot);
+        console.logString("Set WBTC Merkle Root");
         ETHVault.setMerkleRoot(merkleRoot);
+        console.logString("Set WETH Merkle Root");
 
-        vaultKeeper.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
-        
-    
+        vaultKeeper.transferOwnership(
+            0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
+        );
+        usdcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        btcVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+        wethVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);
+
+        console.logString("Transferred Ownership");
+
         vm.stopBroadcast();
     }
 }

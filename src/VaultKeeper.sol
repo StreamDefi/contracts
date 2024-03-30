@@ -86,11 +86,6 @@ contract VaultKeeper is Ownable {
         StreamVault vault = StreamVault(payable(vaults[ticker]));
         (, address _asset, , ) = vault.vaultParams();
         ERC20 asset = ERC20(_asset);
-        require(
-            keccak256(abi.encodePacked(asset.symbol())) ==
-                keccak256(abi.encodePacked(ticker)),
-            "VaultKeeper: Invalid ticker"
-        );
         uint256 currBalance = asset.balanceOf(address(vault)) + lockedBalance;
         _transferAssets(address(asset), vault, currBalance);
 
@@ -107,10 +102,12 @@ contract VaultKeeper is Ownable {
             currBalance
         );
 
+        uint256 lastQueuedWithdrawAmount = vault.lastQueuedWithdrawAmount();
+
         ERC20(asset).transferFrom(
             owner(),
             address(vault),
-            queuedWithdrawAmount
+            queuedWithdrawAmount - lastQueuedWithdrawAmount
         );
 
         require(

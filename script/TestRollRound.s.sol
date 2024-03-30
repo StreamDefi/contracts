@@ -20,18 +20,18 @@ contract TestRollRound is Script {
         );
 
         VaultKeeper keeper = VaultKeeper(
-            0xdfFB08C3366854b7baCfd6281757F9cda152994c
+            0x66B9ff597Dd5f32A3460611D42695FB2D52e4E7C
         );
 
-        string[] memory tickers = new string[](2);
+        string[] memory tickers = new string[](3);
         tickers[0] = "WBTC";
         tickers[1] = "USDC";
-        //   tickers[2] = "WETH";
+        tickers[2] = "WETH";
 
-        uint256[] memory lockedBalances = new uint256[](2);
-        lockedBalances[0] = 532340000;
-        lockedBalances[1] = 1698868000000;
-        //  lockedBalances[2] = 130764300000000000000;
+        uint256[] memory lockedBalances = new uint256[](3);
+        lockedBalances[0] = 533890000;
+        lockedBalances[1] = 1720981000000;
+        lockedBalances[2] = 131390000000000000000;
         console.logString("------BEFORE_-------");
 
         console.logString("Price per share of BTC Vault");
