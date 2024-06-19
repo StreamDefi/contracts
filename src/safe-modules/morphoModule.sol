@@ -51,18 +51,11 @@ contract MorphoBlueModule is Ownable {
             market,
             _amount,
             0,
-            msg.sender,
+            safe,
             "0x"
         );
 
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-
-        require(success, "Supply failed");
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     function morphoWithdraw(
@@ -76,16 +69,11 @@ contract MorphoBlueModule is Ownable {
             market,
             0,
             _shares,
-            msg.sender,
-            msg.sender
+            safe,
+            safe
         );
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-        require(success, "Withdraw failed");
+
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     function morphoBorrow(uint256 _amount, uint256 _market) external onlyOwner {
@@ -96,17 +84,11 @@ contract MorphoBlueModule is Ownable {
             market,
             _amount,
             0,
-            msg.sender,
-            msg.sender
+            safe,
+            safe
         );
 
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-        require(success, "Borrowing failed");
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     function morphoSupplyCollateral(
@@ -120,18 +102,11 @@ contract MorphoBlueModule is Ownable {
             IMorphoBase.supplyCollateral.selector,
             market,
             _amount,
-            msg.sender,
+            safe,
             "0x"
         );
 
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-
-        require(success, "Supplying collateral failed");
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     function morphoWithdrawCollateral(
@@ -144,18 +119,11 @@ contract MorphoBlueModule is Ownable {
             IMorphoBase.withdrawCollateral.selector,
             market,
             _amount,
-            msg.sender,
-            msg.sender
+            safe,
+            safe
         );
 
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-
-        require(success, "Withdrawing collateral failed");
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     function morphoRepay(uint256 _amount, uint256 _market) external onlyOwner {
@@ -168,23 +136,31 @@ contract MorphoBlueModule is Ownable {
             market,
             _amount,
             0,
-            msg.sender,
+            safe,
             "0x"
         );
 
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            morphoBlue,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-
-        require(success, "Repay failed");
+        _makeSafeInteraction(morphoBlue, 0, txData);
     }
 
     /************************************************
      *  GENERAL
      ***********************************************/
+
+    function _makeSafeInteraction(
+        address _to,
+        uint256 _value,
+        bytes calldata _data
+    ) internal {
+        bool success = GnosisSafe(safe).execTransactionFromModule(
+            _to,
+            _value,
+            _data,
+            GnosisSafe.Operation.Call
+        );
+        require(success, "Safe interaction failed");
+    }
+
     function _approveToken(
         address _token,
         address _operator,
