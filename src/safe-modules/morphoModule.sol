@@ -144,13 +144,24 @@ contract MorphoBlueModule is Ownable {
     }
 
     /************************************************
+     *  WHITELIST INTERACTIONS
+     ***********************************************/
+    function modifyMorphoMarket(
+        uint256 _market,
+        MarketParams memory _params
+    ) external {
+        require(msg.sender == safe, "Only safe can modify markets");
+        morphoMarkets[_market] = _params;
+    }
+
+    /************************************************
      *  GENERAL
      ***********************************************/
 
     function _makeSafeInteraction(
         address _to,
         uint256 _value,
-        bytes calldata _data
+        bytes memory _data
     ) internal {
         bool success = GnosisSafe(safe).execTransactionFromModule(
             _to,
@@ -171,13 +182,7 @@ contract MorphoBlueModule is Ownable {
             _operator,
             _amount
         );
-        bool success = GnosisSafe(safe).execTransactionFromModule(
-            _token,
-            0,
-            txData,
-            GnosisSafe.Operation.Call
-        );
-        require(success, "Transfer failed");
+        _makeSafeInteraction(_token, 0, txData);
     }
 
     receive() external payable {}
