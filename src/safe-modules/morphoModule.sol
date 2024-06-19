@@ -184,6 +184,4 @@ contract MorphoBlueModule is Ownable {
         );
         _makeSafeInteraction(_token, 0, txData);
     }
-
-    receive() external payable {}
 }
