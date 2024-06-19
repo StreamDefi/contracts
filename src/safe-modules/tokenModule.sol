@@ -15,15 +15,31 @@ contract TokenModule is Ownable {
      ***********************************************/
     address public safe;
     mapping(address token => bool canTrade) public tokens;
+    mapping(address receiver => bool canReceive) public receivers;
+    mapping(address operator => bool canOperate) public operators;
 
     constructor(
         address _safe,
         address _multisig,
-        address[] memory _tokens
+        address[] memory _tokens,
+        address[] memory _receivers,
+        address[] memory _operators
     ) Ownable(_multisig) {
         safe = _safe;
         for (uint i = 0; i < _tokens.length; ) {
             tokens[_tokens[i]] = true;
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint i = 0; i < _receivers.length; ) {
+            receivers[_receivers[i]] = true;
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint i = 0; i < _operators.length; ) {
+            operators[_operators[i]] = true;
             unchecked {
                 ++i;
             }
@@ -40,6 +56,7 @@ contract TokenModule is Ownable {
         uint256 _amount
     ) external onlyOwner {
         require(tokens[_token], "Invalid token");
+        require(operators[_spender], "Invalid spender");
         _approveToken(_token, _spender, _amount);
     }
 
@@ -54,6 +71,8 @@ contract TokenModule is Ownable {
             "Invalid input"
         );
         for (uint i = 0; i < _tokens.length; ) {
+            require(tokens[_tokens[i]], "Invalid token");
+            require(operators[_spenders[i]], "Invalid spender");
             _approveToken(_tokens[i], _spenders[i], _amounts[i]);
             unchecked {
                 ++i;
@@ -67,6 +86,7 @@ contract TokenModule is Ownable {
         uint256 _amount
     ) external onlyOwner {
         require(tokens[_token], "Invalid token");
+        require(receivers[_to], "Invalid receiver");
         bytes memory txData = abi.encodeWithSelector(
             IERC20.transfer.selector,
             _to,
@@ -85,6 +105,8 @@ contract TokenModule is Ownable {
             "Invalid input"
         );
         for (uint i = 0; i < _tokens.length; ) {
+            require(tokens[_tokens[i]], "Invalid token");
+            require(receivers[_tos[i]], "Invalid receiver");
             bytes memory txData = abi.encodeWithSelector(
                 IERC20.transfer.selector,
                 _tos[i],
