@@ -45,7 +45,7 @@ contract MorphoBlueModule is Ownable {
         require(_amount > 0, "Invalid amount");
         MarketParams memory market = morphoMarkets[_market];
 
-        approveToken(market.loanToken, morphoBlue, _amount);
+        _approveToken(market.loanToken, morphoBlue, _amount);
         bytes memory txData = abi.encodeWithSelector(
             IMorphoBase.supply.selector,
             market,
@@ -115,7 +115,7 @@ contract MorphoBlueModule is Ownable {
     ) external onlyOwner {
         require(_amount > 0, "Invalid amount");
         MarketParams memory market = morphoMarkets[_market];
-        approveToken(market.collateralToken, morphoBlue, _amount);
+        _approveToken(market.collateralToken, morphoBlue, _amount);
         bytes memory txData = abi.encodeWithSelector(
             IMorphoBase.supplyCollateral.selector,
             market,
@@ -162,7 +162,7 @@ contract MorphoBlueModule is Ownable {
         require(_amount > 0, "Invalid amount");
         MarketParams memory market = morphoMarkets[_market];
 
-        approveToken(market.loanToken, morphoBlue, _amount);
+        _approveToken(market.loanToken, morphoBlue, _amount);
         bytes memory txData = abi.encodeWithSelector(
             IMorphoBase.repay.selector,
             market,
@@ -185,7 +185,7 @@ contract MorphoBlueModule is Ownable {
     /************************************************
      *  GENERAL
      ***********************************************/
-    function approveToken(
+    function _approveToken(
         address _token,
         address _operator,
         uint _amount
