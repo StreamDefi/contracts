@@ -14,10 +14,17 @@ contract VaultKeeperTest is Test {
 
     StreamVault vault;
     StreamVault vault2;
+
     MockERC20 weth;
     MockERC20 mock;
+
     address depositer1;
+
     address owner;
+
+    address manager1;
+    address manager2;
+
     uint104 vaultCap;
     uint56 minSupply;
     uint256 singleShare = 10 ** 18;
@@ -40,8 +47,10 @@ contract VaultKeeperTest is Test {
 
         vaultCap = uint104(10000000 * (10 ** 18));
         minSupply = 0.001 ether;
-        depositer1 = vm.addr(1);
-        owner = vm.addr(12);
+        owner = vm.addr(1);
+        depositer1 = vm.addr(2);
+        manager1 = vm.addr(3);
+        manager2 = vm.addr(4);
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 18,
@@ -57,8 +66,21 @@ contract VaultKeeperTest is Test {
             cap: vaultCap
         });
 
+        address[] memory vaults = new address[](0);
+        // vaults[0] = address(vault);
+        // vaults[1] = address(vault2);
+
+        string[] memory tickers = new string[](0);
+        // tickers[0] = "WETH";
+        // tickers[1] = "MOCK";
+
+        address[] memory managers = new address[](0);
+        // managers[0] = manager1;
+        // managers[1] = manager2;
+
         vm.startPrank(owner);
-        contractKeeper = new VaultKeeper();
+        contractKeeper = new VaultKeeper(tickers, managers, vaults);
+
         vault = new StreamVault(
             address(weth),
             address(contractKeeper),
@@ -66,6 +88,7 @@ contract VaultKeeperTest is Test {
             "SV",
             vaultParams
         );
+
         vault2 = new StreamVault(
             address(weth),
             address(contractKeeper),
@@ -74,8 +97,8 @@ contract VaultKeeperTest is Test {
             vaultParamsMock
         );
 
-        contractKeeper.addVault("WETH", address(vault));
-        contractKeeper.addVault("MOCK", address(vault2));
+        contractKeeper.addVault("WETH", address(vault), manager1);
+        contractKeeper.addVault("MOCK", address(vault2), manager2);
         vault.setPublic(true);
         vault2.setPublic(true);
         vm.stopPrank();
@@ -104,15 +127,11 @@ contract VaultKeeperTest is Test {
         assertVaultState(
             StateChecker(1, 0, 0, uint128(depositAmount), 0, 0, 0, 0, 0)
         );
-        vm.startPrank(owner);
+        vm.prank(manager1);
         // none should be locked up yet
-        uint256[] memory lockedAmounts = new uint256[](2);
-        lockedAmounts[0] = 0;
-        lockedAmounts[1] = 0;
-        string[] memory vaults = new string[](2);
-        vaults[0] = "WETH";
-        vaults[1] = "MOCK";
-        contractKeeper.rollRound(vaults, lockedAmounts);
+        contractKeeper.rollRound("WETH", 0);
+        vm.prank(manager2);
+        contractKeeper.rollRound("MOCK", 0);
         assertVaultState(
             StateChecker(
                 2,
@@ -129,22 +148,26 @@ contract VaultKeeperTest is Test {
 
         assertEq(weth.balanceOf(address(vault)), 0);
         assertEq(weth.balanceOf(address(contractKeeper)), 0);
-        assertEq(weth.balanceOf(owner), depositAmount);
+        assertEq(weth.balanceOf(manager1), depositAmount);
         assertEq(mock.balanceOf(address(vault2)), 0);
         assertEq(mock.balanceOf(address(contractKeeper)), 0);
-        assertEq(mock.balanceOf(owner), depositAmount);
+        assertEq(mock.balanceOf(manager2), depositAmount);
 
-        lockedAmounts[0] = depositAmount;
-        lockedAmounts[1] = depositAmount;
+        vm.startPrank(manager1);
         weth.approve(address(contractKeeper), depositAmount);
-        contractKeeper.rollRound(vaults, lockedAmounts);
+        contractKeeper.rollRound("WETH", depositAmount);
+        vm.stopPrank();
+        vm.startPrank(manager2);
+        mock.approve(address(contractKeeper), depositAmount);
+        contractKeeper.rollRound("MOCK", depositAmount);
+        vm.stopPrank();
 
         assertEq(weth.balanceOf(address(vault)), 0);
         assertEq(weth.balanceOf(address(contractKeeper)), 0);
-        assertEq(weth.balanceOf(owner), depositAmount);
+        assertEq(weth.balanceOf(manager1), depositAmount);
         assertEq(mock.balanceOf(address(vault2)), 0);
         assertEq(mock.balanceOf(address(contractKeeper)), 0);
-        assertEq(mock.balanceOf(owner), depositAmount);
+        assertEq(mock.balanceOf(manager2), depositAmount);
 
         assertVaultState(
             StateChecker(
@@ -167,22 +190,16 @@ contract VaultKeeperTest is Test {
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount}();
 
-        vm.startPrank(owner);
-        // none should be locked up yet
-        uint256[] memory lockedAmounts = new uint256[](1);
-        lockedAmounts[0] = 0;
-        string[] memory vaults = new string[](1);
-        vaults[0] = "WETH";
-        contractKeeper.rollRound(vaults, lockedAmounts);
+        vm.startPrank(manager1);
+        contractKeeper.rollRound("WETH", 0);
 
         vm.stopPrank();
         vm.prank(depositer1);
         vault.initiateWithdraw(depositAmount - 100);
 
-        vm.startPrank(owner);
-        lockedAmounts[0] = depositAmount;
+        vm.startPrank(manager1);
         weth.approve(address(contractKeeper), depositAmount - 100);
-        contractKeeper.rollRound(vaults, lockedAmounts);
+        contractKeeper.rollRound("WETH", depositAmount);
 
         assertVaultState(
             StateChecker(
@@ -200,9 +217,75 @@ contract VaultKeeperTest is Test {
 
         assertEq(weth.balanceOf(address(vault)), depositAmount - 100);
         assertEq(weth.balanceOf(address(contractKeeper)), 0);
-        assertEq(weth.balanceOf(owner), 100);
+        assertEq(weth.balanceOf(manager1), 100);
+    }
+    function test_addVault_existingTicker() public {
+        address newVault = address(
+            new StreamVault(
+                address(weth),
+                address(contractKeeper),
+                "NewStreamVault",
+                "NSV",
+                Vault.VaultParams({
+                    decimals: 18,
+                    asset: address(weth),
+                    minimumSupply: minSupply,
+                    cap: vaultCap
+                })
+            )
+        );
+        vm.prank(owner);
+        vm.expectRevert("VaultKeeper: Vault already exists");
+        contractKeeper.addVault("WETH", newVault, manager1);
     }
 
+    function test_removeVault_invalidManager() public {
+        vm.prank(depositer1);
+        vm.expectRevert("VaultKeeper: Invalid manager");
+        contractKeeper.removeVault("WETH");
+    }
+
+    function test_transferOwnership_invalidManager() public {
+        address newManager = vm.addr(5);
+        vm.prank(depositer1);
+        vm.expectRevert("VaultKeeper: Invalid manager");
+        contractKeeper.transferOwnership("WETH", newManager);
+    }
+
+    function test_transferCoordinator_invalidOwner() public {
+        address newCoordinator = vm.addr(6);
+        vm.prank(depositer1);
+        vm.expectRevert("VaultKeeper: Invalid coordinator");
+        contractKeeper.transferCoordinator(newCoordinator);
+    }
+
+    function test_withdraw_invalidOwner() public {
+        uint256 amount = 100 * (10 ** 18);
+        vm.prank(depositer1);
+        vm.expectRevert("VaultKeeper: Invalid coordinator");
+        contractKeeper.withdraw(address(weth), amount);
+    }
+
+    function test_addVault() public {
+        address newVault = address(
+            new StreamVault(
+                address(weth),
+                address(contractKeeper),
+                "NewStreamVault",
+                "NSV",
+                Vault.VaultParams({
+                    decimals: 18,
+                    asset: address(weth),
+                    minimumSupply: minSupply,
+                    cap: vaultCap
+                })
+            )
+        );
+        vm.prank(owner);
+        contractKeeper.addVault("NEW", newVault, manager1);
+        assertEq(contractKeeper.vaults("NEW"), newVault);
+        assertEq(contractKeeper.managers("NEW"), manager1);
+    }
     function test_RevertIfNotEnoughToCoverWithdraw(
         uint56 depositAmount
     ) public {
@@ -211,23 +294,55 @@ contract VaultKeeperTest is Test {
         vm.prank(depositer1);
         vault.depositETH{value: depositAmount}();
 
-        vm.startPrank(owner);
-        // none should be locked up yet
-        uint256[] memory lockedAmounts = new uint256[](1);
-        lockedAmounts[0] = 0;
-        string[] memory vaults = new string[](1);
-        vaults[0] = "WETH";
-        contractKeeper.rollRound(vaults, lockedAmounts);
-
-        vm.stopPrank();
+        vm.prank(manager1);
+        contractKeeper.rollRound("WETH", 0);
         vm.prank(depositer1);
         vault.initiateWithdraw(depositAmount - 100);
-        weth.mint(owner, 1 ether);
-        vm.startPrank(owner);
-        lockedAmounts[0] = depositAmount;
+        weth.mint(manager1, 1 ether);
+        vm.startPrank(manager1);
         weth.approve(address(contractKeeper), depositAmount - 101);
         vm.expectRevert();
-        contractKeeper.rollRound(vaults, lockedAmounts);
+        contractKeeper.rollRound("WETH", depositAmount);
+    }
+
+    function test_removeVault() public {
+        vm.prank(manager1);
+        contractKeeper.removeVault("WETH");
+        assertEq(contractKeeper.vaults("WETH"), address(0));
+    }
+
+    function test_transferOwnership() public {
+        address newManager = vm.addr(5);
+        vm.prank(manager1);
+        contractKeeper.transferOwnership("WETH", newManager);
+        assertEq(contractKeeper.managers("WETH"), newManager);
+    }
+
+    function test_transferCoordinator() public {
+        address newCoordinator = vm.addr(6);
+        vm.prank(owner);
+        contractKeeper.transferCoordinator(newCoordinator);
+        assertEq(contractKeeper.coordinator(), newCoordinator);
+    }
+
+    function test_withdraw() public {
+        uint256 amount = 100 * (10 ** 18);
+        weth.mint(address(contractKeeper), amount);
+        vm.prank(owner);
+        contractKeeper.withdraw(address(weth), amount);
+        assertEq(weth.balanceOf(owner), amount);
+    }
+
+    function test_rollRound_invalidManager() public {
+        vm.prank(depositer1);
+        vm.expectRevert("VaultKeeper: Invalid manager");
+        contractKeeper.rollRound("WETH", 0);
+    }
+
+    function test_rollRound_invalidVault() public {
+        vm.prank(manager1);
+        vm.expectRevert("VaultKeeper: Invalid manager");
+        contractKeeper.rollRound("INVALID", 0);
     }
 
     function assertVaultState(StateChecker memory state) public {

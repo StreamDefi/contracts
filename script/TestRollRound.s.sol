@@ -46,7 +46,9 @@ contract TestRollRound is Script {
         pricePerShare = usdcVault.pricePerShare();
         console.logUint(pricePerShare);
 
-        keeper.rollRound(tickers, lockedBalances);
+        keeper.rollRound(tickers[0], lockedBalances[0]);
+        keeper.rollRound(tickers[1], lockedBalances[1]);
+        keeper.rollRound(tickers[2], lockedBalances[2]);
 
         console.log("Price per share of BTC Vault");
         pricePerShare = btcVault.pricePerShare();

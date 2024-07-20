@@ -13,12 +13,12 @@ contract DeployStreamVault is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        // // // comment out if mainnet and replace with actual token
-        // // MockERC20 token = new MockERC20("MOCK TOKEN", "MOCK6");
-        // // token.mint(keeper, 100000 ether);
-        // // 1. deploy the keeper contract
 
-        VaultKeeper vaultKeeper = new VaultKeeper();
+        // // 1. deploy the keeper contract
+        address[] memory vaults = new address[](0);
+        string[] memory tickers = new string[](0);
+        address[] memory managers = new address[](0);
+        VaultKeeper vaultKeeper = new VaultKeeper(tickers, managers, vaults);
 
         console.logString("Deployed VaultKeeper");
 
@@ -76,11 +76,11 @@ contract DeployStreamVault is Script {
         console.logString("Deployed WETH Vault");
 
         // 4. add vaults to keeper
-        vaultKeeper.addVault("USDC", address(USDCVault));
+        vaultKeeper.addVault("USDC", address(USDCVault), keeper);
         console.logString("Added USDC Vault to Keeper");
-        vaultKeeper.addVault("WBTC", address(BTCVault));
+        vaultKeeper.addVault("WBTC", address(BTCVault), keeper);
         console.logString("Added WBTC Vault to Keeper");
-        vaultKeeper.addVault("WETH", address(ETHVault));
+        vaultKeeper.addVault("WETH", address(ETHVault), keeper);
         console.logString("Added WETH Vault to Keeper");
 
         bytes32 merkleRoot = vm.envBytes32("MERKLE_ROOT");
@@ -94,6 +94,15 @@ contract DeployStreamVault is Script {
         console.logString("Set WETH Merkle Root");
 
         vaultKeeper.transferOwnership(
+            "USDC",
+            0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
+        );
+        vaultKeeper.transferOwnership(
+            "WBTC",
+            0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
+        );
+        vaultKeeper.transferOwnership(
+            "WETH",
             0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444
         );
         USDCVault.transferOwnership(0xedd2c818f85aA1DB06B1D7f4F64E6d002911F444);

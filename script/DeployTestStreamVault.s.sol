@@ -17,7 +17,10 @@ contract DeployTestStreamVault is Script {
         // MockERC20 token =  new MockERC20("MOCK TOKEN", "MOCK");
         // token.mint(keeper, 100000 ether);
         // 1. deploy the keeper contract
-        VaultKeeper vaultKeeper = new VaultKeeper();
+        address[] memory vaults = new address[](0);
+        string[] memory tickers = new string[](0);
+        address[] memory managers = new address[](0);
+        VaultKeeper vaultKeeper = new VaultKeeper(tickers, managers, vaults);
 
         // 2. prep vault params
         Vault.VaultParams memory vaultParamsUSDC = Vault.VaultParams({
@@ -37,7 +40,7 @@ contract DeployTestStreamVault is Script {
         );
 
         // 4. add vaults to keeper
-        vaultKeeper.addVault("wETH", address(USDCVault));
+        vaultKeeper.addVault("WETH", address(USDCVault), keeper);
 
         vm.stopBroadcast();
     }
