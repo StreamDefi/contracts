@@ -7,7 +7,7 @@ import {VaultKeeper} from "../src/VaultKeeper.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
 contract DeployTestStreamVault is Script {
-    address public weth = vm.envAddress("BLAST_WETH");
+    address public weth = vm.envAddress("SEPOLIA_WETH");
     address public keeper = vm.envAddress("VAULT_KEEPER");
 
     function run() public {
@@ -25,7 +25,7 @@ contract DeployTestStreamVault is Script {
         // 2. prep vault params
         Vault.VaultParams memory vaultParamsUSDC = Vault.VaultParams({
             decimals: 18,
-            asset: vm.envAddress("BLAST_WETH"),
+            asset: vm.envAddress("SEPOLIA_WETH"),
             minimumSupply: uint56(1000),
             cap: uint104(1000000000000000000000000)
         });

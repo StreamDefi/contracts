@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import {Vault} from "./Vault.sol";
 
 library ShareMath {
-
     uint256 internal constant PLACEHOLDER_UINT = 1;
 
     function assetToShares(
