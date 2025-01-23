@@ -146,12 +146,25 @@ contract VaultKeeper {
             currBalance
         );
 
+        uint256 balance = ERC20(asset).balanceOf(address(vault));
+
+        if (balance >= queuedWithdrawAmount) {
+            return;
+        }
+
+        uint256 amountToTransfer = queuedWithdrawAmount - balance;
+
         uint256 lastQueuedWithdrawAmount = vault.lastQueuedWithdrawAmount();
+
+        require(
+            amountToTransfer <= queuedWithdrawAmount - lastQueuedWithdrawAmount,
+            "VaultKeeper: Assets to transfer is greater than the amount to withdraw for current round"
+        );
 
         ERC20(asset).transferFrom(
             msg.sender,
             address(vault),
-            queuedWithdrawAmount - lastQueuedWithdrawAmount
+            amountToTransfer
         );
 
         require(
