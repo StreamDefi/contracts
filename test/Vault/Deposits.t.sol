@@ -166,7 +166,6 @@ contract StreamVaultDepositTest is Test, Base {
         } else {
             vault.depositETH{value: 10 ** (_decimals - 6)}();
         }
-       
     }
 
     function test_RevertIfTotalPendingDoesntFit128Bits(
@@ -184,7 +183,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
 
-        deployVault(_weth, _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            _weth,
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         vm.startPrank(depositer1);
         vm.deal(depositer1, type(uint128).max);
@@ -411,7 +418,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
 
-        deployVault(_weth, _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            _weth,
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
         uint256 depositAmount = uint256(type(uint104).max) + uint256(1 ether);
         vm.deal(depositer1, depositAmount);
         vm.startPrank(depositer1);
@@ -444,7 +459,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         dummyAsset.mint(depositer1, depositAmount);
 
@@ -474,7 +497,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         dummyAsset.mint(depositer1, depositAmount - 1);
 
@@ -499,7 +530,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         weth.mint(depositer1, depositAmount);
         vm.startPrank(depositer1);
@@ -563,7 +602,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         vm.deal(depositer2, depositAmount);
         vm.startPrank(depositer2);
@@ -600,7 +647,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         dummyAsset.mint(depositer2, depositAmount);
 
@@ -632,7 +687,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_keeper != address(0));
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         vm.startPrank(depositer2);
 
@@ -655,7 +718,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         dummyAsset.mint(depositer2, depositAmount);
 
@@ -680,7 +751,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
         dummyAsset.mint(depositer2, depositAmount - 1);
 
         vm.startPrank(depositer2);
@@ -704,7 +783,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         weth.mint(depositer2, depositAmount);
         vm.startPrank(depositer2);
@@ -731,7 +818,15 @@ contract StreamVaultDepositTest is Test, Base {
         vm.assume(_vaultParams.asset != address(0));
         vm.assume(depositAmount > minSupply);
 
-        deployVault(address(weth), _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        deployVault(
+            address(weth),
+            _keeper,
+            lzEndpoint,
+            lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
 
         vm.deal(depositer1, depositAmount);
         vm.startPrank(depositer1);
@@ -815,10 +910,25 @@ contract StreamVaultDepositTest is Test, Base {
         );
     }
 
-
-    function deployVault(address _asset, address _keeper, string memory _tokenName, string memory _tokenSymbol, Vault.VaultParams memory _vaultParams) public {
+    function deployVault(
+        address _asset,
+        address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        Vault.VaultParams memory _vaultParams
+    ) public {
         vm.startPrank(owner);
-        vault = new StreamVault(_asset, _keeper, _tokenName, _tokenSymbol, _vaultParams);
+        vault = new StreamVault(
+            _asset,
+            _keeper,
+            _lzEndpoint,
+            _lzDelegate,
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams
+        );
         vault.setPublic(true);
         vm.stopPrank();
     }

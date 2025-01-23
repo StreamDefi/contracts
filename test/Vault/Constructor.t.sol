@@ -49,6 +49,8 @@ contract StreamVaultConstructorTest is Test, Base {
     function test_initializesCorrectly(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
@@ -58,11 +60,15 @@ contract StreamVaultConstructorTest is Test, Base {
         vm.assume(_keeper != address(0));
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
+        vm.assume(_lzEndpoint != address(0));
+        vm.assume(_lzDelegate != address(0));
 
         vm.prank(owner);
         vault = new StreamVault(
             _weth,
             _keeper,
+            _lzEndpoint,
+            _lzDelegate,
             _tokenName,
             _tokenSymbol,
             _vaultParams
@@ -99,6 +105,8 @@ contract StreamVaultConstructorTest is Test, Base {
     function test_RevertIfWrappedNativeTokenIsZeroAdr(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
@@ -108,12 +116,16 @@ contract StreamVaultConstructorTest is Test, Base {
         vm.assume(_keeper != address(0));
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
+        vm.assume(_lzEndpoint != address(0));
+        vm.assume(_lzDelegate != address(0));
 
         vm.startPrank(owner);
         vm.expectRevert("!_weth");
         vault = new StreamVault(
             _weth,
             _keeper,
+            _lzEndpoint,
+            _lzDelegate,
             _tokenName,
             _tokenSymbol,
             _vaultParams
@@ -124,6 +136,8 @@ contract StreamVaultConstructorTest is Test, Base {
     function test_RevertIfKeeperIsZeroAdr(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
@@ -133,12 +147,16 @@ contract StreamVaultConstructorTest is Test, Base {
         _keeper = address(0);
         vm.assume(_vaultParams.cap > 0);
         vm.assume(_vaultParams.asset != address(0));
+        vm.assume(_lzEndpoint != address(0));
+        vm.assume(_lzDelegate != address(0));
 
         vm.startPrank(owner);
         vm.expectRevert("!_keeper");
         vault = new StreamVault(
             _weth,
             _keeper,
+            _lzEndpoint,
+            _lzDelegate,
             _tokenName,
             _tokenSymbol,
             _vaultParams
@@ -149,6 +167,8 @@ contract StreamVaultConstructorTest is Test, Base {
     function test_RevertIfCapIsZero(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
@@ -158,12 +178,16 @@ contract StreamVaultConstructorTest is Test, Base {
         vm.assume(_keeper != address(0));
         _vaultParams.cap = 0;
         vm.assume(_vaultParams.asset != address(0));
+        vm.assume(_lzEndpoint != address(0));
+        vm.assume(_lzDelegate != address(0));
 
         vm.startPrank(owner);
         vm.expectRevert("!_cap");
         vault = new StreamVault(
             _weth,
             _keeper,
+            _lzEndpoint,
+            _lzDelegate,
             _tokenName,
             _tokenSymbol,
             _vaultParams
@@ -174,6 +198,8 @@ contract StreamVaultConstructorTest is Test, Base {
     function test_RevertIfAssetIsZeroAdr(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _lzDelegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
@@ -183,12 +209,16 @@ contract StreamVaultConstructorTest is Test, Base {
         vm.assume(_keeper != address(0));
         vm.assume(_vaultParams.cap > 0);
         _vaultParams.asset = address(0);
+        vm.assume(_lzEndpoint != address(0));
+        vm.assume(_lzDelegate != address(0));
 
         vm.startPrank(owner);
         vm.expectRevert("!_asset");
         vault = new StreamVault(
             _weth,
             _keeper,
+            _lzEndpoint,
+            _lzDelegate,
             _tokenName,
             _tokenSymbol,
             _vaultParams

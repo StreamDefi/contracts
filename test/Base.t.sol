@@ -26,6 +26,8 @@ contract Base is Test {
 
     address keeper;
     address keeper2;
+    address lzEndpoint;
+    address lzDelegate;
     address owner;
     uint104 vaultCap;
     uint56 minSupply;
@@ -71,6 +73,8 @@ contract Base is Test {
         keeper = vm.addr(11);
         owner = vm.addr(12);
         keeper2 = vm.addr(13);
+        lzEndpoint = vm.addr(14);
+        lzDelegate = vm.addr(15);
 
         depositors = [
             depositer1,
@@ -101,6 +105,8 @@ contract Base is Test {
         vault = new StreamVault(
             address(weth),
             keeper,
+            lzEndpoint,
+            lzDelegate,
             "StreamVault",
             "SV",
             vaultParams

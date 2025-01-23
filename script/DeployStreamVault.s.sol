@@ -9,6 +9,8 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 contract DeployStreamVault is Script {
     address public weth = vm.envAddress("SEPOLIA_WETH");
     address public keeper = vm.envAddress("VAULT_KEEPER");
+    address public ethLzEndpoint = vm.envAddress("ETH_LZ_ENDPOINT");
+    address public ethLzDelegate = vm.envAddress("ETH_LZ_DELEGATE");
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -48,6 +50,8 @@ contract DeployStreamVault is Script {
         StreamVault USDCVault = new StreamVault(
             weth,
             address(vaultKeeper),
+            ethLzEndpoint,
+            ethLzDelegate,
             "Stream LevUSDC",
             "sLevUSDC",
             vaultParamsUSDC
@@ -58,6 +62,8 @@ contract DeployStreamVault is Script {
         StreamVault BTCVault = new StreamVault(
             weth,
             address(vaultKeeper),
+            ethLzEndpoint,
+            ethLzDelegate,
             "Stream HodlwBTC",
             "sHodlwBTC",
             vaultParamsBTC
@@ -68,6 +74,8 @@ contract DeployStreamVault is Script {
         StreamVault ETHVault = new StreamVault(
             weth,
             address(vaultKeeper),
+            ethLzEndpoint,
+            ethLzDelegate,
             "Stream HodlwETH",
             "sHodlwETH",
             vaultParamsETH

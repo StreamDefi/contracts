@@ -9,6 +9,8 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 contract DeployTestStreamVault is Script {
     address public weth = vm.envAddress("SEPOLIA_WETH");
     address public keeper = vm.envAddress("VAULT_KEEPER");
+    address public sepoliaLzEndpoint = vm.envAddress("SEPOLIA_LZ_ENDPOINT");
+    address public sepoliaLzDelegate = vm.envAddress("SEPOLIA_LZ_DELEGATE");
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -34,6 +36,8 @@ contract DeployTestStreamVault is Script {
         StreamVault USDCVault = new StreamVault(
             weth,
             address(vaultKeeper),
+            sepoliaLzEndpoint,
+            sepoliaLzDelegate,
             "Stream Hodl Wrapped ETH",
             "sHodlwETH",
             vaultParamsUSDC

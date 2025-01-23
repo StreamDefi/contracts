@@ -22,6 +22,9 @@ contract VaultKeeperTest is Test {
 
     address owner;
 
+    address lzEndpoint;
+    address lzDelegate;
+
     address manager1;
     address manager2;
 
@@ -51,6 +54,8 @@ contract VaultKeeperTest is Test {
         depositer1 = vm.addr(2);
         manager1 = vm.addr(3);
         manager2 = vm.addr(4);
+        lzEndpoint = vm.addr(69);
+        lzDelegate = vm.addr(70);
         // valt cap of 10M WETH
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 18,
@@ -84,6 +89,8 @@ contract VaultKeeperTest is Test {
         vault = new StreamVault(
             address(weth),
             address(contractKeeper),
+            lzEndpoint,
+            lzDelegate,
             "StreamVault",
             "SV",
             vaultParams
@@ -92,6 +99,8 @@ contract VaultKeeperTest is Test {
         vault2 = new StreamVault(
             address(weth),
             address(contractKeeper),
+            lzEndpoint,
+            lzDelegate,
             "StreamVault",
             "SV",
             vaultParamsMock
@@ -224,6 +233,8 @@ contract VaultKeeperTest is Test {
             new StreamVault(
                 address(weth),
                 address(contractKeeper),
+                lzEndpoint,
+                lzDelegate,
                 "NewStreamVault",
                 "NSV",
                 Vault.VaultParams({
@@ -271,6 +282,8 @@ contract VaultKeeperTest is Test {
             new StreamVault(
                 address(weth),
                 address(contractKeeper),
+                lzEndpoint,
+                lzDelegate,
                 "NewStreamVault",
                 "NSV",
                 Vault.VaultParams({
