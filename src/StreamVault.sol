@@ -10,7 +10,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
-
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {SendParam, OFTLimit, OFTReceipt, OFTFeeDetail, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title StreamVault
@@ -20,7 +21,7 @@ import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
  * @notice The rounds will be rolled over on a weekly basis
  */
 
-contract StreamVault is ReentrancyGuard, ERC20, Ownable {
+contract StreamVault is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.DepositReceipt;
     using MerkleProofLib for bytes32[];
@@ -58,7 +59,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
-    /// @notice private or public 
+    /// @notice To safely calculate share math, we must keep track of share tokens on all chains
+    uint256 public totalOmnichainSupply;
+
+    /// @notice private or public
     bool public isPublic;
 
     /// @notice merkle root for private whitelist
@@ -113,10 +117,16 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     constructor(
         address _weth,
         address _keeper,
+        address _lzEndpoint,
+        address _delegate,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
-    ) ReentrancyGuard() Ownable(msg.sender) ERC20(_tokenName, _tokenSymbol) {
+    )
+        ReentrancyGuard()
+        OFT(_tokenName, _tokenSymbol, _lzEndpoint, _delegate)
+        Ownable(msg.sender)
+    {
         require(_weth != address(0), "!_weth");
         require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
@@ -128,8 +138,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         vaultState.round = 1;
     }
-
-
 
     /************************************************
      *  PUBLIC DEPOSITS
@@ -263,9 +271,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @notice msg.sender must be whitelisted
      * @param proof is the merkle proof
      */
-    function privateDepositETH(bytes32[] memory proof) external payable nonReentrant {
+    function privateDepositETH(
+        bytes32[] memory proof
+    ) external payable nonReentrant {
         if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+            require(
+                proof.verify(
+                    merkleRoot,
+                    keccak256(abi.encodePacked(msg.sender))
+                ),
+                "Invalid proof"
+            );
         }
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
@@ -281,9 +297,18 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param amount is the amount of `asset` to deposit
      * @param proof is the merkle proof
      */
-    function privateDeposit(uint256 amount, bytes32[] memory proof) external nonReentrant {
+    function privateDeposit(
+        uint256 amount,
+        bytes32[] memory proof
+    ) external nonReentrant {
         if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+            require(
+                proof.verify(
+                    merkleRoot,
+                    keccak256(abi.encodePacked(msg.sender))
+                ),
+                "Invalid proof"
+            );
         }
 
         require(amount > 0, "!amount");
@@ -297,7 +322,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
             amount
         );
     }
-
 
     /************************************************
      *  WITHDRAWALS
@@ -403,6 +427,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         _burn(address(this), withdrawalShares);
 
+        totalOmnichainSupply -= withdrawalShares;
+
         require(withdrawAmount > 0, "!withdrawAmount");
         _transferAsset(msg.sender, withdrawAmount);
 
@@ -497,7 +523,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         uint256 currentRound = state.round;
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply() - state.queuedWithdrawShares,
+            totalOmnichainSupply - state.queuedWithdrawShares,
             currentBalance - lastQueuedWithdrawAmount,
             state.totalPending,
             vaultParams.decimals
@@ -515,6 +541,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         );
 
         _mint(address(this), mintShares);
+
+        totalOmnichainSupply += mintShares;
 
         uint256 queuedWithdrawAmount = lastQueuedWithdrawAmount +
             ShareMath.sharesToAsset(
@@ -569,17 +597,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      ***********************************************/
 
     /**
-        * @notice Sets the vault to public or private
-        * @param _isPublic is the new public state
-    */
+     * @notice Sets the vault to public or private
+     * @param _isPublic is the new public state
+     */
     function setPublic(bool _isPublic) external onlyOwner {
         isPublic = _isPublic;
     }
 
     /**
-        * @notice Sets the merkle root for the private whitelist
-        * @param _merkleRoot is the new merkle root
-    */
+     * @notice Sets the merkle root for the private whitelist
+     * @param _merkleRoot is the new merkle root
+     */
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         merkleRoot = _merkleRoot;
     }
@@ -605,13 +633,108 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-      * @notice Sets the new vault parameters
-    */
-    function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
+     * @notice Sets the new vault parameters
+     */
+    function setVaultParams(
+        Vault.VaultParams memory newVaultParams
+    ) external onlyOwner {
         require(newVaultParams.cap > 0, "!newCap");
         require(newVaultParams.asset != address(0), "!newAsset");
         vaultParams = newVaultParams;
     }
+
+    /************************************************
+     *  OFT HANDLERS
+     ***********************************************/
+    /**
+     * @dev Executes the send operation.
+     * @param _sendParam The parameters for the send operation.
+     * @param _fee The calculated fee for the send() operation.
+     *      - nativeFee: The native fee.
+     *      - lzTokenFee: The lzToken fee.
+     * @param _refundAddress The address to receive any excess funds.
+     * @return msgReceipt The receipt for the send operation.
+     * @return oftReceipt The OFT receipt information.
+     *
+     * @dev MessagingReceipt: LayerZero msg receipt
+     *  - guid: The unique identifier for the sent message.
+     *  - nonce: The nonce of the sent message.
+     *  - fee: The LayerZero fee incurred for the message.
+     */
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    )
+        external
+        payable
+        virtual
+        override
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt
+        )
+    {
+        /// @dev Applies the token transfers regarding this send() operation.
+        // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
+        // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
+        (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
+            msg.sender,
+            _sendParam.amountLD,
+            _sendParam.minAmountLD,
+            _sendParam.dstEid
+        );
+
+        /// @dev ensure these are equal for share math
+        require(
+            amountSentLD == amountReceivedLD,
+            "Amount sent must equal amount received"
+        );
+
+        /// @dev Builds the options and OFT message to quote in the endpoint.
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(
+            _sendParam,
+            amountReceivedLD
+        );
+
+        /// @dev Sends the message to the LayerZero endpoint and returns the LayerZero msg receipt.
+        msgReceipt = _lzSend(
+            _sendParam.dstEid,
+            message,
+            options,
+            _fee,
+            _refundAddress
+        );
+        /// @dev Formulate the OFT receipt.
+        oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
+
+        emit OFTSent(
+            msgReceipt.guid,
+            _sendParam.dstEid,
+            msg.sender,
+            amountSentLD,
+            amountReceivedLD
+        );
+    }
+
+    // /**
+    //  * @dev Credits tokens to the specified address.
+    //  * @param _to The address to credit the tokens to.
+    //  * @param _amountLD The amount of tokens to credit in local decimals.
+    //  * @dev _srcEid The source chain ID.
+    //  * @return amountReceivedLD The amount of tokens ACTUALLY received in local decimals.
+    //  */
+    // function _credit(
+    //     address _to,
+    //     uint256 _amountLD,
+    //     uint32 /*_srcEid*/
+    // ) internal virtual override returns (uint256 amountReceivedLD) {
+    //     if (_to == address(0x0)) _to = address(0xdead); // _mint(...) does not support address(0x0)
+    //     // @dev Default OFT mints on dst.
+    //     _mint(_to, _amountLD);
+    //     // @dev In the case of NON-default OFT, the _amountLD MIGHT not be == amountReceivedLD.
+    //     return _amountLD;
+    // }
 
     /************************************************
      *  GETTERS
@@ -628,7 +751,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     ) public view returns (uint256) {
         Vault.VaultState memory state = vaultState;
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply() - state.queuedWithdrawShares,
+            totalOmnichainSupply - state.queuedWithdrawShares,
             currentBalance - lastQueuedWithdrawAmount,
             state.totalPending,
             vaultParams.decimals
@@ -662,7 +785,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     ) external view returns (uint256) {
         uint256 _decimals = vaultParams.decimals;
         uint256 assetPerShare = ShareMath.pricePerShare(
-            totalSupply(),
+            totalOmnichainSupply,
             totalBalance(),
             vaultState.totalPending,
             _decimals
@@ -711,7 +834,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function pricePerShare() external view returns (uint256) {
         return
             ShareMath.pricePerShare(
-                totalSupply(),
+                totalOmnichainSupply,
                 totalBalance(),
                 vaultState.totalPending,
                 vaultParams.decimals
@@ -719,12 +842,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-        * @notice returns if account can deposit
-        * @param account is the account to check
-        * @param proof is the merkle proof
+     * @notice returns if account can deposit
+     * @param account is the account to check
+     * @param proof is the merkle proof
      */
-    function canDeposit(address account, bytes32[] memory proof ) external view returns (bool) {
-        return isPublic || proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
+    function canDeposit(
+        address account,
+        bytes32[] memory proof
+    ) external view returns (bool) {
+        return
+            isPublic ||
+            proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
@@ -732,6 +860,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      */
     function decimals() public view override returns (uint8) {
         return vaultParams.decimals;
+    }
+
+    function sharedDecimals() public view override returns (uint8) {
+        return decimals();
     }
 
     function cap() external view returns (uint256) {
