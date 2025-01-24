@@ -24,11 +24,10 @@ library Vault {
         // Amount that is currently locked for executing strategy
         uint104 lockedAmount;
         // Amount that was locked for executing strategy in the previous round
-        // used for calculating performance fee deduction
         uint104 lastLockedAmount;
         // 32 byte slot 2
         // Stores the total tally of how much of `asset` there is
-        // to be used to mint rSTREAM tokens
+        // to be used to mint share tokens
         uint128 totalPending;
         // Total amount of queued withdrawal shares from previous rounds (doesn't include the current round)
         uint128 queuedWithdrawShares;
