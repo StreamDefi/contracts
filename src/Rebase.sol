@@ -1,7 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Lido <info@lido.fi>
 // SPDX-License-Identifier: GPL-3.0
-
-/* See contracts/COMPILERS.md */
 pragma solidity ^0.8.20;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
@@ -38,11 +35,11 @@ import "@aragon/os/contracts/common/UnstructuredStorage.sol";
  * pooled Asset increases, no `Transfer` events are generated: doing so would require
  * emitting an event for each token holder and thus running an unbounded loop.
  */
-contract Rebase is IERC20 {
+abstract contract RebaseToken is IERC20 {
     using UnstructuredStorage for bytes32;
 
-    address constant internal INITIAL_TOKEN_HOLDER = 0xdead;
-    uint256 constant internal INFINITE_ALLOWANCE = ~uint256(0);
+    address internal constant INITIAL_TOKEN_HOLDER = 0xdead;
+    uint256 internal constant INFINITE_ALLOWANCE = ~uint256(0);
 
     /**
      * @dev Rebased balances are dynamic and are calculated based on the accounts' shares
@@ -51,19 +48,29 @@ contract Rebase is IERC20 {
      * each account's token balance which equals to:
      *
      *   shares[account] * _getTotalVaultAssets() / _getTotalShares()
-    */
-    mapping (address => uint256) private shares;
+     */
+    mapping(address => uint256) private shares;
+
+    /**
+     * @dev The name of the token.
+     */
+    string private _name;
+
+    /**
+     * @dev The symbol of the token.
+     */
+    string private _symbol;
 
     /**
      * @dev Allowances are nominated in tokens, not token shares.
      */
-    mapping (address => mapping (address => uint256)) private allowances;
+    mapping(address => mapping(address => uint256)) private allowances;
 
     /**
-      * @notice An executed shares transfer from `sender` to `recipient`.
-      *
-      * @dev emitted in pair with an ERC20-defined `Transfer` event.
-      */
+     * @notice An executed shares transfer from `sender` to `recipient`.
+     *
+     * @dev emitted in pair with an ERC20-defined `Transfer` event.
+     */
     event TransferShares(
         address indexed from,
         address indexed to,
@@ -89,27 +96,30 @@ contract Rebase is IERC20 {
         uint256 sharesAmount
     );
 
+    constructor(string memory _tokenName, string memory _tokenSymbol) {
+        _name = _tokenName;
+        _symbol = _tokenSymbol;
+    }
+
     /**
      * @return the name of the token.
      */
-    function name() external pure returns (string) {
-        return "Rebased Stream Token";
+    function name() public view virtual returns (string) {
+        return _name;
     }
 
     /**
      * @return the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() external pure returns (string) {
-        return "StreamUSDC";
+    function symbol() public view virtual returns (string) {
+        return _symbol;
     }
 
     /**
      * @return the number of decimals for getting user representation of a token amount.
      */
-    function decimals() external pure returns (uint8) {
-        return 18;
-    }
+    function decimals() external pure virtual returns (uint8);
 
     /**
      * @return the amount of tokens in existence.
@@ -155,7 +165,10 @@ contract Rebase is IERC20 {
      *
      * @dev The `_amount` argument is the amount of tokens, not shares.
      */
-    function transfer(address _recipient, uint256 _amount) external returns (bool) {
+    function transfer(
+        address _recipient,
+        uint256 _amount
+    ) external returns (bool) {
         _transfer(msg.sender, _recipient, _amount);
         return true;
     }
@@ -166,7 +179,10 @@ contract Rebase is IERC20 {
      *
      * @dev This value changes when `approve` or `transferFrom` is called.
      */
-    function allowance(address _owner, address _spender) external view returns (uint256) {
+    function allowance(
+        address _owner,
+        address _spender
+    ) external view returns (uint256) {
         return allowances[_owner][_spender];
     }
 
@@ -182,7 +198,10 @@ contract Rebase is IERC20 {
      *
      * @dev The `_amount` argument is the amount of tokens, not shares.
      */
-    function approve(address _spender, uint256 _amount) external returns (bool) {
+    function approve(
+        address _spender,
+        uint256 _amount
+    ) external returns (bool) {
         _approve(msg.sender, _spender, _amount);
         return true;
     }
@@ -207,7 +226,11 @@ contract Rebase is IERC20 {
      *
      * @dev The `_amount` argument is the amount of tokens, not shares.
      */
-    function transferFrom(address _sender, address _recipient, uint256 _amount) external returns (bool) {
+    function transferFrom(
+        address _sender,
+        address _recipient,
+        uint256 _amount
+    ) external returns (bool) {
         _spendAllowance(_sender, msg.sender, _amount);
         _transfer(_sender, _recipient, _amount);
         return true;
@@ -225,8 +248,15 @@ contract Rebase is IERC20 {
      *
      * - `_spender` cannot be the the zero address.
      */
-    function increaseAllowance(address _spender, uint256 _addedValue) external returns (bool) {
-        _approve(msg.sender, _spender, allowances[msg.sender][_spender].add(_addedValue));
+    function increaseAllowance(
+        address _spender,
+        uint256 _addedValue
+    ) external returns (bool) {
+        _approve(
+            msg.sender,
+            _spender,
+            allowances[msg.sender][_spender].add(_addedValue)
+        );
         return true;
     }
 
@@ -243,7 +273,10 @@ contract Rebase is IERC20 {
      * - `_spender` cannot be the zero address.
      * - `_spender` must have allowance for the caller of at least `_subtractedValue`.
      */
-    function decreaseAllowance(address _spender, uint256 _subtractedValue) external returns (bool) {
+    function decreaseAllowance(
+        address _spender,
+        uint256 _subtractedValue
+    ) external returns (bool) {
         uint256 currentAllowance = allowances[msg.sender][_spender];
         require(currentAllowance >= _subtractedValue, "ALLOWANCE_BELOW_ZERO");
         _approve(msg.sender, _spender, currentAllowance.sub(_subtractedValue));
@@ -270,19 +303,19 @@ contract Rebase is IERC20 {
     /**
      * @return the amount of shares that corresponds to `_assetsAmount` protocol-controlled Assets.
      */
-    function getSharesByPooledAssets(uint256 _assetsAmount) public view returns (uint256) {
-        return _assetsAmount
-            .mul(_getTotalShares())
-            .div(_getTotalVaultAssets());
+    function getSharesByPooledAssets(
+        uint256 _assetsAmount
+    ) public view returns (uint256) {
+        return _assetsAmount.mul(_getTotalShares()).div(_getTotalVaultAssets());
     }
 
     /**
      * @return the amount of Assets that corresponds to `_sharesAmount` token shares.
      */
-    function getPooledAssetsByShares(uint256 _sharesAmount) public view returns (uint256) {
-        return _sharesAmount
-            .mul(_getTotalVaultAssets())
-            .div(_getTotalShares());
+    function getPooledAssetsByShares(
+        uint256 _sharesAmount
+    ) public view returns (uint256) {
+        return _sharesAmount.mul(_getTotalVaultAssets()).div(_getTotalShares());
     }
 
     /**
@@ -300,10 +333,18 @@ contract Rebase is IERC20 {
      *
      * @dev The `_sharesAmount` argument is the amount of shares, not tokens.
      */
-    function transferShares(address _recipient, uint256 _sharesAmount) external returns (uint256) {
+    function transferShares(
+        address _recipient,
+        uint256 _sharesAmount
+    ) external returns (uint256) {
         _transferShares(msg.sender, _recipient, _sharesAmount);
         uint256 tokensAmount = getPooledAssetsByShares(_sharesAmount);
-        _emitTransferEvents(msg.sender, _recipient, tokensAmount, _sharesAmount);
+        _emitTransferEvents(
+            msg.sender,
+            _recipient,
+            tokensAmount,
+            _sharesAmount
+        );
         return tokensAmount;
     }
 
@@ -324,7 +365,9 @@ contract Rebase is IERC20 {
      * @dev The `_sharesAmount` argument is the amount of shares, not tokens.
      */
     function transferSharesFrom(
-        address _sender, address _recipient, uint256 _sharesAmount
+        address _sender,
+        address _recipient,
+        uint256 _sharesAmount
     ) external returns (uint256) {
         uint256 tokensAmount = getPooledAssetsByShares(_sharesAmount);
         _spendAllowance(_sender, msg.sender, tokensAmount);
@@ -338,14 +381,18 @@ contract Rebase is IERC20 {
      * @dev This is used for calculating tokens from shares and vice versa.
      * @dev This function is required to be implemented in a derived contract.
      */
-    function _getTotalVaultAssets() internal view returns (uint256);
+    function _getTotalVaultAssets() internal view virtual returns (uint256);
 
     /**
      * @notice Moves `_amount` tokens from `_sender` to `_recipient`.
      * Emits a `Transfer` event.
      * Emits a `TransferShares` event.
      */
-    function _transfer(address _sender, address _recipient, uint256 _amount) internal {
+    function _transfer(
+        address _sender,
+        address _recipient,
+        uint256 _amount
+    ) internal {
         uint256 _sharesToTransfer = getSharesByPooledAssets(_amount);
         _transferShares(_sender, _recipient, _sharesToTransfer);
         _emitTransferEvents(_sender, _recipient, _amount, _sharesToTransfer);
@@ -363,7 +410,11 @@ contract Rebase is IERC20 {
      * - `_owner` cannot be the zero address.
      * - `_spender` cannot be the zero address.
      */
-    function _approve(address _owner, address _spender, uint256 _amount) internal {
+    function _approve(
+        address _owner,
+        address _spender,
+        uint256 _amount
+    ) internal {
         require(_owner != address(0), "APPROVE_FROM_ZERO_ADDR");
         require(_spender != address(0), "APPROVE_TO_ZERO_ADDR");
 
@@ -379,7 +430,11 @@ contract Rebase is IERC20 {
      *
      * Might emit an {Approval} event.
      */
-    function _spendAllowance(address _owner, address _spender, uint256 _amount) internal {
+    function _spendAllowance(
+        address _owner,
+        address _spender,
+        uint256 _amount
+    ) internal {
         uint256 currentAllowance = allowances[_owner][_spender];
         if (currentAllowance != INFINITE_ALLOWANCE) {
             require(currentAllowance >= _amount, "ALLOWANCE_EXCEEDED");
@@ -407,14 +462,18 @@ contract Rebase is IERC20 {
      * Requirements:
      *
      * - `_sender` cannot be the zero address.
-     * - `_recipient` cannot be the zero address or the `stETH` token contract itself
+     * - `_recipient` cannot be the zero address or the rebaseToken contract itself
      * - `_sender` must hold at least `_sharesAmount` shares.
      * - the contract must not be paused.
      */
-    function _transferShares(address _sender, address _recipient, uint256 _sharesAmount) internal {
+    function _transferShares(
+        address _sender,
+        address _recipient,
+        uint256 _sharesAmount
+    ) internal {
         require(_sender != address(0), "TRANSFER_FROM_ZERO_ADDR");
         require(_recipient != address(0), "TRANSFER_TO_ZERO_ADDR");
-        require(_recipient != address(this), "TRANSFER_TO_STETH_CONTRACT");
+        require(_recipient != address(this), "TRANSFER_TO_SELF_CONTRACT");
         _whenNotStopped();
 
         uint256 currentSenderShares = shares[_sender];
@@ -435,7 +494,10 @@ contract Rebase is IERC20 {
      * - `_recipient` cannot be the zero address.
      * - the contract must not be paused.
      */
-    function _mintShares(address _recipient, uint256 _sharesAmount) internal returns (uint256 newTotalShares) {
+    function _mintShares(
+        address _recipient,
+        uint256 _sharesAmount
+    ) internal returns (uint256 newTotalShares) {
         require(_recipient != address(0), "MINT_TO_ZERO_ADDR");
 
         newTotalShares = _getTotalShares().add(_sharesAmount);
@@ -461,7 +523,10 @@ contract Rebase is IERC20 {
      * - `_account` must hold at least `_sharesAmount` shares.
      * - the contract must not be paused.
      */
-    function _burnShares(address _account, uint256 _sharesAmount) internal returns (uint256 newTotalShares) {
+    function _burnShares(
+        address _account,
+        uint256 _sharesAmount
+    ) internal returns (uint256 newTotalShares) {
         require(_account != address(0), "BURN_FROM_ZERO_ADDR");
 
         uint256 accountShares = shares[_account];
@@ -476,7 +541,12 @@ contract Rebase is IERC20 {
 
         uint256 postRebaseTokenAmount = getPooledAssetsByShares(_sharesAmount);
 
-        emit SharesBurnt(_account, preRebaseTokenAmount, postRebaseTokenAmount, _sharesAmount);
+        emit SharesBurnt(
+            _account,
+            preRebaseTokenAmount,
+            postRebaseTokenAmount,
+            _sharesAmount
+        );
 
         // Notice: we're not emitting a Transfer event to the zero address here since shares burn
         // works by redistributing the amount of tokens corresponding to the burned shares between
@@ -490,7 +560,12 @@ contract Rebase is IERC20 {
     /**
      * @dev Emits {Transfer} and {TransferShares} events
      */
-    function _emitTransferEvents(address _from, address _to, uint _tokenAmount, uint256 _sharesAmount) internal {
+    function _emitTransferEvents(
+        address _from,
+        address _to,
+        uint _tokenAmount,
+        uint256 _sharesAmount
+    ) internal {
         emit Transfer(_from, _to, _tokenAmount);
         emit TransferShares(_from, _to, _sharesAmount);
     }
@@ -498,8 +573,16 @@ contract Rebase is IERC20 {
     /**
      * @dev Emits {Transfer} and {TransferShares} events where `from` is 0 address. Indicates mint events.
      */
-    function _emitTransferAfterMintingShares(address _to, uint256 _sharesAmount) internal {
-        _emitTransferEvents(address(0), _to, getPooledAssetsByShares(_sharesAmount), _sharesAmount);
+    function _emitTransferAfterMintingShares(
+        address _to,
+        uint256 _sharesAmount
+    ) internal {
+        _emitTransferEvents(
+            address(0),
+            _to,
+            getPooledAssetsByShares(_sharesAmount),
+            _sharesAmount
+        );
     }
 
     /**
