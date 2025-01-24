@@ -41,6 +41,8 @@ abstract contract RebaseToken is IERC20 {
     address internal constant INITIAL_TOKEN_HOLDER = 0xdead;
     uint256 internal constant INFINITE_ALLOWANCE = ~uint256(0);
 
+    uint256 public totalShares;
+
     /**
      * @dev Rebased balances are dynamic and are calculated based on the accounts' shares
      * and the total amount of Assets controlled by the vault. Account shares aren't
@@ -144,7 +146,7 @@ abstract contract RebaseToken is IERC20 {
      * @return the amount of tokens owned by the `_account`.
      *
      * @dev Balances are dynamic and equal the `_account`'s share in the amount of the
-     * total Ether controlled by the protocol. See `sharesOf`.
+     * total Assets controlled by the protocol. See `sharesOf`.
      */
     function balanceOf(address _account) external view returns (uint256) {
         return getPooledAssetsByShares(_sharesOf(_account));
@@ -446,7 +448,7 @@ abstract contract RebaseToken is IERC20 {
      * @return the total amount of shares in existence.
      */
     function _getTotalShares() internal view returns (uint256) {
-        return TOTAL_SHARES_POSITION.getStorageUint256();
+        return totalShares;
     }
 
     /**
@@ -500,8 +502,7 @@ abstract contract RebaseToken is IERC20 {
     ) internal returns (uint256 newTotalShares) {
         require(_recipient != address(0), "MINT_TO_ZERO_ADDR");
 
-        newTotalShares = _getTotalShares().add(_sharesAmount);
-        TOTAL_SHARES_POSITION.setStorageUint256(newTotalShares);
+        totalShares += _sharesAmount;
 
         shares[_recipient] = shares[_recipient].add(_sharesAmount);
 
@@ -534,8 +535,8 @@ abstract contract RebaseToken is IERC20 {
 
         uint256 preRebaseTokenAmount = getPooledAssetsByShares(_sharesAmount);
 
-        newTotalShares = _getTotalShares().sub(_sharesAmount);
-        TOTAL_SHARES_POSITION.setStorageUint256(newTotalShares);
+        require(totalShares >= _sharesAmount, "TOTAL_SHARES_EXCEEDED");
+        totalShares -= _sharesAmount;
 
         shares[_account] = accountShares.sub(_sharesAmount);
 
