@@ -29,8 +29,6 @@ library Vault {
         // Stores the total tally of how much of `asset` there is
         // to be used to mint share tokens
         uint128 totalPending;
-        // Total amount of queued withdrawal shares from previous rounds (doesn't include the current round)
-        uint128 queuedWithdrawShares;
     }
 
     struct DepositReceipt {
@@ -45,7 +43,7 @@ library Vault {
     struct Withdrawal {
         // Maximum of 65535 rounds. Assuming 1 round is 7 days, maximum is 1256 years.
         uint16 round;
-        // Number of shares withdrawn
-        uint128 shares;
+        // Amount of assets pending withdrawal
+        uint128 amount;
     }
 }

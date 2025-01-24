@@ -45,11 +45,11 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice Vault's lifecycle state like round and locked amounts
     Vault.VaultState public vaultState;
 
-    /// @notice The amount of 'asset' that was queued for withdrawal in the last round
-    uint256 public lastQueuedWithdrawAmount;
+    /// @notice The total amount of 'asset' that is queued for withdrawal
+    uint256 public totalQueuedWithdrawAmount;
 
-    /// @notice The amount of shares that are queued for withdrawal in the current round
-    uint256 public currentQueuedWithdrawShares;
+    /// @notice The amount of 'asset' that is queued for withdrawal in the current round
+    uint256 public currentQueuedWithdrawAmount;
 
     /// @notice role in charge of weekly vault operations such as rollToNextRound
     // no access to critical vault changes
@@ -71,10 +71,10 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     event InitiateWithdraw(
         address indexed account,
-        uint256 shares,
+        uint256 amount,
         uint256 round
     );
-    event Withdraw(address indexed account, uint256 amount, uint256 shares);
+    event Withdraw(address indexed account, uint256 amount);
 
     event Redeem(address indexed account, uint256 share, uint256 round);
 
@@ -332,7 +332,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Initiates a withdrawal that can be processed once the round completes
-     * @param numShares is the number of shares to withdraw
+     * @param numShares is the number of shares to withdraw and burn
      */
     function initiateWithdraw(uint256 numShares) external nonReentrant {
         require(numShares > 0, "!numShares");
@@ -348,29 +348,24 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        Vault.Withdrawal memory withdrawal = withdrawals[msg.sender];
+        require(currentRound > 0, "Cannot withdraw before round 1");
 
-        bool withdrawalIsSameRound = withdrawal.round == currentRound;
+        uint256 withdrawAmount = ShareMath.sharesToAsset(
+            numShares,
+            roundPricePerShare[currentRound - 1],
+            vaultParams.decimals
+        );
 
-        emit InitiateWithdraw(msg.sender, numShares, currentRound);
+        emit InitiateWithdraw(msg.sender, withdrawAmount, currentRound);
 
-        uint256 existingShares = uint256(withdrawal.shares);
+        ShareMath.assertUint128(withdrawAmount);
+        withdrawals[msg.sender].amount += uint128(withdrawAmount);
+        withdrawals[msg.sender].round = uint16(currentRound);
 
-        uint256 withdrawalShares;
-        if (withdrawalIsSameRound) {
-            withdrawalShares = existingShares + numShares;
-        } else {
-            require(existingShares == 0, "Existing withdraw");
-            withdrawalShares = numShares;
-            withdrawals[msg.sender].round = uint16(currentRound);
-        }
+        _burn(msg.sender, numShares);
 
-        ShareMath.assertUint128(withdrawalShares);
-        withdrawals[msg.sender].shares = uint128(withdrawalShares);
-
-        _transfer(msg.sender, address(this), numShares);
-
-        currentQueuedWithdrawShares = currentQueuedWithdrawShares + numShares;
+        totalQueuedWithdrawAmount = totalQueuedWithdrawAmount + withdrawAmount;
+        currentQueuedWithdrawAmount = currentQueuedWithdrawAmount + withdrawAmount;
     }
 
     /**
@@ -379,35 +374,23 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function completeWithdraw() external nonReentrant {
         Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
 
-        uint256 withdrawalShares = withdrawal.shares;
+        uint256 withdrawalAmount = withdrawal.amount;
         uint256 withdrawalRound = withdrawal.round;
 
         // This checks if there is a withdrawal
-        require(withdrawalShares > 0, "Not initiated");
+        require(withdrawalAmount > 0, "Not initiated");
 
         require(withdrawalRound < vaultState.round, "Round not closed");
 
         // We leave the round number as non-zero to save on gas for subsequent writes
-        withdrawals[msg.sender].shares = 0;
-        vaultState.queuedWithdrawShares = uint128(
-            uint256(vaultState.queuedWithdrawShares) - withdrawalShares
-        );
+        withdrawals[msg.sender].amount = 0;
 
-        uint256 withdrawAmount = ShareMath.sharesToAsset(
-            withdrawalShares,
-            roundPricePerShare[withdrawalRound],
-            vaultParams.decimals
-        );
+        emit Withdraw(msg.sender, withdrawalAmount);
 
-        emit Withdraw(msg.sender, withdrawAmount, withdrawalShares);
+        _transferAsset(msg.sender, withdrawalAmount);
 
-        _burn(address(this), withdrawalShares);
-
-        require(withdrawAmount > 0, "!withdrawAmount");
-        _transferAsset(msg.sender, withdrawAmount);
-
-        lastQueuedWithdrawAmount = uint256(
-            uint256(lastQueuedWithdrawAmount) - withdrawAmount
+        totalQueuedWithdrawAmount = uint256(
+            uint256(totalQueuedWithdrawAmount) - withdrawalAmount
         );
     }
 
@@ -497,8 +480,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         uint256 currentRound = state.round;
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply() - state.queuedWithdrawShares,
-            currentBalance - lastQueuedWithdrawAmount,
+            totalSupply(),
+            currentBalance - totalQueuedWithdrawAmount,
             state.totalPending,
             vaultParams.decimals
         );
@@ -508,6 +491,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         vaultState.totalPending = 0;
         vaultState.round = uint16(currentRound + 1);
 
+        currentQueuedWithdrawAmount = 0;
+
         uint256 mintShares = ShareMath.assetToShares(
             state.totalPending,
             newPricePerShare,
@@ -516,26 +501,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         _mint(address(this), mintShares);
 
-        uint256 queuedWithdrawAmount = lastQueuedWithdrawAmount +
-            ShareMath.sharesToAsset(
-                currentQueuedWithdrawShares,
-                newPricePerShare,
-                vaultParams.decimals
-            );
-
-        lastQueuedWithdrawAmount = queuedWithdrawAmount;
-
-        uint256 newQueuedWithdrawShares = uint256(state.queuedWithdrawShares) +
-            currentQueuedWithdrawShares;
-
-        ShareMath.assertUint128(newQueuedWithdrawShares);
-        vaultState.queuedWithdrawShares = uint128(newQueuedWithdrawShares);
-
-        currentQueuedWithdrawShares = 0;
-
         vaultState.lastLockedAmount = state.lockedAmount;
 
-        uint256 lockedBalance = currentBalance - queuedWithdrawAmount;
+        uint256 lockedBalance = currentBalance - totalQueuedWithdrawAmount;
 
         ShareMath.assertUint104(lockedBalance);
 
@@ -544,7 +512,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         IERC20(vaultParams.asset).safeTransfer(
             keeper,
             IERC20(vaultParams.asset).balanceOf(address(this)) -
-                queuedWithdrawAmount
+                totalQueuedWithdrawAmount
         );
     }
 
@@ -617,29 +585,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      *  GETTERS
      ***********************************************/
 
-    /** 
-    * @notice Returns the current amount of `asset` that is queued for withdrawal in the current round
-    * @param currentBalance is the amount of `asset` that is currently being used for strategy 
-            + the amount in the contract right now
-    * @return the amount of `asset` that is queued for withdrawal in the current round
-    */
-    function getCurrQueuedWithdrawAmount(
-        uint256 currentBalance
-    ) public view returns (uint256) {
-        Vault.VaultState memory state = vaultState;
-        uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply() - state.queuedWithdrawShares,
-            currentBalance - lastQueuedWithdrawAmount,
-            state.totalPending,
-            vaultParams.decimals
-        );
-        return (lastQueuedWithdrawAmount +
-            ShareMath.sharesToAsset(
-                currentQueuedWithdrawShares,
-                newPricePerShare,
-                vaultParams.decimals
-            ));
-    }
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a position
@@ -663,7 +608,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         uint256 _decimals = vaultParams.decimals;
         uint256 assetPerShare = ShareMath.pricePerShare(
             totalSupply(),
-            totalBalance(),
+            totalBalance() - totalQueuedWithdrawAmount,
             vaultState.totalPending,
             _decimals
         );
@@ -712,7 +657,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         return
             ShareMath.pricePerShare(
                 totalSupply(),
-                totalBalance(),
+                totalBalance() - totalQueuedWithdrawAmount,
                 vaultState.totalPending,
                 vaultParams.decimals
             );
