@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "@aragon/os/contracts/common/UnstructuredStorage.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Interest-bearing ERC20-like token for Stream Vault protocol.
@@ -36,10 +35,8 @@ import "@aragon/os/contracts/common/UnstructuredStorage.sol";
  * emitting an event for each token holder and thus running an unbounded loop.
  */
 abstract contract RebaseToken is IERC20 {
-    using UnstructuredStorage for bytes32;
-
-    address internal constant INITIAL_TOKEN_HOLDER = 0xdead;
-    uint256 internal constant INFINITE_ALLOWANCE = ~uint256(0);
+    address internal constant INITIAL_TOKEN_HOLDER = address(0xdead);
+    uint256 internal constant INFINITE_ALLOWANCE = type(uint256).max;
 
     uint256 public totalShares;
 
@@ -106,7 +103,7 @@ abstract contract RebaseToken is IERC20 {
     /**
      * @return the name of the token.
      */
-    function name() public view virtual returns (string) {
+    function name() public view virtual returns (string memory) {
         return _name;
     }
 
@@ -114,14 +111,14 @@ abstract contract RebaseToken is IERC20 {
      * @return the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() public view virtual returns (string) {
+    function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
 
     /**
      * @return the number of decimals for getting user representation of a token amount.
      */
-    function decimals() external pure virtual returns (uint8);
+    function decimals() public view virtual returns (uint8);
 
     /**
      * @return the amount of tokens in existence.
@@ -129,7 +126,7 @@ abstract contract RebaseToken is IERC20 {
      * @dev Always equals to `_getTotalVaultAssets()` since token amount
      * is pegged to the total amount of Assets controlled by the protocol.
      */
-    function totalSupply() external view returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _getTotalVaultAssets();
     }
 
@@ -138,7 +135,7 @@ abstract contract RebaseToken is IERC20 {
      *
      * @dev The sum of all Assets balances in the protocol, equals to the total supply of Rebase.
      */
-    function getTotalPooledAssets() external view returns (uint256) {
+    function getTotalPooledAssets() public view returns (uint256) {
         return _getTotalVaultAssets();
     }
 
@@ -148,7 +145,7 @@ abstract contract RebaseToken is IERC20 {
      * @dev Balances are dynamic and equal the `_account`'s share in the amount of the
      * total Assets controlled by the protocol. See `sharesOf`.
      */
-    function balanceOf(address _account) external view returns (uint256) {
+    function balanceOf(address _account) public view returns (uint256) {
         return getPooledAssetsByShares(_sharesOf(_account));
     }
 
@@ -170,7 +167,7 @@ abstract contract RebaseToken is IERC20 {
     function transfer(
         address _recipient,
         uint256 _amount
-    ) external returns (bool) {
+    ) public returns (bool) {
         _transfer(msg.sender, _recipient, _amount);
         return true;
     }
@@ -184,7 +181,7 @@ abstract contract RebaseToken is IERC20 {
     function allowance(
         address _owner,
         address _spender
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         return allowances[_owner][_spender];
     }
 
@@ -200,10 +197,7 @@ abstract contract RebaseToken is IERC20 {
      *
      * @dev The `_amount` argument is the amount of tokens, not shares.
      */
-    function approve(
-        address _spender,
-        uint256 _amount
-    ) external returns (bool) {
+    function approve(address _spender, uint256 _amount) public returns (bool) {
         _approve(msg.sender, _spender, _amount);
         return true;
     }
@@ -232,7 +226,7 @@ abstract contract RebaseToken is IERC20 {
         address _sender,
         address _recipient,
         uint256 _amount
-    ) external returns (bool) {
+    ) public returns (bool) {
         _spendAllowance(_sender, msg.sender, _amount);
         _transfer(_sender, _recipient, _amount);
         return true;
@@ -253,11 +247,11 @@ abstract contract RebaseToken is IERC20 {
     function increaseAllowance(
         address _spender,
         uint256 _addedValue
-    ) external returns (bool) {
+    ) public returns (bool) {
         _approve(
             msg.sender,
             _spender,
-            allowances[msg.sender][_spender].add(_addedValue)
+            allowances[msg.sender][_spender] + _addedValue
         );
         return true;
     }
@@ -278,10 +272,10 @@ abstract contract RebaseToken is IERC20 {
     function decreaseAllowance(
         address _spender,
         uint256 _subtractedValue
-    ) external returns (bool) {
+    ) public returns (bool) {
         uint256 currentAllowance = allowances[msg.sender][_spender];
         require(currentAllowance >= _subtractedValue, "ALLOWANCE_BELOW_ZERO");
-        _approve(msg.sender, _spender, currentAllowance.sub(_subtractedValue));
+        _approve(msg.sender, _spender, currentAllowance - _subtractedValue);
         return true;
     }
 
@@ -291,14 +285,14 @@ abstract contract RebaseToken is IERC20 {
      * @dev The sum of all accounts' shares can be an arbitrary number, therefore
      * it is necessary to store it in order to calculate each account's relative share.
      */
-    function getTotalShares() external view returns (uint256) {
+    function getTotalShares() public view returns (uint256) {
         return _getTotalShares();
     }
 
     /**
      * @return the amount of shares owned by `_account`.
      */
-    function sharesOf(address _account) external view returns (uint256) {
+    function sharesOf(address _account) public view returns (uint256) {
         return _sharesOf(_account);
     }
 
@@ -308,7 +302,7 @@ abstract contract RebaseToken is IERC20 {
     function getSharesByPooledAssets(
         uint256 _assetsAmount
     ) public view returns (uint256) {
-        return _assetsAmount.mul(_getTotalShares()).div(_getTotalVaultAssets());
+        return (_assetsAmount * _getTotalShares()) / _getTotalVaultAssets();
     }
 
     /**
@@ -317,7 +311,7 @@ abstract contract RebaseToken is IERC20 {
     function getPooledAssetsByShares(
         uint256 _sharesAmount
     ) public view returns (uint256) {
-        return _sharesAmount.mul(_getTotalVaultAssets()).div(_getTotalShares());
+        return (_sharesAmount * _getTotalVaultAssets()) / _getTotalShares();
     }
 
     /**
@@ -338,7 +332,7 @@ abstract contract RebaseToken is IERC20 {
     function transferShares(
         address _recipient,
         uint256 _sharesAmount
-    ) external returns (uint256) {
+    ) public returns (uint256) {
         _transferShares(msg.sender, _recipient, _sharesAmount);
         uint256 tokensAmount = getPooledAssetsByShares(_sharesAmount);
         _emitTransferEvents(
@@ -370,7 +364,7 @@ abstract contract RebaseToken is IERC20 {
         address _sender,
         address _recipient,
         uint256 _sharesAmount
-    ) external returns (uint256) {
+    ) public returns (uint256) {
         uint256 tokensAmount = getPooledAssetsByShares(_sharesAmount);
         _spendAllowance(_sender, msg.sender, tokensAmount);
         _transferShares(_sender, _recipient, _sharesAmount);
@@ -476,20 +470,19 @@ abstract contract RebaseToken is IERC20 {
         require(_sender != address(0), "TRANSFER_FROM_ZERO_ADDR");
         require(_recipient != address(0), "TRANSFER_TO_ZERO_ADDR");
         require(_recipient != address(this), "TRANSFER_TO_SELF_CONTRACT");
-        _whenNotStopped();
 
         uint256 currentSenderShares = shares[_sender];
         require(_sharesAmount <= currentSenderShares, "BALANCE_EXCEEDED");
 
-        shares[_sender] = currentSenderShares.sub(_sharesAmount);
-        shares[_recipient] = shares[_recipient].add(_sharesAmount);
+        shares[_sender] = currentSenderShares - _sharesAmount;
+        shares[_recipient] = shares[_recipient] + _sharesAmount;
     }
 
     /**
      * @notice Creates `_sharesAmount` shares and assigns them to `_recipient`, increasing the total amount of shares.
      * @dev This doesn't increase the token total supply.
      *
-     * NB: The method doesn't check protocol pause relying on the external enforcement.
+     * NB: The method doesn't check protocol pause relying on the public enforcement.
      *
      * Requirements:
      *
@@ -504,7 +497,7 @@ abstract contract RebaseToken is IERC20 {
 
         totalShares += _sharesAmount;
 
-        shares[_recipient] = shares[_recipient].add(_sharesAmount);
+        shares[_recipient] = shares[_recipient] + _sharesAmount;
 
         // Notice: we're not emitting a Transfer event from the zero address here since shares mint
         // works by taking the amount of tokens corresponding to the minted shares from all other
@@ -538,7 +531,7 @@ abstract contract RebaseToken is IERC20 {
         require(totalShares >= _sharesAmount, "TOTAL_SHARES_EXCEEDED");
         totalShares -= _sharesAmount;
 
-        shares[_account] = accountShares.sub(_sharesAmount);
+        shares[_account] = accountShares - _sharesAmount;
 
         uint256 postRebaseTokenAmount = getPooledAssetsByShares(_sharesAmount);
 

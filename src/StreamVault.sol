@@ -380,7 +380,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
         withdrawals[msg.sender].amount += uint128(withdrawAmount);
         withdrawals[msg.sender].round = uint16(currentRound);
 
-        _burn(msg.sender, numShares);
+        _burnShares(msg.sender, numShares);
 
         totalQueuedWithdrawAmount = totalQueuedWithdrawAmount + withdrawAmount;
         currentQueuedWithdrawAmount =
@@ -500,7 +500,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
         uint256 currentRound = state.round;
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply(),
+            getTotalShares(),
             currentBalance - totalQueuedWithdrawAmount,
             state.totalPending,
             vaultParams.decimals
@@ -519,7 +519,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
             vaultParams.decimals
         );
 
-        _mint(address(this), mintShares);
+        _mintShares(address(this), mintShares);
 
         vaultState.lastLockedAmount = state.lockedAmount;
 
@@ -612,7 +612,13 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
      * @return The total amount of assets in the strategy that should be accounted for
      *         in share pricing
      */
-    function _getTotalVaultAssets() internal view virtual returns (uint256) {
+    function _getTotalVaultAssets()
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return uint256(vaultState.lockedAmount) - currentQueuedWithdrawAmount;
     }
 
@@ -632,7 +638,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
     function pricePerShare() external view returns (uint256) {
         return
             ShareMath.pricePerShare(
-                totalSupply(),
+                getTotalShares(),
                 totalBalance() - totalQueuedWithdrawAmount,
                 vaultState.totalPending,
                 vaultParams.decimals
