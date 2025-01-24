@@ -348,7 +348,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        require(currentRound > 0, "Cannot withdraw before round 1");
+        require(currentRound > 1, "Cannot withdraw before round 1");
 
         uint256 withdrawAmount = ShareMath.sharesToAsset(
             numShares,

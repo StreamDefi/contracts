@@ -142,9 +142,7 @@ contract VaultKeeper {
         StreamVault vault,
         uint256 currBalance
     ) internal {
-        uint256 queuedWithdrawAmount = vault.getCurrQueuedWithdrawAmount(
-            currBalance
-        );
+        uint256 queuedWithdrawAmount = vault.totalQueuedWithdrawAmount();
 
         uint256 balance = ERC20(asset).balanceOf(address(vault));
 
@@ -154,10 +152,10 @@ contract VaultKeeper {
 
         uint256 amountToTransfer = queuedWithdrawAmount - balance;
 
-        uint256 lastQueuedWithdrawAmount = vault.lastQueuedWithdrawAmount();
+        uint256 currentQueuedWithdrawAmount = vault.currentQueuedWithdrawAmount();
 
         require(
-            amountToTransfer <= queuedWithdrawAmount - lastQueuedWithdrawAmount,
+            amountToTransfer <= currentQueuedWithdrawAmount,
             "VaultKeeper: Assets to transfer is greater than the amount to withdraw for current round"
         );
 
