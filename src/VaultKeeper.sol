@@ -131,7 +131,7 @@ contract VaultKeeper {
         (, address _asset, , ) = vault.vaultParams();
         ERC20 asset = ERC20(_asset);
         uint256 currBalance = asset.balanceOf(address(vault)) + _lockedBalance;
-        _transferAssets(address(asset), vault, currBalance);
+        _transferAssets(address(asset), vault);
 
         vault.rollToNextRound(currBalance);
         asset.transfer(msg.sender, asset.balanceOf(address(this)));
@@ -139,8 +139,7 @@ contract VaultKeeper {
 
     function _transferAssets(
         address asset,
-        StreamVault vault,
-        uint256 currBalance
+        StreamVault vault
     ) internal {
         uint256 queuedWithdrawAmount = vault.totalQueuedWithdrawAmount();
 
