@@ -51,7 +51,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens
      * @param amount Amount of assets to deposit
      */
-    function deposit(uint256 amount) external nonReentrant {
+    function deposit(uint256 amount) public nonReentrant {
         if (allowIndependence) {
             require(msg.sender == owner(), "Only owner can deposit");
         }
@@ -71,7 +71,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @notice Burns tokens and creates withdrawal receipt
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawal(uint224 amount) external nonReentrant {
+    function initiateWithdrawal(uint224 amount) public nonReentrant {
         if (allowIndependence) {
             require(
                 msg.sender == owner(),
@@ -99,7 +99,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Complete withdrawal if epoch has passed
      */
-    function completeWithdrawal() external nonReentrant {
+    function completeWithdrawal() public nonReentrant {
         if (allowIndependence) {
             require(
                 msg.sender == owner(),
@@ -136,7 +136,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) external onlyOwner {
+    function setAllowIndependence(bool _allowIndependence) public onlyOwner {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
