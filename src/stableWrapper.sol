@@ -13,9 +13,8 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     // State variables
     address public immutable asset;
     uint256 public currentEpoch;
-
     bool public allowIndependence;
-    
+
     // Withdrawal receipt mapping
     struct WithdrawalReceipt {
         uint224 amount;
@@ -24,8 +23,12 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
     // Events
-    event Deposited(address indexed user, uint256 amount);
-    event WithdrawalInitiated(address indexed user, uint256 amount, uint256 epoch);
+    event Deposit(address indexed user, uint256 amount);
+    event WithdrawalInitiated(
+        address indexed user,
+        uint256 amount,
+        uint256 epoch
+    );
     event Withdrawn(address indexed user, uint256 amount);
     event EpochAdvanced(uint256 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
@@ -49,20 +52,19 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @param amount Amount of assets to deposit
      */
     function deposit(uint256 amount) external nonReentrant {
-
         if (allowIndependence) {
             require(msg.sender == owner(), "Only owner can deposit");
         }
 
         require(amount > 0, "Amount must be greater than 0");
-        
+
         // Transfer assets from user
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-        
+
         // Mint equivalent tokens to user
         _mint(msg.sender, amount);
-        
-        emit Deposited(msg.sender, amount);
+
+        emit Deposit(msg.sender, amount);
     }
 
     /**
@@ -70,9 +72,11 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @param amount Amount of tokens to burn for withdrawal
      */
     function initiateWithdrawal(uint224 amount) external nonReentrant {
-
         if (allowIndependence) {
-            require(msg.sender == owner(), "Only owner can initiate withdrawal");
+            require(
+                msg.sender == owner(),
+                "Only owner can initiate withdrawal"
+            );
         }
 
         require(amount > 0, "Amount must be greater than 0");
@@ -96,9 +100,11 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @notice Complete withdrawal if epoch has passed
      */
     function completeWithdrawal() external nonReentrant {
-
         if (allowIndependence) {
-            require(msg.sender == owner(), "Only owner can complete withdrawal");
+            require(
+                msg.sender == owner(),
+                "Only owner can complete withdrawal"
+            );
         }
 
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
@@ -121,7 +127,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() external onlyOwner {
+    function advanceEpoch() public onlyOwner {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
@@ -140,10 +146,10 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @param to Address to transfer assets to
      * @param amount Amount of assets to transfer
      */
-    function transferAsset(address to, uint256 amount) external onlyOwner {
+    function transferAsset(address to, uint256 amount) public onlyOwner {
         require(to != address(0), "Invalid address");
         require(amount > 0, "Amount must be greater than 0");
-        
+
         IERC20(asset).safeTransfer(to, amount);
         emit AssetTransferred(to, amount);
     }
@@ -153,10 +159,10 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
      */
-    function permissionedMint(address to, uint256 amount) external onlyOwner {
+    function permissionedMint(address to, uint256 amount) public onlyOwner {
         require(to != address(0), "Cannot mint to zero address");
         require(amount > 0, "Amount must be greater than 0");
-        
+
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -166,10 +172,10 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) external onlyOwner {
+    function permissionedBurn(address from, uint256 amount) public onlyOwner {
         require(from != address(0), "Cannot burn from zero address");
         require(amount > 0, "Amount must be greater than 0");
-        
+
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
