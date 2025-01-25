@@ -11,29 +11,28 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
 
-
 /**
  * @title StreamVault
- * @notice A vault that allows users to deposit and withdraw from an off-chain managed Stream strategy
- * @notice Users receive shares for their deposits, which can be redeemed for assets
+ * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
+ * @notice Users receive shares for their stakes, which can be redeemed for assets
  * @notice The vault is managed by a keeper, who is responsible for rolling to the next round
  * @notice The rounds will be rolled over on a weekly basis
  */
 
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
-    using ShareMath for Vault.DepositReceipt;
+    using ShareMath for Vault.StakeReceipt;
     using MerkleProofLib for bytes32[];
 
     /************************************************
      *  STATE
      ***********************************************/
-    /// @notice Stores the user's pending deposit for the round
-    mapping(address => Vault.DepositReceipt) public depositReceipts;
+    /// @notice Stores the user's pending stake for the round
+    mapping(address => Vault.StakeReceipt) public stakeReceipts;
 
     /// @notice On every round's close, the pricePerShare value of an rTHETA token is stored
     /// This is used to determine the number of shares to be returned
-    /// to a user with their DepositReceipt.depositAmount
+    /// to a user with their StakeReceipt.stakeAmount
     mapping(uint256 => uint256) public roundPricePerShare;
 
     /// @notice Stores pending user withdrawals
@@ -58,7 +57,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
-    /// @notice private or public 
+    /// @notice private or public
     bool public isPublic;
 
     /// @notice merkle root for private whitelist
@@ -67,7 +66,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /************************************************
      *  EVENTS
      ***********************************************/
-    event Deposit(address indexed account, uint256 amount, uint256 round);
+    event Stake(address indexed account, uint256 amount, uint256 round);
 
     event InitiateWithdraw(
         address indexed account,
@@ -129,34 +128,19 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         vaultState.round = 1;
     }
 
-
-
     /************************************************
-     *  PUBLIC DEPOSITS
+     *  PUBLIC STAKING
      ***********************************************/
 
     /**
-     * @notice Deposits the native asset from msg.sender.
+     * @notice Stake the `asset` from msg.sender.
+     * @param amount is the amount of `asset` to stake
      */
-    function depositETH() external payable nonReentrant {
-        require(isPublic, "!public");
-        require(vaultParams.asset == WETH, "!WETH");
-        require(msg.value > 0, "!value");
-
-        _depositFor(msg.value, msg.sender);
-
-        IWETH(WETH).deposit{value: msg.value}();
-    }
-
-    /**
-     * @notice Deposits the `asset` from msg.sender.
-     * @param amount is the amount of `asset` to deposit
-     */
-    function deposit(uint256 amount) external nonReentrant {
+    function stake(uint256 amount) external nonReentrant {
         require(isPublic, "!public");
         require(amount > 0, "!amount");
 
-        _depositFor(amount, msg.sender);
+        _stakeFor(amount, msg.sender);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -167,20 +151,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Deposits the `asset` from msg.sender added to `creditor`'s deposit.
-     * @notice Used for vault -> vault deposits on the user's behalf
-     * @param amount is the amount of `asset` to deposit
-     * @param creditor is the address that can claim/withdraw deposited amount
+     * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
+     * @notice Used for vault -> vault stakes on the user's behalf
+     * @param amount is the amount of `asset` to stake
+     * @param creditor is the address that can claim/withdraw staked amount
      */
-    function depositFor(
-        uint256 amount,
-        address creditor
-    ) external nonReentrant {
+    function stakeFor(uint256 amount, address creditor) external nonReentrant {
         require(isPublic, "!public");
         require(amount > 0, "!amount");
         require(creditor != address(0), "!creditor");
 
-        _depositFor(amount, creditor);
+        _stakeFor(amount, creditor);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -191,60 +172,44 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Deposits the native asset  from msg.sender added to `creditor`'s deposit.
-     * @notice Used for vault -> vault deposits on the user's behalf
-     * @param creditor is the address that can claim/withdraw deposited amount
+     * @notice Manages the stake receipts for a staker
+     * @param amount is the amount of `asset` staked
+     * @param creditor is the address to receieve the stake
      */
-    function depositETHFor(address creditor) external payable nonReentrant {
-        require(isPublic, "!public");
-        require(vaultParams.asset == WETH, "!WETH");
-        require(msg.value > 0, "!value");
-        require(creditor != address(0), "!creditor");
-
-        _depositFor(msg.value, creditor);
-
-        IWETH(WETH).deposit{value: msg.value}();
-    }
-
-    /**
-     * @notice Manages the deposit receipts for a depositer
-     * @param amount is the amount of `asset` deposited
-     * @param creditor is the address to receieve the deposit
-     */
-    function _depositFor(uint256 amount, address creditor) private {
+    function _stakeFor(uint256 amount, address creditor) private {
         uint256 currentRound = vaultState.round;
-        uint256 totalWithDepositedAmount = totalBalance() + amount;
+        uint256 totalWithStakedAmount = totalBalance() + amount;
 
-        require(totalWithDepositedAmount <= vaultParams.cap, "Exceed cap");
+        require(totalWithStakedAmount <= vaultParams.cap, "Exceed cap");
         require(
-            totalWithDepositedAmount >= vaultParams.minimumSupply,
+            totalWithStakedAmount >= vaultParams.minimumSupply,
             "Insufficient balance"
         );
 
-        emit Deposit(creditor, amount, currentRound);
+        emit Stake(creditor, amount, currentRound);
 
-        Vault.DepositReceipt memory depositReceipt = depositReceipts[creditor];
+        Vault.StakeReceipt memory stakeReceipt = stakeReceipts[creditor];
 
-        // If we have an unprocessed pending deposit from the previous rounds, we have to process it.
-        uint256 unredeemedShares = depositReceipt.getSharesFromReceipt(
+        // If we have an unprocessed pending stake from the previous rounds, we have to process it.
+        uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
             currentRound,
-            roundPricePerShare[depositReceipt.round],
+            roundPricePerShare[stakeReceipt.round],
             vaultParams.decimals
         );
 
-        uint256 depositAmount = amount;
+        uint256 stakeAmount = amount;
 
-        // If we have a pending deposit in the current round, we add on to the pending deposit
-        if (currentRound == depositReceipt.round) {
-            uint256 newAmount = uint256(depositReceipt.amount) + amount;
-            depositAmount = newAmount;
+        // If we have a pending stake in the current round, we add on to the pending stake
+        if (currentRound == stakeReceipt.round) {
+            uint256 newAmount = uint256(stakeReceipt.amount) + amount;
+            stakeAmount = newAmount;
         }
 
-        ShareMath.assertUint104(depositAmount);
+        ShareMath.assertUint104(stakeAmount);
 
-        depositReceipts[creditor] = Vault.DepositReceipt({
+        stakeReceipts[creditor] = Vault.StakeReceipt({
             round: uint16(currentRound),
-            amount: uint104(depositAmount),
+            amount: uint104(stakeAmount),
             unredeemedShares: uint128(unredeemedShares)
         });
 
@@ -255,40 +220,32 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /************************************************
-     *  PRIVATE DEPOSITS
+     *  PRIVATE STAKING
      ***********************************************/
 
     /**
-     * @notice Deposits the native asset from msg.sender.
+     * @notice Stakes the `asset` from msg.sender.
      * @notice msg.sender must be whitelisted
+     * @param amount is the amount of `asset` to stake
      * @param proof is the merkle proof
      */
-    function privateDepositETH(bytes32[] memory proof) external payable nonReentrant {
+    function privateStake(
+        uint256 amount,
+        bytes32[] memory proof
+    ) external nonReentrant {
         if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
-        }
-        require(vaultParams.asset == WETH, "!WETH");
-        require(msg.value > 0, "!value");
-
-        _depositFor(msg.value, msg.sender);
-
-        IWETH(WETH).deposit{value: msg.value}();
-    }
-
-    /**
-     * @notice Deposits the `asset` from msg.sender.
-     * @notice msg.sender must be whitelisted
-     * @param amount is the amount of `asset` to deposit
-     * @param proof is the merkle proof
-     */
-    function privateDeposit(uint256 amount, bytes32[] memory proof) external nonReentrant {
-        if (!isPublic) {
-            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
+            require(
+                proof.verify(
+                    merkleRoot,
+                    keccak256(abi.encodePacked(msg.sender))
+                ),
+                "Invalid proof"
+            );
         }
 
         require(amount > 0, "!amount");
 
-        _depositFor(amount, msg.sender);
+        _stakeFor(amount, msg.sender);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -298,29 +255,26 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         );
     }
 
-
     /************************************************
      *  WITHDRAWALS
      ***********************************************/
 
     /**
-     * @notice Withdraws the assets on the vault using the outstanding `DepositReceipt.amount`
+     * @notice Withdraws the assets on the vault using the outstanding `StakeReceipt.amount`
      * @param amount is the amount to withdraw
      */
     function withdrawInstantly(uint256 amount) external nonReentrant {
-        Vault.DepositReceipt storage depositReceipt = depositReceipts[
-            msg.sender
-        ];
+        Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint256 currentRound = vaultState.round;
         require(amount > 0, "!amount");
-        require(depositReceipt.round == currentRound, "Invalid round");
+        require(stakeReceipt.round == currentRound, "Invalid round");
 
-        uint256 receiptAmount = depositReceipt.amount;
+        uint256 receiptAmount = stakeReceipt.amount;
         require(receiptAmount >= amount, "Exceed amount");
 
         // Subtraction underflow checks already ensure it is smaller than uint104
-        depositReceipt.amount = uint104(receiptAmount - amount);
+        stakeReceipt.amount = uint104(receiptAmount - amount);
         vaultState.totalPending = uint128(
             uint256(vaultState.totalPending) - amount
         );
@@ -340,8 +294,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
         if (
-            depositReceipts[msg.sender].amount > 0 ||
-            depositReceipts[msg.sender].unredeemedShares > 0
+            stakeReceipts[msg.sender].amount > 0 ||
+            stakeReceipts[msg.sender].unredeemedShares > 0
         ) {
             _redeem(0, true);
         }
@@ -365,7 +319,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         _burn(msg.sender, numShares);
 
         totalQueuedWithdrawAmount = totalQueuedWithdrawAmount + withdrawAmount;
-        currentQueuedWithdrawAmount = currentQueuedWithdrawAmount + withdrawAmount;
+        currentQueuedWithdrawAmount =
+            currentQueuedWithdrawAmount +
+            withdrawAmount;
     }
 
     /**
@@ -420,17 +376,15 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param isMax is flag for when callers do a max redemption
      */
     function _redeem(uint256 numShares, bool isMax) internal {
-        Vault.DepositReceipt memory depositReceipt = depositReceipts[
-            msg.sender
-        ];
+        Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
 
-        // This handles the null case when depositReceipt.round = 0
+        // This handles the null case when stakeReceipt.round = 0
         // Because we start with round = 1 at `initialize`
         uint256 currentRound = vaultState.round;
 
-        uint256 unredeemedShares = depositReceipt.getSharesFromReceipt(
+        uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
             currentRound,
-            roundPricePerShare[depositReceipt.round],
+            roundPricePerShare[stakeReceipt.round],
             vaultParams.decimals
         );
 
@@ -440,22 +394,26 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         }
         require(numShares <= unredeemedShares, "Exceeds available");
 
-        // If we have a depositReceipt on the same round, BUT we have some unredeemed shares
+        // If we have a stakeReceipt on the same round, BUT we have some unredeemed shares
         // we debit from the unredeemedShares, but leave the amount field intact
-        // If the round has past, with no new deposits, we just zero it out for new deposits.
-        if (depositReceipt.round < currentRound) {
-            depositReceipts[msg.sender].amount = 0;
+        // If the round has past, with no new stakes, we just zero it out for new stakes.
+        if (stakeReceipt.round < currentRound) {
+            stakeReceipts[msg.sender].amount = 0;
         }
 
         ShareMath.assertUint128(numShares);
-        depositReceipts[msg.sender].unredeemedShares = uint128(
+        stakeReceipts[msg.sender].unredeemedShares = uint128(
             unredeemedShares - numShares
         );
 
-        emit Redeem(msg.sender, numShares, depositReceipt.round);
+        emit Redeem(msg.sender, numShares, stakeReceipt.round);
 
         _transfer(address(this), msg.sender, numShares);
     }
+
+    /************************************************
+     * WRAPPERS
+     ***********************************************/
 
     /************************************************
      *  VAULT OPERATIONS
@@ -463,7 +421,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
-     * @notice Keeper only deposits enough to fulfill withdraws and passes the true amount as 'currentBalance'
+     * @notice Keeper only stakes enough to fulfill withdraws and passes the true amount as 'currentBalance'
      * @notice Keeper should be a contract so currentBalance and the call to the func happens atomically
      * @param currentBalance is the amount of `asset` that is currently being used for strategy 
               + the amount in the contract right before the roll
@@ -537,17 +495,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      ***********************************************/
 
     /**
-        * @notice Sets the vault to public or private
-        * @param _isPublic is the new public state
-    */
+     * @notice Sets the vault to public or private
+     * @param _isPublic is the new public state
+     */
     function setPublic(bool _isPublic) external onlyOwner {
         isPublic = _isPublic;
     }
 
     /**
-        * @notice Sets the merkle root for the private whitelist
-        * @param _merkleRoot is the new merkle root
-    */
+     * @notice Sets the merkle root for the private whitelist
+     * @param _merkleRoot is the new merkle root
+     */
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         merkleRoot = _merkleRoot;
     }
@@ -562,8 +520,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-     * @notice Sets a new cap for deposits
-     * @param newCap is the new cap for deposits
+     * @notice Sets a new cap for stakes
+     * @param newCap is the new cap for stakes
      */
     function setCap(uint256 newCap) external onlyOwner {
         require(newCap > 0, "!newCap");
@@ -573,9 +531,11 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-      * @notice Sets the new vault parameters
-    */
-    function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
+     * @notice Sets the new vault parameters
+     */
+    function setVaultParams(
+        Vault.VaultParams memory newVaultParams
+    ) external onlyOwner {
         require(newVaultParams.cap > 0, "!newCap");
         require(newVaultParams.asset != address(0), "!newAsset");
         vaultParams = newVaultParams;
@@ -584,7 +544,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /************************************************
      *  GETTERS
      ***********************************************/
-
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a position
@@ -598,7 +557,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Returns the asset balance held on the vault for the account not
-               accounting for current round deposits
+               accounting for current round stakes
      * @param account is the address to lookup balance for
      * @return the amount of `asset` custodied by the vault for the user
      */
@@ -635,15 +594,15 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function shareBalances(
         address account
     ) public view returns (uint256 heldByAccount, uint256 heldByVault) {
-        Vault.DepositReceipt memory depositReceipt = depositReceipts[account];
+        Vault.StakeReceipt memory stakeReceipt = stakeReceipts[account];
 
-        if (depositReceipt.round < ShareMath.PLACEHOLDER_UINT) {
+        if (stakeReceipt.round < ShareMath.PLACEHOLDER_UINT) {
             return (balanceOf(account), 0);
         }
 
-        uint256 unredeemedShares = depositReceipt.getSharesFromReceipt(
+        uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
             vaultState.round,
-            roundPricePerShare[depositReceipt.round],
+            roundPricePerShare[stakeReceipt.round],
             vaultParams.decimals
         );
 
@@ -664,12 +623,17 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
-        * @notice returns if account can deposit
-        * @param account is the account to check
-        * @param proof is the merkle proof
+     * @notice returns if account can stake
+     * @param account is the account to check
+     * @param proof is the merkle proof
      */
-    function canDeposit(address account, bytes32[] memory proof ) external view returns (bool) {
-        return isPublic || proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
+    function canStake(
+        address account,
+        bytes32[] memory proof
+    ) external view returns (bool) {
+        return
+            isPublic ||
+            proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
@@ -693,4 +657,3 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     receive() external payable {}
 }
-

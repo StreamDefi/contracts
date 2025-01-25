@@ -31,7 +31,7 @@ library Vault {
         uint128 totalPending;
     }
 
-    struct DepositReceipt {
+    struct StakeReceipt {
         // Maximum of 65535 rounds. Assuming 1 round is 7 days, maximum is 1256 years.
         uint16 round;
         // Deposit amount, max 20,282,409,603,651 or 20 trillion ETH deposit
