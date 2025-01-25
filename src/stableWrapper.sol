@@ -12,7 +12,7 @@ contract StableWrapper is IStableWrapper, ERC20, Ownable, ReentrancyGuard {
 
     // State variables
     address public immutable asset;
-    uint256 public currentEpoch;
+    uint32 public currentEpoch;
     bool public allowIndependence;
 
     // Withdrawal receipt mapping
@@ -26,11 +26,11 @@ contract StableWrapper is IStableWrapper, ERC20, Ownable, ReentrancyGuard {
     event Deposit(address indexed user, uint256 amount);
     event WithdrawalInitiated(
         address indexed user,
-        uint256 amount,
-        uint256 epoch
+        uint224 amount,
+        uint32 epoch
     );
     event Withdrawn(address indexed user, uint256 amount);
-    event EpochAdvanced(uint256 newEpoch);
+    event EpochAdvanced(uint32 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
     event PermissionedMint(address indexed to, uint256 amount);
     event PermissionedBurn(address indexed from, uint256 amount);
