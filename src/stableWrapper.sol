@@ -12,15 +12,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
 
     // State variables
     address public immutable asset;
-
-    struct WrapperParams {
-        uint32 currentEpoch;
-        uint224 withdrawlDiscountPpm;
-    }
-    WrapperParams public wrapperParams;
-
-    // 1 million in parts per million (PPM)
-    uint224 public constant MILLION_PPM = 1_000_000;
+    uint256 public currentEpoch;
     
     // Withdrawal receipt mapping
     struct WithdrawalReceipt {
@@ -35,6 +27,8 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event EpochAdvanced(uint256 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
+    event PermissionedMint(address indexed to, uint256 amount);
+    event PermissionedBurn(address indexed from, uint256 amount);
 
     constructor(
         address _asset,
@@ -43,10 +37,7 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
     ) ERC20(_name, _symbol) Ownable(msg.sender) {
         require(_asset != address(0), "Invalid asset address");
         asset = _asset;
-        wrapperParams = WrapperParams({
-            currentEpoch: 1,
-            withdrawlDiscountPpm: 1_000_000
-        });
+        currentEpoch = 1;
     }
 
     /**
@@ -81,10 +72,10 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
         // Create withdrawal receipt
         withdrawalReceipts[msg.sender] = WithdrawalReceipt({
             amount: currentAmount + amount,
-            epoch: wrapperParams.currentEpoch
+            epoch: currentEpoch
         });
 
-        emit WithdrawalInitiated(msg.sender, amount, wrapperParams.currentEpoch);
+        emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
 
     /**
@@ -92,41 +83,28 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
      */
     function completeWithdrawal() external nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
-        WrapperParams memory params = wrapperParams;
-
-
 
         require(receipt.amount > 0, "No withdrawal pending");
-        require(receipt.epoch < params.currentEpoch, "Epoch not yet passed");
+        require(receipt.epoch < currentEpoch, "Epoch not yet passed");
 
-        uint224 amount = receipt.amount;
-        uint224 amountAfterDiscount = amount * params.withdrawlDiscountPpm / MILLION_PPM;
+        // Cast uint224 to uint256 explicitly for the transfer
+        uint256 amountToTransfer = uint256(receipt.amount);
+
         // Clear receipt
         delete withdrawalReceipts[msg.sender];
 
         // Transfer assets back to user
-        IERC20(asset).safeTransfer(msg.sender, amountAfterDiscount);
+        IERC20(asset).safeTransfer(msg.sender, amountToTransfer);
 
-        emit Withdrawn(msg.sender, amountAfterDiscount);
+        emit Withdrawn(msg.sender, amountToTransfer);
     }
 
     /**
      * @notice Advances to next epoch
      */
     function advanceEpoch() external onlyOwner {
-        WrapperParams memory params = wrapperParams;
-        params.currentEpoch += 1;
-        wrapperParams = params;
-        emit EpochAdvanced(params.currentEpoch);
-    }
-
-    /**
-     * @notice Sets the withdrawal discount ppm
-     * @param _withdrawlDiscountPpm New withdrawal discount ppm
-     */
-    function setWithdrawlDiscountPpm(uint224 _withdrawlDiscountPpm) external onlyOwner {
-        require(_withdrawlDiscountPpm <= MILLION_PPM, "Invalid withdrawl discount ppm");
-        wrapperParams.withdrawlDiscountPpm = _withdrawlDiscountPpm;
+        currentEpoch += 1;
+        emit EpochAdvanced(currentEpoch);
     }
 
     /**
@@ -141,4 +119,32 @@ contract SimpleVault is ERC20, Ownable, ReentrancyGuard {
         IERC20(asset).safeTransfer(to, amount);
         emit AssetTransferred(to, amount);
     }
+
+    /**
+     * @notice Allows owner to mint tokens to a specified address
+     * @param to Address to mint tokens to
+     * @param amount Amount of tokens to mint
+     */
+    function permissionedMint(address to, uint256 amount) external onlyOwner {
+        require(to != address(0), "Cannot mint to zero address");
+        require(amount > 0, "Amount must be greater than 0");
+        
+        _mint(to, amount);
+        emit PermissionedMint(to, amount);
+    }
+
+    /**
+     * @notice Allows owner to burn tokens from a specified address
+     * @param from Address to burn tokens from
+     * @param amount Amount of tokens to burn
+     */
+    function permissionedBurn(address from, uint256 amount) external onlyOwner {
+        require(from != address(0), "Cannot burn from zero address");
+        require(amount > 0, "Amount must be greater than 0");
+        
+        _burn(from, amount);
+        emit PermissionedBurn(from, amount);
+    }
+
+
 }
