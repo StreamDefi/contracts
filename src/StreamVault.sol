@@ -4,13 +4,13 @@ pragma solidity ^0.8.20;
 import {ShareMath} from "./lib/ShareMath.sol";
 import {Vault} from "./lib/Vault.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
-import {RebaseToken} from "./Rebase.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
+
 
 /**
  * @title StreamVault
@@ -20,7 +20,7 @@ import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
  * @notice The rounds will be rolled over on a weekly basis
  */
 
-contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
+contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.DepositReceipt;
     using MerkleProofLib for bytes32[];
@@ -58,7 +58,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
     /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     address public immutable WETH;
 
-    /// @notice private or public
+    /// @notice private or public 
     bool public isPublic;
 
     /// @notice merkle root for private whitelist
@@ -116,11 +116,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
-    )
-        ReentrancyGuard()
-        Ownable(msg.sender)
-        RebaseToken(_tokenName, _tokenSymbol)
-    {
+    ) ReentrancyGuard() Ownable(msg.sender) ERC20(_tokenName, _tokenSymbol) {
         require(_weth != address(0), "!_weth");
         require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
@@ -132,6 +128,8 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
 
         vaultState.round = 1;
     }
+
+
 
     /************************************************
      *  PUBLIC DEPOSITS
@@ -265,17 +263,9 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
      * @notice msg.sender must be whitelisted
      * @param proof is the merkle proof
      */
-    function privateDepositETH(
-        bytes32[] memory proof
-    ) external payable nonReentrant {
+    function privateDepositETH(bytes32[] memory proof) external payable nonReentrant {
         if (!isPublic) {
-            require(
-                proof.verify(
-                    merkleRoot,
-                    keccak256(abi.encodePacked(msg.sender))
-                ),
-                "Invalid proof"
-            );
+            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
         }
         require(vaultParams.asset == WETH, "!WETH");
         require(msg.value > 0, "!value");
@@ -291,18 +281,9 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
      * @param amount is the amount of `asset` to deposit
      * @param proof is the merkle proof
      */
-    function privateDeposit(
-        uint256 amount,
-        bytes32[] memory proof
-    ) external nonReentrant {
+    function privateDeposit(uint256 amount, bytes32[] memory proof) external nonReentrant {
         if (!isPublic) {
-            require(
-                proof.verify(
-                    merkleRoot,
-                    keccak256(abi.encodePacked(msg.sender))
-                ),
-                "Invalid proof"
-            );
+            require(proof.verify(merkleRoot, keccak256(abi.encodePacked(msg.sender))), "Invalid proof");
         }
 
         require(amount > 0, "!amount");
@@ -316,6 +297,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
             amount
         );
     }
+
 
     /************************************************
      *  WITHDRAWALS
@@ -380,12 +362,10 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
         withdrawals[msg.sender].amount += uint128(withdrawAmount);
         withdrawals[msg.sender].round = uint16(currentRound);
 
-        _burnShares(msg.sender, numShares);
+        _burn(msg.sender, numShares);
 
         totalQueuedWithdrawAmount = totalQueuedWithdrawAmount + withdrawAmount;
-        currentQueuedWithdrawAmount =
-            currentQueuedWithdrawAmount +
-            withdrawAmount;
+        currentQueuedWithdrawAmount = currentQueuedWithdrawAmount + withdrawAmount;
     }
 
     /**
@@ -500,7 +480,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
         uint256 currentRound = state.round;
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            getTotalShares(),
+            totalSupply(),
             currentBalance - totalQueuedWithdrawAmount,
             state.totalPending,
             vaultParams.decimals
@@ -519,7 +499,7 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
             vaultParams.decimals
         );
 
-        _mintShares(address(this), mintShares);
+        _mint(address(this), mintShares);
 
         vaultState.lastLockedAmount = state.lockedAmount;
 
@@ -557,17 +537,17 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
      ***********************************************/
 
     /**
-     * @notice Sets the vault to public or private
-     * @param _isPublic is the new public state
-     */
+        * @notice Sets the vault to public or private
+        * @param _isPublic is the new public state
+    */
     function setPublic(bool _isPublic) external onlyOwner {
         isPublic = _isPublic;
     }
 
     /**
-     * @notice Sets the merkle root for the private whitelist
-     * @param _merkleRoot is the new merkle root
-     */
+        * @notice Sets the merkle root for the private whitelist
+        * @param _merkleRoot is the new merkle root
+    */
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         merkleRoot = _merkleRoot;
     }
@@ -593,11 +573,9 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
     }
 
     /**
-     * @notice Sets the new vault parameters
-     */
-    function setVaultParams(
-        Vault.VaultParams memory newVaultParams
-    ) external onlyOwner {
+      * @notice Sets the new vault parameters
+    */
+    function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
         require(newVaultParams.cap > 0, "!newCap");
         require(newVaultParams.asset != address(0), "!newAsset");
         vaultParams = newVaultParams;
@@ -607,20 +585,6 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
      *  GETTERS
      ***********************************************/
 
-    /**
-     * @notice Returns the vault's total assets used for calculating share pricing
-     * @return The total amount of assets in the strategy that should be accounted for
-     *         in share pricing
-     */
-    function _getTotalVaultAssets()
-        internal
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        return uint256(vaultState.lockedAmount) - currentQueuedWithdrawAmount;
-    }
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a position
@@ -633,12 +597,66 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
     }
 
     /**
+     * @notice Returns the asset balance held on the vault for the account not
+               accounting for current round deposits
+     * @param account is the address to lookup balance for
+     * @return the amount of `asset` custodied by the vault for the user
+     */
+    function accountVaultBalance(
+        address account
+    ) external view returns (uint256) {
+        uint256 _decimals = vaultParams.decimals;
+        uint256 assetPerShare = ShareMath.pricePerShare(
+            totalSupply(),
+            totalBalance() - totalQueuedWithdrawAmount,
+            vaultState.totalPending,
+            _decimals
+        );
+        return
+            ShareMath.sharesToAsset(shares(account), assetPerShare, _decimals);
+    }
+
+    /**
+     * @notice Getter for returning the account's share balance including unredeemed shares
+     * @param account is the account to lookup share balance for
+     * @return the share balance
+     */
+    function shares(address account) public view returns (uint256) {
+        (uint256 heldByAccount, uint256 heldByVault) = shareBalances(account);
+        return heldByAccount + heldByVault;
+    }
+
+    /**
+     * @notice Getter for returning the account's share balance split between account and vault holdings
+     * @param account is the account to lookup share balance for
+     * @return heldByAccount is the shares held by account
+     * @return heldByVault is the shares held on the vault (unredeemedShares)
+     */
+    function shareBalances(
+        address account
+    ) public view returns (uint256 heldByAccount, uint256 heldByVault) {
+        Vault.DepositReceipt memory depositReceipt = depositReceipts[account];
+
+        if (depositReceipt.round < ShareMath.PLACEHOLDER_UINT) {
+            return (balanceOf(account), 0);
+        }
+
+        uint256 unredeemedShares = depositReceipt.getSharesFromReceipt(
+            vaultState.round,
+            roundPricePerShare[depositReceipt.round],
+            vaultParams.decimals
+        );
+
+        return (balanceOf(account), unredeemedShares);
+    }
+
+    /**
      * @notice The price of a unit of share denominated in the `asset`
      */
     function pricePerShare() external view returns (uint256) {
         return
             ShareMath.pricePerShare(
-                getTotalShares(),
+                totalSupply(),
                 totalBalance() - totalQueuedWithdrawAmount,
                 vaultState.totalPending,
                 vaultParams.decimals
@@ -646,17 +664,12 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
     }
 
     /**
-     * @notice returns if account can deposit
-     * @param account is the account to check
-     * @param proof is the merkle proof
+        * @notice returns if account can deposit
+        * @param account is the account to check
+        * @param proof is the merkle proof
      */
-    function canDeposit(
-        address account,
-        bytes32[] memory proof
-    ) external view returns (bool) {
-        return
-            isPublic ||
-            proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
+    function canDeposit(address account, bytes32[] memory proof ) external view returns (bool) {
+        return isPublic || proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
@@ -680,3 +693,4 @@ contract StreamVault is ReentrancyGuard, RebaseToken, Ownable {
 
     receive() external payable {}
 }
+
