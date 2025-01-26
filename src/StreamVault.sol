@@ -9,7 +9,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
 
 /**
  * @title StreamVault
@@ -22,7 +21,6 @@ import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
 contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.StakeReceipt;
-    using MerkleProofLib for bytes32[];
 
     /************************************************
      *  STATE
@@ -56,9 +54,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /// @notice private or public
     bool public isPublic;
-
-    /// @notice merkle root for private whitelist
-    bytes32 public merkleRoot;
 
     /************************************************
      *  EVENTS
@@ -210,42 +205,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         ShareMath.assertUint128(newTotalPending);
 
         vaultState.totalPending = uint128(newTotalPending);
-    }
-
-    /************************************************
-     *  PRIVATE STAKING
-     ***********************************************/
-
-    /**
-     * @notice Stakes the `asset` from msg.sender.
-     * @notice msg.sender must be whitelisted
-     * @param amount is the amount of `asset` to stake
-     * @param proof is the merkle proof
-     */
-    function privateStake(
-        uint256 amount,
-        bytes32[] memory proof
-    ) external nonReentrant {
-        if (!isPublic) {
-            require(
-                proof.verify(
-                    merkleRoot,
-                    keccak256(abi.encodePacked(msg.sender))
-                ),
-                "Invalid proof"
-            );
-        }
-
-        require(amount > 0, "!amount");
-
-        _stakeFor(amount, msg.sender);
-
-        // An approve() by the msg.sender is required beforehand
-        IERC20(vaultParams.asset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
     }
 
     /************************************************
@@ -478,22 +437,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      ***********************************************/
 
     /**
-     * @notice Sets the vault to public or private
-     * @param _isPublic is the new public state
-     */
-    function setPublic(bool _isPublic) external onlyOwner {
-        isPublic = _isPublic;
-    }
-
-    /**
-     * @notice Sets the merkle root for the private whitelist
-     * @param _merkleRoot is the new merkle root
-     */
-    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
-        merkleRoot = _merkleRoot;
-    }
-
-    /**
      * @notice Sets the new keeper
      * @param newKeeper is the address of the new keeper
      */
@@ -603,20 +546,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
                 vaultState.totalPending,
                 vaultParams.decimals
             );
-    }
-
-    /**
-     * @notice returns if account can stake
-     * @param account is the account to check
-     * @param proof is the merkle proof
-     */
-    function canStake(
-        address account,
-        bytes32[] memory proof
-    ) external view returns (bool) {
-        return
-            isPublic ||
-            proof.verify(merkleRoot, keccak256(abi.encodePacked(account)));
     }
 
     /**
