@@ -15,6 +15,8 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
     uint32 public currentEpoch;
     bool public allowIndependence;
 
+    address public keeper;
+
     // Withdrawal receipt mapping
     struct WithdrawalReceipt {
         uint224 amount;
@@ -35,16 +37,19 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
     event PermissionedMint(address indexed to, uint256 amount);
     event PermissionedBurn(address indexed from, uint256 amount);
     event AllowIndependenceSet(bool allowIndependence);
+    event KeeperSet(address keeper);
 
     constructor(
         address _asset,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        address _keeper
     ) ERC20(_name, _symbol) Ownable(msg.sender) {
         require(_asset != address(0), "Invalid asset address");
         asset = _asset;
         currentEpoch = 1;
         allowIndependence = false;
+        keeper = _keeper;
     }
 
     /**
@@ -132,6 +137,15 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
         emit EpochAdvanced(currentEpoch);
     }
 
+    function setKeeper(address _keeper) public onlyOwner {
+        keeper = _keeper;
+        emit KeeperSet(_keeper);
+    }
+
+    function _onlyKeeper() internal view {
+        require(msg.sender == keeper, "Only keeper can call this function");
+    }
+
     /**
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
@@ -146,7 +160,8 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      * @param to Address to transfer assets to
      * @param amount Amount of assets to transfer
      */
-    function transferAsset(address to, uint256 amount) public onlyOwner {
+    function transferAsset(address to, uint256 amount) public {
+        _onlyKeeper();
         require(to != address(0), "Invalid address");
         require(amount > 0, "Amount must be greater than 0");
 
