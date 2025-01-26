@@ -33,29 +33,29 @@ library ShareMath {
     }
 
     /**
-     * @notice Returns the shares unredeemed by the user given their DepositReceipt
-     * @param depositReceipt is the user's deposit receipt
+     * @notice Returns the shares unredeemed by the user given their StakeReceipt
+     * @param stakeReceipt is the user's deposit receipt
      * @param currentRound is the `round` stored on the vault
      * @param assetPerShare is the price in asset per share
      * @param decimals is the number of decimals the asset/shares use
      * @return unredeemedShares is the user's virtual balance of shares that are owed
      */
     function getSharesFromReceipt(
-        Vault.DepositReceipt memory depositReceipt,
+        Vault.StakeReceipt memory stakeReceipt,
         uint256 currentRound,
         uint256 assetPerShare,
         uint256 decimals
     ) internal pure returns (uint256 unredeemedShares) {
-        if (depositReceipt.round > 0 && depositReceipt.round < currentRound) {
+        if (stakeReceipt.round > 0 && stakeReceipt.round < currentRound) {
             uint256 sharesFromRound = assetToShares(
-                depositReceipt.amount,
+                stakeReceipt.amount,
                 assetPerShare,
                 decimals
             );
 
-            return uint256(depositReceipt.unredeemedShares) + sharesFromRound;
+            return uint256(stakeReceipt.unredeemedShares) + sharesFromRound;
         }
-        return depositReceipt.unredeemedShares;
+        return stakeReceipt.unredeemedShares;
     }
 
     function pricePerShare(

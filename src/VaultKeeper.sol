@@ -51,13 +51,14 @@ contract VaultKeeper {
     /**
      * @notice - Roll round for a list of vaults. Vaults should be added to state before rolling round
      * @param ticker - vault ticker
-     * @param lockedBalance - locked balance for vault
+     * @param yield - yield for vault
+     * @param isYieldPositive - true if yield is positive, false if yield is negative
      */
-    function rollRound(string calldata ticker, uint256 lockedBalance) external {
+    function rollRound(string calldata ticker, uint256 yield, bool isYieldPositive) external {
         require(managers[ticker] == msg.sender, "VaultKeeper: Invalid manager");
         address vault = vaults[ticker];
         require(vault != address(0), "VaultKeeper: Invalid vault");
-        _rollRound(lockedBalance, vault);
+        _rollRound(yield, isYieldPositive, vault);
     }
 
     /************************************************
@@ -126,47 +127,20 @@ contract VaultKeeper {
      *  HELPERS
      ***********************************************/
 
-    function _rollRound(uint256 _lockedBalance, address _vault) internal {
+    function _rollRound(uint256 yield, bool isYieldPositive, address _vault) internal {
         StreamVault vault = StreamVault(payable(_vault));
         (, address _asset, , ) = vault.vaultParams();
         ERC20 asset = ERC20(_asset);
-        uint256 currBalance = asset.balanceOf(address(vault)) + _lockedBalance;
-        _transferAssets(address(asset), vault);
-
-        vault.rollToNextRound(currBalance);
-        asset.transfer(msg.sender, asset.balanceOf(address(this)));
-    }
-
-    function _transferAssets(
-        address asset,
-        StreamVault vault
-    ) internal {
-        uint256 queuedWithdrawAmount = vault.totalQueuedWithdrawAmount();
-
-        uint256 balance = ERC20(asset).balanceOf(address(vault));
-
-        if (balance >= queuedWithdrawAmount) {
-            return;
+        uint256 balance = asset.balanceOf(address(vault));
+         uint256 currBalance;
+        if (isYieldPositive) {
+            currBalance = balance + yield;
+        } else {
+            require(balance >= yield, "VaultKeeper: Not enough assets");
+            currBalance = balance - yield;
         }
 
-        uint256 amountToTransfer = queuedWithdrawAmount - balance;
-
-        uint256 currentQueuedWithdrawAmount = vault.currentQueuedWithdrawAmount();
-
-        require(
-            amountToTransfer <= currentQueuedWithdrawAmount,
-            "VaultKeeper: Assets to transfer is greater than the amount to withdraw for current round"
-        );
-
-        ERC20(asset).transferFrom(
-            msg.sender,
-            address(vault),
-            amountToTransfer
-        );
-
-        require(
-            ERC20(asset).balanceOf(address(vault)) >= queuedWithdrawAmount,
-            "VaultKeeper: Not enough assets"
-        );
+        vault.rollToNextRound(currBalance);
     }
+
 }

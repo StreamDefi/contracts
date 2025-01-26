@@ -9,12 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-<<<<<<< HEAD
-
-=======
-import {MerkleProofLib} from "lib/solady/src/utils/MerkleProofLib.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
->>>>>>> fa8eea5 (Logic: simplify flow for new design)
 /**
  * @title StreamVault
  * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
