@@ -54,9 +54,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     // no access to critical vault changes
     address public keeper;
 
-    /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-    address public immutable WETH;
-
     /// @notice private or public
     bool public isPublic;
 
@@ -103,25 +100,21 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
     /**
      * @notice Initializes the contract with immutable variables
-     * @param _weth is the Wrapped Native token contract
      * @param _keeper is the role that will handle funds and advancing rounds
      * @param _tokenName is the token name of the share ERC-20
      * @param _tokenSymbol is the token symbol of the share ERC-20
      * @param _vaultParams is the `VaultParams` struct with general vault data
      */
     constructor(
-        address _weth,
         address _keeper,
         string memory _tokenName,
         string memory _tokenSymbol,
         Vault.VaultParams memory _vaultParams
     ) ReentrancyGuard() Ownable(msg.sender) ERC20(_tokenName, _tokenSymbol) {
-        require(_weth != address(0), "!_weth");
         require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
         require(_vaultParams.asset != address(0), "!_asset");
 
-        WETH = _weth;
         keeper = _keeper;
         vaultParams = _vaultParams;
 
@@ -477,12 +470,6 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      */
     function _transferAsset(address recipient, uint256 amount) internal {
         address asset = vaultParams.asset;
-        if (asset == WETH) {
-            IWETH(WETH).withdraw(amount);
-            (bool success, ) = recipient.call{value: amount}("");
-            require(success, "Transfer failed");
-            return;
-        }
         IERC20(asset).safeTransfer(recipient, amount);
     }
 
