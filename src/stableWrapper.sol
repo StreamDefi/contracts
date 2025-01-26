@@ -73,6 +73,28 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Deposits assets from a specified address and mints equivalent tokens
+     * @param from Address to transfer assets from
+     * @param amount Amount of assets to deposit
+     */
+    function depositFrom(address from, uint256 amount) public nonReentrant {
+        if (allowIndependence) {
+            require(msg.sender == owner(), "Only owner can deposit");
+        }
+
+        require(from != address(0), "Cannot deposit from zero address");
+        require(amount > 0, "Amount must be greater than 0");
+
+        // Transfer assets from specified address
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
+
+        // Mint equivalent tokens to the specified address
+        _mint(from, amount);
+
+        emit Deposit(from, amount);
+    }
+
+    /**
      * @notice Burns tokens and creates withdrawal receipt
      * @param amount Amount of tokens to burn for withdrawal
      */
@@ -99,6 +121,37 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
         });
 
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
+    }
+
+        /**
+     * @notice Burns tokens and creates withdrawal receipt for a specified address
+     * @param from Address to burn tokens from and create withdrawal receipt for
+     * @param amount Amount of tokens to burn for withdrawal
+     */
+    function initiateWithdrawalFor(address from, uint224 amount) public nonReentrant {
+        if (allowIndependence) {
+            require(
+                msg.sender == owner(),
+                "Only owner can initiate withdrawal"
+            );
+        }
+
+        require(from != address(0), "Cannot withdraw for zero address");
+        require(amount > 0, "Amount must be greater than 0");
+        require(balanceOf(from) >= amount, "Insufficient balance");
+
+        // Burn tokens from the specified address
+        _burn(from, amount);
+
+        uint224 currentAmount = withdrawalReceipts[from].amount;
+
+        // Create withdrawal receipt for the specified address
+        withdrawalReceipts[from] = WithdrawalReceipt({
+            amount: currentAmount + amount,
+            epoch: currentEpoch
+        });
+
+        emit WithdrawalInitiated(from, amount, currentEpoch);
     }
 
     /**
