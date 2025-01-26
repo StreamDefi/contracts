@@ -21,10 +21,6 @@ library Vault {
         // 32 byte slot 1
         //  Current round number. `round` represents the number of `period`s elapsed.
         uint16 round;
-        // Amount that is currently locked for executing strategy
-        uint104 lockedAmount;
-        // Amount that was locked for executing strategy in the previous round
-        uint104 lastLockedAmount;
         // 32 byte slot 2
         // Stores the total tally of how much of `asset` there is
         // to be used to mint share tokens
@@ -38,12 +34,5 @@ library Vault {
         uint104 amount;
         // Unredeemed shares balance
         uint128 unredeemedShares;
-    }
-
-    struct Withdrawal {
-        // Maximum of 65535 rounds. Assuming 1 round is 7 days, maximum is 1256 years.
-        uint16 round;
-        // Amount of assets pending withdrawal
-        uint128 amount;
     }
 }
