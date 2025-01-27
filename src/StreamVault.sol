@@ -46,6 +46,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     /// @notice address of the stable wrapper contract
     address public stableWrapper;
 
+    /// @notice the total supply of shares across all chains
+    uint256 public omniTotalSupply;
+
     /************************************************
      *  EVENTS
      ***********************************************/
@@ -298,6 +301,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
 
         _burn(msg.sender, numShares);
 
+        omniTotalSupply -= numShares;
+
         IERC20(vaultParams.asset).safeTransfer(msg.sender, withdrawAmount);
     }
 
@@ -385,7 +390,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         uint256 currentRound = state.round;
 
         uint256 newPricePerShare = ShareMath.pricePerShare(
-            totalSupply(),
+            omniTotalSupply,
             currentBalance,
             state.totalPending,
             vaultParams.decimals
@@ -403,6 +408,8 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         );
 
         _mint(address(this), mintShares);
+
+        omniTotalSupply += mintShares;
 
         uint256 balance = totalBalance();
 
@@ -489,7 +496,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     ) external view returns (uint256) {
         uint256 _decimals = vaultParams.decimals;
         uint256 assetPerShare = ShareMath.pricePerShare(
-            totalSupply(),
+            omniTotalSupply,
             totalBalance(),
             vaultState.totalPending,
             _decimals
@@ -538,7 +545,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function pricePerShare() external view returns (uint256) {
         return
             ShareMath.pricePerShare(
-                totalSupply(),
+                omniTotalSupply,
                 totalBalance(),
                 vaultState.totalPending,
                 vaultParams.decimals
