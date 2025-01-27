@@ -120,7 +120,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         IStableWrapper(stableWrapper).depositFrom(msg.sender, amount);
 
         // Then stake the wrapped tokens
-        _stakeFor(amount, msg.sender);
+        stakeFor(amount, msg.sender);
     }
 
     /**
@@ -129,7 +129,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      */
     function unstakeAndWithdraw(uint256 numShares) external nonReentrant {
         // First unstake the tokens
-        unstake(numShares);
+        _unstake(numShares);
 
         // Then initiate withdrawal in the wrapper
         IStableWrapper(stableWrapper).initiateWithdrawalFor(
@@ -144,7 +144,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      */
     function instantUnstakeAndWithdraw(uint256 amount) external nonReentrant {
         // First perform instant unstake
-        instantUnstake(amount);
+        _instantUnstake(amount);
 
         // Then initiate withdrawal in the wrapper
         IStableWrapper(stableWrapper).initiateWithdrawalFor(
@@ -164,7 +164,9 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     function stake(uint256 amount) external nonReentrant {
         require(amount > 0, "!amount");
 
-        _stakeFor(amount, msg.sender);
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+
+        _stakeForInternal(amount, msg.sender);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -175,16 +177,27 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
+     * @notice External wrapper for staking on behalf of another address
+     * @param amount is the amount of `asset` to stake
+     * @param creditor is the address that can claim/withdraw staked amount
+     */
+    function stakeFor(uint256 amount, address creditor) public nonReentrant {
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+        _stakeFor(amount, creditor);
+    }
+
+
+    /**
      * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
      * @notice Used for vault -> vault stakes on the user's behalf
      * @param amount is the amount of `asset` to stake
      * @param creditor is the address that can claim/withdraw staked amount
      */
-    function stakeFor(uint256 amount, address creditor) external nonReentrant {
+    function _stakeFor(uint256 amount, address creditor) internal nonReentrant {
         require(amount > 0, "!amount");
         require(creditor != address(0), "!creditor");
 
-        _stakeFor(amount, creditor);
+        _stakeForInternal(amount, creditor);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -199,7 +212,7 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      * @param amount is the amount of `asset` staked
      * @param creditor is the address to receieve the stake
      */
-    function _stakeFor(uint256 amount, address creditor) private {
+    function _stakeForInternal(uint256 amount, address creditor) private {
         uint256 currentRound = vaultState.round;
         uint256 totalWithStakedAmount = totalBalance() + amount;
 
@@ -246,11 +259,22 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
      *  WITHDRAWALS
      ***********************************************/
 
+     /**
+     * @notice External wrapper for instant unstaking
+     * @param amount is the amount to withdraw
+     */
+    function instantUnstake(uint256 amount) external nonReentrant {
+
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+
+        _instantUnstake(amount);
+    }
+
     /**
      * @notice Withdraws the assets on the vault using the outstanding `StakeReceipt.amount`
      * @param amount is the amount to withdraw
      */
-    function instantUnstake(uint256 amount) public nonReentrant {
+    function _instantUnstake(uint256 amount) internal nonReentrant {
         Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint256 currentRound = vaultState.round;
@@ -272,10 +296,21 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
     }
 
     /**
+     * @notice External wrapper for unstaking shares
+     * @param numShares is the number of shares to withdraw and burn
+     */
+    function unstake(uint256 numShares) external nonReentrant {
+
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+
+        _unstake(numShares);
+    }
+
+    /**
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param numShares is the number of shares to withdraw and burn
      */
-    function unstake(uint256 numShares) public nonReentrant {
+    function _unstake(uint256 numShares) internal nonReentrant {
         require(numShares > 0, "!numShares");
 
         // We do a max redeem before initiating a withdrawal

@@ -179,12 +179,14 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() public onlyOwner {
+    function advanceEpoch() public {
+        _onlyAddress(keeper);
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
 
-    function setKeeper(address _keeper) public onlyOwner {
+    function setKeeper(address _keeper) public {
+        _onlyAddress(keeper);
         keeper = _keeper;
         emit KeeperSet(_keeper);
     }
@@ -197,7 +199,8 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) public onlyOwner {
+    function setAllowIndependence(bool _allowIndependence) public {
+        _onlyAddress(keeper);
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
