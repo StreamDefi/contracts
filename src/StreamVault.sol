@@ -10,6 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 /**
  * @title StreamVault
  * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
@@ -18,7 +19,7 @@ import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
  * @notice The rounds will be rolled over on a weekly basis
  */
 
-contract StreamVault is ReentrancyGuard, ERC20, Ownable {
+contract StreamVault is ReentrancyGuard, OFT {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.StakeReceipt;
 
@@ -94,8 +95,14 @@ contract StreamVault is ReentrancyGuard, ERC20, Ownable {
         string memory _tokenName,
         string memory _tokenSymbol,
         address _stableWrapper,
+        address _lzEndpoint,
+        address _delegate,
         Vault.VaultParams memory _vaultParams
-    ) ReentrancyGuard() Ownable(msg.sender) ERC20(_tokenName, _tokenSymbol) {
+    )
+        ReentrancyGuard()
+        OFT(_tokenName, _tokenSymbol, _lzEndpoint, _delegate)
+        Ownable(msg.sender)
+    {
         require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
         require(_vaultParams.asset != address(0), "!_asset");

@@ -7,7 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
-contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+contract StableWrapper is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // State variables
@@ -43,8 +44,10 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
         address _asset,
         string memory _name,
         string memory _symbol,
-        address _keeper
-    ) ERC20(_name, _symbol) Ownable(msg.sender) {
+        address _keeper,
+        address _lzEndpoint,
+        address _delegate
+    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
         require(_asset != address(0), "Invalid asset address");
         asset = _asset;
         currentEpoch = 1;
