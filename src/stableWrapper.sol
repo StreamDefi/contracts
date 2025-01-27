@@ -58,7 +58,7 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      */
     function deposit(uint256 amount) public nonReentrant {
         if (allowIndependence) {
-            require(msg.sender == owner(), "Only owner can deposit");
+            _onlyAddress(owner());
         }
 
         require(amount > 0, "Amount must be greater than 0");
@@ -79,7 +79,7 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      */
     function depositFrom(address from, uint256 amount) public nonReentrant {
         if (allowIndependence) {
-            require(msg.sender == owner(), "Only owner can deposit");
+            _onlyAddress(owner());
         }
 
         require(from != address(0), "Cannot deposit from zero address");
@@ -100,10 +100,7 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      */
     function initiateWithdrawal(uint224 amount) public nonReentrant {
         if (allowIndependence) {
-            require(
-                msg.sender == owner(),
-                "Only owner can initiate withdrawal"
-            );
+            _onlyAddress(owner());
         }
 
         require(amount > 0, "Amount must be greater than 0");
@@ -123,17 +120,17 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
 
-        /**
+    /**
      * @notice Burns tokens and creates withdrawal receipt for a specified address
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawalFor(address from, uint224 amount) public nonReentrant {
+    function initiateWithdrawalFor(
+        address from,
+        uint224 amount
+    ) public nonReentrant {
         if (allowIndependence) {
-            require(
-                msg.sender == owner(),
-                "Only owner can initiate withdrawal"
-            );
+            _onlyAddress(owner());
         }
 
         require(from != address(0), "Cannot withdraw for zero address");
@@ -159,10 +156,7 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      */
     function completeWithdrawal() public nonReentrant {
         if (allowIndependence) {
-            require(
-                msg.sender == owner(),
-                "Only owner can complete withdrawal"
-            );
+            _onlyAddress(owner());
         }
 
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
@@ -195,8 +189,8 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
         emit KeeperSet(_keeper);
     }
 
-    function _onlyKeeper() internal view {
-        require(msg.sender == keeper, "Only keeper can call this function");
+    function _onlyAddress(address privilegedAddy) internal view {
+        require(msg.sender == privilegedAddy, "Not authorized caller ");
     }
 
     /**
@@ -214,7 +208,7 @@ contract StableWrapper is ERC20, Ownable, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      */
     function transferAsset(address to, uint256 amount) public {
-        _onlyKeeper();
+        _onlyAddress(keeper);
         require(to != address(0), "Invalid address");
         require(amount > 0, "Amount must be greater than 0");
 
