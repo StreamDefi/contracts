@@ -20,7 +20,7 @@ Upon staking the wrapped token (defined in the `StreamVault` contract), the user
 Both the wrapped version of the token and the share token are both natively bridgeable through [LayerZero](https://docs.layerzero.network/v2)
 
 ## Yield Distribution
-Yield is distributed once a day, which is set by the `vaultKeeper` on the call to `rollToNextRound()` in the `StreamVault` contract. At these discrete moments in time, yield is distributed evenly to all share token holders.
+Yield is distributed once a day, which is set by the `vaultKeeper` on the call to `rollToNextRound()` in the `StreamVault` contract. At these discrete moments in time, yield is distributed evenly to all share token holders. When the round is rolled a call is made from the `StreamVault` contract to the `StableWrapper` contract to mint/burn the correct amount of wrapped tokens into the `StreamVault` contract to maintain proper accounting of the yield.
 
 
 NOTE: 
@@ -48,4 +48,13 @@ Only callable when `allowIndependence` is true. Contains the same functionality 
 Only callable when `allowIndependence` is true. Contains the same functionality as `initiateWithdrawalFromVault()`, however it burns from `msg.sender` instead of from the contract itself. Emits an `WithdrawalInitiated` event
 
 #### completeWithdrawal()
-This function is used to complete a withdrawal which transfers the underlying token from the contract back to specified address. This can only be called after either `initiateWithdrawal()` or `initiateWithdrawalFromVault()` has been called and an epoch has passed 
+This function is used to complete a withdrawal which transfers the underlying token from the contract back to specified address. This can only be called after either `initiateWithdrawal()` or `initiateWithdrawalFromVault()` has been called and an epoch has passed . Emits a `Withdrawn` event.
+
+#### permissionedMint()
+Only callable by the `StreamVault` contract. Used to mint more wrapped token into the stream vault to account for positive yield. Emits a `PermissionedMint` event.
+
+#### permissionedBurn()
+Only callable by the `StreamVault` contract. Used to burn wrapped tokens owned by the `StreamVault` to account for negative yield. Emits a `PermissionedBurn` event.
+
+#### transferAsset()
+Only callable by the vault keeper. Used to withdraw the funds that have been wrapped to the keepr to be used for yield farming. Emits an `AssetTransferred` event.
