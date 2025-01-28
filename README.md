@@ -58,3 +58,47 @@ Only callable by the `StreamVault` contract. Used to burn wrapped tokens owned b
 
 #### transferAsset()
 Only callable by the vault keeper. Used to withdraw the funds that have been wrapped to the keepr to be used for yield farming. Emits an `AssetTransferred` event.
+
+### StreamVault
+The `StreamVault` contract is used to stake wrapped Stream tokens in order to be entitled for the yield that is being generated from wrapping the underlying tokens into Stream tokens. When staking tokens, a share token will be received that represents the amount of the token pool the user owns. The share token is non rebasing and can be natively bridged through LayerZero. The vault operates on a round-by-round basis where each round (one round per day), yield is distributed (either positive or negative), and distributed proportionally to all share holders. In order to keep the accounting sound, the `StreamVault` has special permissions on the `StableWrapper` contract to mint new tokens for positive yield, or burn tokens to represent negative yield on every roll of the round. Unlike the `StableWrapper` contract, shares can be burned immediately and the Stream wrapped tokens will be received. However if `allowIndependence` is false, when unstaking, the wrapped tokens will be auto queued for withdrawal on the `StableWrapper` contract which is not immediate as explained above. Users do not receive yield for either the round they deposit it and the round they withdraw in. When depositing, shares aren't minted until the round is rolled, and therefore the shares are held by the contract unless they are redeemed by the user by calling `redeem()`. If a user stakes in round n, and changes their mind and wishes to unstake in round n, they can always instantly withdraw by calling `instantUnstake()`, however they will no receive yield for that round.
+
+#### depositAndStake()
+Will deposit the underlying token into the `StabelWrapper` contract, and auto stake the tokens into the vault. A staking receipt will be generated for the user. Emits both a `DepositToVault` and `Stake` event
+
+#### unstakeAndWithdraw()
+Will unstake the tokens: burns the shares, calculates how much wrapped tokens the shares map to, and additionally queue the withdrawal on the `StableWrapper` contract. Emits both a `WithdrawalInitiated` and an `Unstake` event.
+
+#### instantUnstakeAndWithdraw()
+Will instantly unstake and queue tokens for withdrawal on the `StableWrapper` contract. This is only callable for withdrawing wrapped tokens in the same round they were staked. Emits both a `WithdrawalInitiated` and an `InstantWithdraw` event.
+ 
+#### stake()
+Only callable when `allowIndepedence` on the `StableWrapper` contract is true. This will transfer the wrapped shared token into the `StreamVault` contract and create a stake receipt for the user. Shares will be minted on the next roll round, where they will be by default held by the contract but can always be redeemed. Emits a `Stake` event.
+
+#### unstake()
+Only callable when `allowIndepedence` on the `StableWrapper` contract is true. This will burn the shares, and transfer the corresponding amount of Stream wrapped tokens to the user. This can only be called if a user has previously staked and at least one round has passed. Emits an `Unstake` event.
+
+#### instantUnstake()
+Only callable when `allowIndepedence` on the `StableWrapper` contract is true. This will simply transfer back the amount of wrapped Stream tokens that were staked in the same round. Emits an `InstantUnstake` event.
+
+#### redeem()
+Used to redeem shares that a user owns but is held by the `StreamVault` contract. Emits a `Redeem` event.
+
+#### maxRedeem()
+Calls the above function, but with the max amount of shares the user has available.
+
+#### rollToNextRound()
+A function only the keeper can call in order to roll one round to the next. The user inputs a yield amount which is how much of the underlying token was generated in yield (either positive or negative). This is used for the following:
+
+1) Mint shares for the current rounds staking requests
+2) Mints or burns the wrapped Stream token to account for the yield for the round
+
+Emits a `RoundRolled` event.
+
+#### accountVaultBalance()
+Getter for the amount of wrapped Stream tokens the user owns based on their shares.
+
+#### shares()
+Getter for the amount of shares the user owns (both held by the user and by the vault).
+
+#### shareBalances()
+Getter for the amount of shares the user owns, both held by the user and by the vault, but returned separately.
