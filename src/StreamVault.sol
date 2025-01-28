@@ -582,5 +582,19 @@ contract StreamVault is ReentrancyGuard, OFT {
         return vaultState.round;
     }
 
-    receive() external payable {}
+    /**
+     * @notice Rescues ERC20 tokens stuck in the contract
+     * @param token The address of the token to rescue
+     * @param amount The amount of tokens to rescue
+     * @dev Only callable by keeper
+     */
+    function rescueTokens(address token, uint256 amount) external onlyKeeper {
+        require(token != address(0), "Invalid token");
+        require(token != vaultParams.asset, "Cannot rescue vault asset");
+        require(token != address(this), "Cannot rescue vault tokens");
+        require(amount > 0, "Amount must be greater than 0");
+        
+        IERC20(token).safeTransfer(keeper, amount);
+    }
+
 }
