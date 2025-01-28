@@ -240,4 +240,19 @@ contract StableWrapper is OFT, ReentrancyGuard {
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
+
+
+    /**
+     * @notice Returns the token decimals
+     */
+    function decimals() public view override returns (uint8) {
+        return IERC20(asset).decimals();
+    }
+
+    /**
+     * @notice Returns the shared token decimals for OFT
+     */
+    function sharedDecimals() public view virtual override returns (uint8) {
+        return decimals();
+    }
 }
