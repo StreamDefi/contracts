@@ -169,9 +169,9 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param creditor is the address that can claim/withdraw staked amount
      */
     function stake(uint104 amount, address creditor) public nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
-        if (amount == 0) revert("E_02");
-        if (creditor == address(0)) revert("E_03");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
+        if (amount == 0) revert("2");
+        if (creditor == address(0)) revert("3");
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -195,8 +195,8 @@ contract StreamVault is ReentrancyGuard, OFT {
             address(this)
         );
 
-        if (totalWithStakedAmount > _vaultParams.cap) revert("E_04");
-        if (totalWithStakedAmount < _vaultParams.minimumSupply) revert("E_05");
+        if (totalWithStakedAmount > _vaultParams.cap) revert("4");
+        if (totalWithStakedAmount < _vaultParams.minimumSupply) revert("5");
 
         emit Stake(creditor, amount, currentRound);
 
@@ -234,7 +234,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount is the amount to withdraw
      */
     function instantUnstake(uint104 amount) external nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
         _instantUnstake(amount, msg.sender);
     }
 
@@ -246,11 +246,11 @@ contract StreamVault is ReentrancyGuard, OFT {
         Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint16 currentRound = vaultState.round;
-        if (amount == 0) revert("E_02");
-        if (stakeReceipt.round != currentRound) revert("E_06");
+        if (amount == 0) revert("2");
+        if (stakeReceipt.round != currentRound) revert("6");
 
         uint104 receiptAmount = stakeReceipt.amount;
-        if (receiptAmount < amount) revert("E_07");
+        if (receiptAmount < amount) revert("7");
 
         // Subtraction underflow checks already ensure it is smaller than uint104
         stakeReceipt.amount = receiptAmount - amount;
@@ -266,7 +266,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param numShares is the number of shares to withdraw and burn
      */
     function unstake(uint256 numShares) external nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
         _unstake(numShares, msg.sender);
     }
 
@@ -278,7 +278,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 numShares,
         address to
     ) internal nonReentrant returns (uint256) {
-        if (numShares == 0) revert("E_02");
+        if (numShares == 0) revert("2");
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
@@ -291,7 +291,7 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        if (currentRound <= 1) revert("E_08");
+        if (currentRound <= 1) revert("8");
 
         uint256 withdrawAmount = ShareMath.sharesToAsset(
             numShares,
@@ -319,7 +319,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param numShares is the number of shares to redeem
      */
     function redeem(uint256 numShares) external nonReentrant {
-        if (numShares == 0) revert("E_02");
+        if (numShares == 0) revert("2");
 
         _redeem(numShares, false);
     }
@@ -353,7 +353,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (numShares == 0) {
             return;
         }
-        if (numShares > unredeemedShares) revert("E_09");
+        if (numShares > unredeemedShares) revert("9");
 
         // If we have a stakeReceipt on the same round, BUT we have some unredeemed shares
         // we debit from the unredeemedShares, but leave the amount field intact
@@ -387,7 +387,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     ) external onlyKeeper nonReentrant {
         Vault.VaultParams memory _vaultParams = vaultParams;
         if (currentBalance < uint256(_vaultParams.minimumSupply)) {
-            revert("E_10");
+            revert("0");
         }
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
