@@ -376,15 +376,24 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
-     * @notice Keeper only stakes enough to fulfill withdraws and passes the true amount as 'currentBalance'
-     * @notice Keeper should be a contract so currentBalance and the call to the func happens atomically
-     * @param currentBalance is the amount of `asset` that is currently being used for strategy 
-              + the amount in the contract right before the roll
-
+     * @param yield is the amount of assets earnt or lost in the round
+     * @param isYieldPositive is true if the yield is positive, false if it is negative
      */
     function rollToNextRound(
-        uint256 currentBalance
+        uint256 yield,
+        bool isYieldPositive
     ) external onlyKeeper nonReentrant {
+
+        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(address(this));
+        if (isYieldPositive) {
+            currentBalance = currentBalance + yield;
+        } else {
+            if (currentBalance < yield) {
+                revert("0");
+            }
+            currentBalance = currentBalance - yield;
+        }
+
         Vault.VaultParams memory _vaultParams = vaultParams;
         if (currentBalance < uint256(_vaultParams.minimumSupply)) {
             revert("0");
