@@ -77,7 +77,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     /**
      * @notice Deposits assets from a specified address and mints equivalent tokens
-     * @param from Address to transfer assets from
+     * @param to Address to transfer assets to
      * @param amount Amount of assets to deposit
      */
     function deposit(address to, uint256 amount) public nonReentrant {
