@@ -122,7 +122,6 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount Amount of assets to deposit and stake
      */
     function depositAndStake(uint104 amount) external nonReentrant {
-
         IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
         // Then stake the wrapped tokens
@@ -163,7 +162,6 @@ contract StreamVault is ReentrancyGuard, OFT {
      *  PUBLIC STAKING
      ***********************************************/
 
-
     /**
      * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
      * @notice Used for vault -> vault stakes on the user's behalf
@@ -171,9 +169,9 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param creditor is the address that can claim/withdraw staked amount
      */
     function stake(uint104 amount, address creditor) public nonReentrant {
-        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
-        require(amount > 0, "!amount");
-        require(creditor != address(0), "!creditor");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
+        if (amount == 0) revert("E_02");
+        if (creditor == address(0)) revert("E_03");
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -193,10 +191,12 @@ contract StreamVault is ReentrancyGuard, OFT {
     function _stakeInternal(uint104 amount, address creditor) private {
         uint16 currentRound = vaultState.round;
         Vault.VaultParams memory _vaultParams = vaultParams;
-        uint256 totalWithStakedAmount = IERC20(_vaultParams.asset).balanceOf(address(this));
+        uint256 totalWithStakedAmount = IERC20(_vaultParams.asset).balanceOf(
+            address(this)
+        );
 
-        require(totalWithStakedAmount <= _vaultParams.cap, "Exceed cap");
-        require(totalWithStakedAmount >= _vaultParams.minimumSupply, "Insufficient balance");
+        if (totalWithStakedAmount > _vaultParams.cap) revert("E_04");
+        if (totalWithStakedAmount < _vaultParams.minimumSupply) revert("E_05");
 
         emit Stake(creditor, amount, currentRound);
 
@@ -229,12 +229,12 @@ contract StreamVault is ReentrancyGuard, OFT {
      *  WITHDRAWALS
      ***********************************************/
 
-     /**
+    /**
      * @notice External wrapper for instant unstaking
      * @param amount is the amount to withdraw
      */
     function instantUnstake(uint104 amount) external nonReentrant {
-        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
         _instantUnstake(amount, msg.sender);
     }
 
@@ -246,11 +246,11 @@ contract StreamVault is ReentrancyGuard, OFT {
         Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint16 currentRound = vaultState.round;
-        require(amount > 0, "!amount");
-        require(stakeReceipt.round == currentRound, "Invalid round");
+        if (amount == 0) revert("E_02");
+        if (stakeReceipt.round != currentRound) revert("E_06");
 
         uint104 receiptAmount = stakeReceipt.amount;
-        require(receiptAmount >= amount, "Exceed amount");
+        if (receiptAmount < amount) revert("E_07");
 
         // Subtraction underflow checks already ensure it is smaller than uint104
         stakeReceipt.amount = receiptAmount - amount;
@@ -266,7 +266,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param numShares is the number of shares to withdraw and burn
      */
     function unstake(uint256 numShares) external nonReentrant {
-        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("E_01");
         _unstake(numShares, msg.sender);
     }
 
@@ -274,8 +274,11 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param numShares is the number of shares to withdraw and burn
      */
-    function _unstake(uint256 numShares, address to) internal nonReentrant returns (uint256) {
-        require(numShares > 0, "!numShares");
+    function _unstake(
+        uint256 numShares,
+        address to
+    ) internal nonReentrant returns (uint256) {
+        if (numShares == 0) revert("E_02");
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
@@ -288,7 +291,7 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        require(currentRound > 1, "Cannot withdraw before round 1");
+        if (currentRound <= 1) revert("E_08");
 
         uint256 withdrawAmount = ShareMath.sharesToAsset(
             numShares,
@@ -316,7 +319,8 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param numShares is the number of shares to redeem
      */
     function redeem(uint256 numShares) external nonReentrant {
-        require(numShares > 0, "!numShares");
+        if (numShares == 0) revert("E_02");
+
         _redeem(numShares, false);
     }
 
@@ -349,7 +353,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (numShares == 0) {
             return;
         }
-        require(numShares <= unredeemedShares, "Exceeds available");
+        if (numShares > unredeemedShares) revert("E_09");
 
         // If we have a stakeReceipt on the same round, BUT we have some unredeemed shares
         // we debit from the unredeemedShares, but leave the amount field intact
@@ -384,10 +388,8 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 currentBalance
     ) external onlyKeeper nonReentrant {
         Vault.VaultParams memory _vaultParams = vaultParams;
-        require(
-            currentBalance >= uint256(_vaultParams.minimumSupply),
-            "Insufficient balance"
-        );
+        if (currentBalance < uint256(_vaultParams.minimumSupply))
+            revert("E_10");
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
 
@@ -491,7 +493,8 @@ contract StreamVault is ReentrancyGuard, OFT {
         require(vaultState.round > 1, "Vault not initialized");
         uint256 _decimals = vaultParams.decimals;
         uint256 pricePerShare = roundPricePerShare[vaultState.round - 1];
-        return ShareMath.sharesToAsset(shares(account), pricePerShare, _decimals);
+        return
+            ShareMath.sharesToAsset(shares(account), pricePerShare, _decimals);
     }
 
     /**
@@ -556,8 +559,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     function rescueTokens(address token, uint256 amount) external onlyKeeper {
         require(token != address(0), "Invalid token");
         require(amount > 0, "Amount must be greater than 0");
-        
+
         IERC20(token).safeTransfer(keeper, amount);
     }
-
 }
