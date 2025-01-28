@@ -61,6 +61,16 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     event CapSet(uint256 oldCap, uint256 newCap);
 
+    event RoundRolled(
+        uint256 round,
+        uint256 pricePerShare,
+        uint256 sharesMinted,
+        uint256 wrappedTokensMinted,
+        uint256 wrappedTokensBurned,
+        uint256 yield,
+        bool isYieldPositive
+    );
+
     event InstantWithdraw(
         address indexed account,
         uint256 amount,
@@ -363,7 +373,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         }
 
         ShareMath.assertUint128(numShares);
-        stakeReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - numShares);
+        stakeReceipts[msg.sender].unredeemedShares = uint128(
+            unredeemedShares - numShares
+        );
 
         emit Redeem(msg.sender, numShares, stakeReceipt.round);
 
@@ -383,8 +395,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 yield,
         bool isYieldPositive
     ) external onlyKeeper nonReentrant {
-
-        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(address(this));
+        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        );
         if (isYieldPositive) {
             currentBalance = currentBalance + yield;
         } else {
@@ -430,10 +443,28 @@ contract StreamVault is ReentrancyGuard, OFT {
                 address(this),
                 currentBalance - balance
             );
+            emit RoundRolled(
+                currentRound,
+                newPricePerShare,
+                mintShares,
+                currentBalance - balance,
+                0,
+                yield,
+                isYieldPositive
+            );
         } else {
             IStableWrapper(stableWrapper).permissionedBurn(
                 address(this),
                 balance - currentBalance
+            );
+            emit RoundRolled(
+                currentRound,
+                newPricePerShare,
+                mintShares,
+                0,
+                balance - currentBalance,
+                yield,
+                isYieldPositive
             );
         }
     }
