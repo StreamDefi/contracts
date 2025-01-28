@@ -60,10 +60,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(address from, uint256 amount) public nonReentrant {
-        _onlyAddress(owner());
-
-        require(from != address(0), "Cannot deposit from zero address");
+    function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
         require(amount > 0, "Amount must be greater than 0");
 
         // Transfer assets from specified address
@@ -82,7 +79,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      */
     function deposit(address from, address to, uint256 amount) public nonReentrant {
         require(allowIndependence, "!allowIndependence");
-        require(from != address(0), "Cannot deposit from zero address");
         require(amount > 0, "Amount must be greater than 0");
 
         // Transfer assets from specified address
@@ -126,11 +122,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function initiateWithdrawalFromVault(
         address from,
         uint224 amount
-    ) public nonReentrant {
-        _onlyAddress(owner());
-
+    ) public nonReentrant onlyOwner {
         require(amount > 0, "Amount must be greater than 0");
-        require(balanceOf(address(this)) >= amount, "Insufficient balance");
 
         // Burn tokens from the specified address
         _burn(address(this), amount);
@@ -215,7 +208,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      */
     function transferAsset(address to, uint256 amount, address token) public {
         _onlyAddress(keeper);
-        require(to != address(0), "Invalid address");
         require(amount > 0, "Amount must be greater than 0");
 
         IERC20(token).safeTransfer(to, amount);
@@ -228,9 +220,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to mint
      */
     function permissionedMint(address to, uint256 amount) public onlyOwner {
-        require(to != address(0), "Cannot mint to zero address");
         require(amount > 0, "Amount must be greater than 0");
-
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -241,9 +231,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn
      */
     function permissionedBurn(address from, uint256 amount) public onlyOwner {
-        require(from != address(0), "Cannot burn from zero address");
         require(amount > 0, "Amount must be greater than 0");
-
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
