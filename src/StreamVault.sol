@@ -186,6 +186,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         );
     }
 
+
     /**
      * @notice External wrapper for staking on behalf of another address
      * @param amount is the amount of `asset` to stake
@@ -306,7 +307,18 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         emit InstantWithdraw(msg.sender, amount, currentRound);
 
-        _transferAsset(msg.sender, amount);
+        _transferAsset(to, amount);
+    }
+
+    /**
+     * @notice External wrapper for unstaking shares
+     * @param numShares is the number of shares to withdraw and burn
+     */
+    function unstake(uint256 numShares) external nonReentrant {
+
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+
+        _unstakeTo(numShares, msg.sender);
     }
 
     /**
