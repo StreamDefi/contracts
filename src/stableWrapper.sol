@@ -12,7 +12,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // State variables
-    address public immutable asset;
+    address public asset;
     uint32 public currentEpoch;
     bool public allowIndependence;
 
@@ -26,7 +26,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
     // Events
-    event Deposit(address indexed user, uint256 amount);
+    event Deposit(address indexed from, address indexed to, uint256 amount);
+    event DepositToVault(address indexed user, uint256 amount);
     event WithdrawalInitiated(
         address indexed user,
         uint224 amount,
@@ -56,34 +57,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
     }
 
     /**
-     * @notice Deposits assets and mints equivalent tokens
+     * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function deposit(uint256 amount) public nonReentrant {
-        if (allowIndependence) {
-            _onlyAddress(owner());
-        }
-
-        require(amount > 0, "Amount must be greater than 0");
-
-        // Transfer assets from user
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        // Mint equivalent tokens to user
-        _mint(msg.sender, amount);
-
-        emit Deposit(msg.sender, amount);
-    }
-
-    /**
-     * @notice Deposits assets from a specified address and mints equivalent tokens
-     * @param from Address to transfer assets from
-     * @param amount Amount of assets to deposit
-     */
-    function depositFrom(address from, uint256 amount) public nonReentrant {
-        if (allowIndependence) {
-            _onlyAddress(owner());
-        }
+    function depositToVault(address from, uint256 amount) public nonReentrant {
+        _onlyAddress(owner());
 
         require(from != address(0), "Cannot deposit from zero address");
         require(amount > 0, "Amount must be greater than 0");
@@ -91,10 +69,29 @@ contract StableWrapper is OFT, ReentrancyGuard {
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(from, address(this), amount);
 
-        // Mint equivalent tokens to the specified address
-        _mint(from, amount);
+        // Mint equivalent tokens to the vault
+        _mint(owner(), amount);
 
-        emit Deposit(from, amount);
+        emit DepositToVault(from, amount);
+    }
+
+    /**
+     * @notice Deposits assets from a specified address and mints equivalent tokens
+     * @param from Address to transfer assets from
+     * @param amount Amount of assets to deposit
+     */
+    function deposit(address from, address to, uint256 amount) public nonReentrant {
+        require(allowIndependence, "!allowIndependence");
+        require(from != address(0), "Cannot deposit from zero address");
+        require(amount > 0, "Amount must be greater than 0");
+
+        // Transfer assets from specified address
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
+
+        // Mint equivalent tokens to the specified address
+        _mint(to, amount);
+
+        emit Deposit(from, to, amount);
     }
 
     /**
@@ -102,9 +99,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn for withdrawal
      */
     function initiateWithdrawal(uint224 amount) public nonReentrant {
-        if (allowIndependence) {
-            _onlyAddress(owner());
-        }
+        require(allowIndependence, "!allowIndependence");
 
         require(amount > 0, "Amount must be greater than 0");
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
@@ -128,20 +123,17 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawalFor(
+    function initiateWithdrawalFromVault(
         address from,
         uint224 amount
     ) public nonReentrant {
-        if (allowIndependence) {
-            _onlyAddress(owner());
-        }
+        _onlyAddress(owner());
 
-        require(from != address(0), "Cannot withdraw for zero address");
         require(amount > 0, "Amount must be greater than 0");
-        require(balanceOf(from) >= amount, "Insufficient balance");
+        require(balanceOf(address(this)) >= amount, "Insufficient balance");
 
         // Burn tokens from the specified address
-        _burn(from, amount);
+        _burn(address(this), amount);
 
         uint224 currentAmount = withdrawalReceipts[from].amount;
 
@@ -158,9 +150,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Complete withdrawal if epoch has passed
      */
     function completeWithdrawal() public nonReentrant {
-        if (allowIndependence) {
-            _onlyAddress(owner());
-        }
 
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
@@ -206,6 +195,16 @@ contract StableWrapper is OFT, ReentrancyGuard {
         _onlyAddress(keeper);
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
+    }
+
+    /**
+     * @notice Allows keeper to set the asset address
+     * @param _asset New asset address
+     */
+    function setAsset(address _asset) public {
+        _onlyAddress(keeper);
+        require(_asset != address(0), "Invalid asset address");
+        asset = _asset;
     }
 
     /**

@@ -35,10 +35,10 @@ interface IStableWrapper {
     ) external view returns (WithdrawalReceipt memory);
 
     // State-Changing Functions
-    function deposit(uint256 amount) external;
-    function depositFrom(address from, uint256 amount) external;
+    function depositToVault(address from, uint256 amount) external;
+    function deposit(address from, address to, uint256 amount) external;
     function initiateWithdrawal(uint224 amount) external;
-    function initiateWithdrawalFor(address from, uint224 amount) external;
+    function initiateWithdrawalFromVault(address from, uint224 amount) external;
     function completeWithdrawal() external;
     function advanceEpoch() external;
     function setAllowIndependence(bool _allowIndependence) external;
