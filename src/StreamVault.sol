@@ -122,12 +122,11 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount Amount of assets to deposit and stake
      */
     function depositAndStake(uint256 amount) external nonReentrant {
-        require(amount > 0, "!amount");
 
-        IStableWrapper(stableWrapper).depositFrom(msg.sender, amount);
+        IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
         // Then stake the wrapped tokens
-        _stakeFor(amount, msg.sender);
+        _stakeInternal(amount, msg.sender);
     }
 
     /**
@@ -136,10 +135,10 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function unstakeAndWithdraw(uint256 numShares) external nonReentrant {
         // First unstake the tokens
-        _unstake(numShares);
+        _unstake(numShares, stableWrapper);
 
         // Then initiate withdrawal in the wrapper
-        IStableWrapper(stableWrapper).initiateWithdrawalFor(
+        IStableWrapper(stableWrapper).initiateWithdrawalFromVault(
             msg.sender,
             uint224(numShares)
         );
@@ -151,10 +150,10 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function instantUnstakeAndWithdraw(uint256 amount) external nonReentrant {
         // First perform instant unstake
-        _instantUnstake(amount);
+        _instantUnstake(amount, stableWrapper);
 
         // Then initiate withdrawal in the wrapper
-        IStableWrapper(stableWrapper).initiateWithdrawalFor(
+        IStableWrapper(stableWrapper).initiateWithdrawalFromVault(
             msg.sender,
             uint224(amount)
         );
@@ -164,41 +163,6 @@ contract StreamVault is ReentrancyGuard, OFT {
      *  PUBLIC STAKING
      ***********************************************/
 
-    /**
-     * @notice Stake the `asset` from msg.sender.
-     * @param amount is the amount of `asset` to stake
-     */
-    function stake(uint256 amount) external nonReentrant {
-        require(amount > 0, "!amount");
-
-        require(
-            IStableWrapper(stableWrapper).allowIndependence(),
-            "!allowIndependence"
-        );
-
-        _updateStakeState(amount, msg.sender);
-
-        // An approve() by the msg.sender is required beforehand
-        IERC20(vaultParams.asset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
-    }
-
-
-    /**
-     * @notice External wrapper for staking on behalf of another address
-     * @param amount is the amount of `asset` to stake
-     * @param creditor is the address that can claim/withdraw staked amount
-     */
-    function stakeFor(uint256 amount, address creditor) public nonReentrant {
-        require(
-            IStableWrapper(stableWrapper).allowIndependence(),
-            "!allowIndependence"
-        );
-        _stakeFor(amount, creditor);
-    }
 
     /**
      * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
@@ -206,11 +170,12 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount is the amount of `asset` to stake
      * @param creditor is the address that can claim/withdraw staked amount
      */
-    function _stakeFor(uint256 amount, address creditor) internal nonReentrant {
+    function stake(uint256 amount, address creditor) public nonReentrant {
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
         require(amount > 0, "!amount");
         require(creditor != address(0), "!creditor");
 
-        _updateStakeState(amount, creditor);
+        _stakeInternal(amount, creditor);
 
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
@@ -225,7 +190,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount is the amount of `asset` staked
      * @param creditor is the address to receieve the stake
      */
-    function _updateStakeState(uint256 amount, address creditor) private {
+    function _stakeInternal(uint256 amount, address creditor) private {
         uint256 currentRound = vaultState.round;
         uint256 totalWithStakedAmount = totalBalance() + amount;
 
@@ -272,24 +237,21 @@ contract StreamVault is ReentrancyGuard, OFT {
      *  WITHDRAWALS
      ***********************************************/
 
-    /**
+     /**
      * @notice External wrapper for instant unstaking
      * @param amount is the amount to withdraw
      */
     function instantUnstake(uint256 amount) external nonReentrant {
-        require(
-            IStableWrapper(stableWrapper).allowIndependence(),
-            "!allowIndependence"
-        );
 
-        _instantUnstake(amount);
+        require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
+        _instantUnstake(amount, msg.sender);
     }
 
     /**
      * @notice Withdraws the assets on the vault using the outstanding `StakeReceipt.amount`
      * @param amount is the amount to withdraw
      */
-    function _instantUnstake(uint256 amount) internal nonReentrant {
+    function _instantUnstake(uint256 amount, address to) internal nonReentrant {
         Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint256 currentRound = vaultState.round;
@@ -317,28 +279,14 @@ contract StreamVault is ReentrancyGuard, OFT {
     function unstake(uint256 numShares) external nonReentrant {
 
         require(IStableWrapper(stableWrapper).allowIndependence(), "!allowIndependence");
-
-        _unstakeTo(numShares, msg.sender);
-    }
-
-    /**
-     * @notice External wrapper for unstaking shares
-     * @param numShares is the number of shares to withdraw and burn
-     */
-    function unstake(uint256 numShares) external nonReentrant {
-        require(
-            IStableWrapper(stableWrapper).allowIndependence(),
-            "!allowIndependence"
-        );
-
-        _unstake(numShares);
+        _unstake(numShares, msg.sender);
     }
 
     /**
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param numShares is the number of shares to withdraw and burn
      */
-    function _unstake(uint256 numShares) internal nonReentrant {
+    function _unstake(uint256 numShares, address to) internal nonReentrant {
         require(numShares > 0, "!numShares");
 
         // We do a max redeem before initiating a withdrawal
@@ -366,7 +314,7 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         omniTotalSupply -= numShares;
 
-        IERC20(vaultParams.asset).safeTransfer(msg.sender, withdrawAmount);
+        IERC20(vaultParams.asset).safeTransfer(to, withdrawAmount);
     }
 
     /************************************************
