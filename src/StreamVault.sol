@@ -175,14 +175,14 @@ contract StreamVault is ReentrancyGuard, OFT {
         require(amount > 0, "!amount");
         require(creditor != address(0), "!creditor");
 
-        _stakeInternal(amount, creditor);
-
         // An approve() by the msg.sender is required beforehand
         IERC20(vaultParams.asset).safeTransferFrom(
             msg.sender,
             address(this),
             amount
         );
+
+        _stakeInternal(amount, creditor);
     }
 
     /**
@@ -192,7 +192,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function _stakeInternal(uint256 amount, address creditor) private {
         uint256 currentRound = vaultState.round;
-        uint256 totalWithStakedAmount = totalBalance() + amount;
+        uint256 totalWithStakedAmount = totalBalance();
 
         require(totalWithStakedAmount <= vaultParams.cap, "Exceed cap");
         require(
