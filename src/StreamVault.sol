@@ -388,8 +388,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 currentBalance
     ) external onlyKeeper nonReentrant {
         Vault.VaultParams memory _vaultParams = vaultParams;
-        if (currentBalance < uint256(_vaultParams.minimumSupply))
+        if (currentBalance < uint256(_vaultParams.minimumSupply)) {
             revert("E_10");
+        }
         Vault.VaultState memory state = vaultState;
         uint256 currentRound = state.round;
 
