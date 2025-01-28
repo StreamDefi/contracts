@@ -64,7 +64,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address from,
         uint256 amount
     ) public nonReentrant onlyOwner {
-        require(amount > 0, "Amount must be greater than 0");
+        if (amount == 0) revert("2")
 
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(from, address(this), amount);
@@ -81,9 +81,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to deposit
      */
     function deposit(address to, uint256 amount) public nonReentrant {
-        require(allowIndependence, "!allowIndependence");
-        require(amount > 0, "Amount must be greater than 0");
-
+        if (!allowIndependence) revert("1");
+        if (amount == 0) revert("2");
+  
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -98,10 +98,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn for withdrawal
      */
     function initiateWithdrawal(uint224 amount) public nonReentrant {
-        require(allowIndependence, "!allowIndependence");
-
-        require(amount > 0, "Amount must be greater than 0");
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        if (!allowIndependence) revert("1");
+        if (amount == 0) revert("2");
+        if (balanceOf(msg.sender) < amount) revert("10");
 
         // Burn tokens
         _burn(msg.sender, amount);
@@ -126,7 +125,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address from,
         uint224 amount
     ) public nonReentrant onlyOwner {
-        require(amount > 0, "Amount must be greater than 0");
+        if (amount == 0) revert("2");
 
         // Burn tokens from the specified address
         _burn(address(this), amount);
@@ -148,8 +147,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function completeWithdrawal() public nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
-        require(receipt.amount > 0, "No withdrawal pending");
-        require(receipt.epoch < currentEpoch, "Epoch not yet passed");
+        if (receipt.amount == 0) revert("11");
+        if (receipt.epoch >= currentEpoch) revert("12");
 
         // Cast uint224 to uint256 explicitly for the transfer
         uint256 amountToTransfer = uint256(receipt.amount);
@@ -179,7 +178,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     }
 
     function _onlyAddress(address privilegedAddy) internal view {
-        require(msg.sender == privilegedAddy, "Not authorized caller ");
+        if (msg.sender != privilegedAddy) revert("13");
     }
 
     /**
@@ -222,7 +221,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to mint
      */
     function permissionedMint(address to, uint256 amount) public onlyOwner {
-        require(amount > 0, "Amount must be greater than 0");
+        if (amount == 0) revert("2");
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -233,7 +232,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn
      */
     function permissionedBurn(address from, uint256 amount) public onlyOwner {
-        require(amount > 0, "Amount must be greater than 0");
+        if (amount == 0) revert("2");
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
