@@ -363,9 +363,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         }
 
         ShareMath.assertUint128(numShares);
-        stakeReceipts[msg.sender].unredeemedShares = uint128(
-            unredeemedShares - numShares
-        );
+        stakeReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - numShares);
 
         emit Redeem(msg.sender, numShares, stakeReceipt.round);
 
@@ -419,16 +417,14 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 balance = IERC20(_vaultParams.asset).balanceOf(address(this));
 
         if (currentBalance > balance) {
-            uint256 amountToMint = currentBalance - balance;
             IStableWrapper(stableWrapper).permissionedMint(
                 address(this),
-                amountToMint
+                currentBalance - balance
             );
         } else {
-            uint256 amountToBurn = balance - currentBalance;
             IStableWrapper(stableWrapper).permissionedBurn(
                 address(this),
-                amountToBurn
+                balance - currentBalance
             );
         }
     }
