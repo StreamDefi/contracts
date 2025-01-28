@@ -50,6 +50,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address _delegate
     ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
         require(_asset != address(0), "Invalid asset address");
+        require(_keeper != address(0), "Invalid keeper address");
         asset = _asset;
         currentEpoch = 1;
         allowIndependence = false;
@@ -66,11 +67,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
     ) public nonReentrant onlyOwner {
         if (amount == 0) revert("2")
 
-        // Transfer assets from specified address
-        IERC20(asset).safeTransferFrom(from, address(this), amount);
-
         // Mint equivalent tokens to the vault
         _mint(owner(), amount);
+
+        // Transfer assets from specified address
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
 
         emit DepositToVault(from, amount);
     }
@@ -83,12 +84,12 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function deposit(address to, uint256 amount) public nonReentrant {
         if (!allowIndependence) revert("1");
         if (amount == 0) revert("2");
-  
-        // Transfer assets from specified address
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Mint equivalent tokens to the specified address
         _mint(to, amount);
+
+        // Transfer assets from specified address
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         emit Deposit(msg.sender, to, amount);
     }
@@ -174,6 +175,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     function setKeeper(address _keeper) public {
         _onlyAddress(keeper);
+        require(_keeper != address(0), "Invalid keeper address");
         keeper = _keeper;
         emit KeeperSet(_keeper);
     }
@@ -206,14 +208,15 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows owner to transfer assets to specified address
      * @param to Address to transfer assets to
      * @param amount Amount of assets to transfer
-     * @param token Address of the token to transfer
+     * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address token) public {
+    function transferAsset(address to, uint256 amount, address _token) public {
         _onlyAddress(keeper);
         require(amount > 0, "Amount must be greater than 0");
 
-        IERC20(token).safeTransfer(to, amount);
         emit AssetTransferred(to, amount);
+
+        IERC20(_token).safeTransfer(to, amount);
     }
 
     /**

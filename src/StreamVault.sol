@@ -116,7 +116,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
         require(_vaultParams.asset != address(0), "!_asset");
-
+        require(_stableWrapper != address(0), "!_stableWrapper");
         keeper = _keeper;
         stableWrapper = _stableWrapper;
         vaultParams = _vaultParams;
@@ -493,6 +493,15 @@ contract StreamVault is ReentrancyGuard, OFT {
     }
 
     /**
+     * @notice Sets a new stable wrapper contract address
+     * @param newStableWrapper is the address of the new stable wrapper contract
+     */
+    function setStableWrapper(address newStableWrapper) external onlyOwner {
+        require(newStableWrapper != address(0), "!newStableWrapper");
+        stableWrapper = newStableWrapper;
+    }
+
+    /**
      * @notice Sets a new cap for stakes
      * @param newCap is the new cap for stakes
      */
@@ -589,14 +598,14 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     /**
      * @notice Rescues ERC20 tokens stuck in the contract
-     * @param token The address of the token to rescue
+     * @param _token The address of the token to rescue
      * @param amount The amount of tokens to rescue
      * @dev Only callable by keeper
      */
-    function rescueTokens(address token, uint256 amount) external onlyKeeper {
-        require(token != address(0), "Invalid token");
+    function rescueTokens(address _token, uint256 amount) external onlyKeeper {
+        require(_token != address(0), "Invalid token");
         require(amount > 0, "Amount must be greater than 0");
 
-        IERC20(token).safeTransfer(keeper, amount);
+        IERC20(_token).safeTransfer(keeper, amount);
     }
 }
