@@ -65,7 +65,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address from,
         uint256 amount
     ) public nonReentrant onlyOwner {
-        if (amount == 0) revert("2")
+        if (amount == 0) revert("2");
 
         // Mint equivalent tokens to the vault
         _mint(owner(), amount);
@@ -241,12 +241,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
         emit PermissionedBurn(from, amount);
     }
 
-
     /**
      * @notice Returns the token decimals
      */
     function decimals() public view override returns (uint8) {
-        return IERC20(asset).decimals();
+        return ERC20(asset).decimals();
     }
 
     /**
