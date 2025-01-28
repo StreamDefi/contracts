@@ -143,8 +143,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     /**
      * @notice Complete withdrawal if epoch has passed
+     * @param to Address to transfer assets to
      */
-    function completeWithdrawal() public nonReentrant {
+    function completeWithdrawal(address to) public nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
         if (receipt.amount == 0) revert("11");
@@ -157,9 +158,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         delete withdrawalReceipts[msg.sender];
 
         // Transfer assets back to user
-        IERC20(asset).safeTransfer(msg.sender, amountToTransfer);
+        IERC20(asset).safeTransfer(to, amountToTransfer);
 
-        emit Withdrawn(msg.sender, amountToTransfer);
+        emit Withdrawn(to, amountToTransfer);
     }
 
     /**
