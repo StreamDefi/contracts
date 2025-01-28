@@ -60,7 +60,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
+    function depositToVault(
+        address from,
+        uint256 amount
+    ) public nonReentrant onlyOwner {
         require(amount > 0, "Amount must be greater than 0");
 
         // Transfer assets from specified address
@@ -77,17 +80,17 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to transfer assets from
      * @param amount Amount of assets to deposit
      */
-    function deposit(address from, address to, uint256 amount) public nonReentrant {
+    function deposit(address to, uint256 amount) public nonReentrant {
         require(allowIndependence, "!allowIndependence");
         require(amount > 0, "Amount must be greater than 0");
 
         // Transfer assets from specified address
-        IERC20(asset).safeTransferFrom(from, address(this), amount);
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Mint equivalent tokens to the specified address
         _mint(to, amount);
 
-        emit Deposit(from, to, amount);
+        emit Deposit(msg.sender, to, amount);
     }
 
     /**
@@ -143,7 +146,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Complete withdrawal if epoch has passed
      */
     function completeWithdrawal() public nonReentrant {
-
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
         require(receipt.amount > 0, "No withdrawal pending");
