@@ -2,9 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {StableWrapper} from "../src/stableWrapper.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {Vault} from "../src/lib/Vault.sol";
+import {StableWrapper} from "../../src/stableWrapper.sol";
+import {MockERC20} from "../../mocks/MockERC20.sol";
 
 contract Base is Test {
     // contract
@@ -37,7 +36,6 @@ contract Base is Test {
 
     // helper
     uint256 decimals = 18;
-
 
     function setUp() public {
         depositer1 = vm.addr(1);
@@ -80,6 +78,7 @@ contract Base is Test {
             "wUSDC",
             keeper,
             lzEndpoint,
+            lzDelegate
         );
         vm.stopPrank();
 
@@ -94,27 +93,30 @@ contract Base is Test {
     }
 
     function assertEpoch(uint32 expectedEpoch) public {
-    uint32 currentEpoch = stableWrapper.currentEpoch();
-    assertEq(currentEpoch, expectedEpoch, "current epoch");
-    };
+        uint32 currentEpoch = stableWrapper.currentEpoch();
+        assertEq(currentEpoch, expectedEpoch, "current epoch");
+    }
 
     function assertWithdrawalReceipt(address user, uint224 amount) public {
-        withdrawalReceipt = stableWrapper.withdrawalReceipt(user);
-        assertEq(withdrawalReceipt.amount, amount, "withdrawal receipt amount");
-        assertEq(withdrawalReceipt.epoch, stableWrapper.currentEpoch(), "withdrawal receipt epoch");
+        (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper
+            .withdrawalReceipts(user);
+        assertEq(receiptAmount, amount, "withdrawal receipt amount");
+        assertEq(
+            receiptEpoch,
+            stableWrapper.currentEpoch(),
+            "withdrawal receipt epoch"
+        );
     }
 
     function assertWrapperBalance(uint256 expectedBalance) public {
-      _assertBalance(address(stableWrapper), expectedBalance);
+        _assertBalance(address(stableWrapper), expectedBalance);
     }
 
     function assertUserBalance(address user, uint256 expectedBalance) public {
-      _assertBalance(user, expectedBalance);
+        _assertBalance(user, expectedBalance);
     }
 
     function _assertBalance(address account, uint256 expectedBalance) public {
-      assertEq(usdc.balanceOf(account), amount, "balance");
+        assertEq(usdc.balanceOf(account), expectedBalance, "balance");
     }
-
-
 }

@@ -7,7 +7,7 @@ import {Vault} from "../src/lib/Vault.sol";
 
 contract ShareMathTest is Test {
     using ShareMath for uint256;
-    using ShareMath for Vault.DepositReceipt;
+    using ShareMath for Vault.StakeReceipt;
 
     function setUp() public {}
 
@@ -60,13 +60,13 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.DepositReceipt memory depositReceipt = Vault.DepositReceipt({
+        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
             round: 1,
             amount: uint104(assetAmount),
             unredeemedShares: 0
         });
 
-        uint256 shares = depositReceipt.getSharesFromReceipt(
+        uint256 shares = stakeReceipt.getSharesFromReceipt(
             2,
             assetPerShare,
             decimals
@@ -80,14 +80,14 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.DepositReceipt memory depositReceipt = Vault.DepositReceipt({
+        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
             round: 1,
             amount: uint104(assetAmount),
             unredeemedShares: 0
         });
 
         // same round so should be zero shares
-        uint256 shares = depositReceipt.getSharesFromReceipt(
+        uint256 shares = stakeReceipt.getSharesFromReceipt(
             1,
             assetPerShare,
             decimals
@@ -102,13 +102,13 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.DepositReceipt memory depositReceipt = Vault.DepositReceipt({
+        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
             round: 1,
             amount: uint104(assetAmount),
             unredeemedShares: 40 * (10 ** 18)
         });
 
-        uint256 shares = depositReceipt.getSharesFromReceipt(
+        uint256 shares = stakeReceipt.getSharesFromReceipt(
             2,
             assetPerShare,
             decimals
@@ -123,13 +123,13 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 2.3 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.DepositReceipt memory depositReceipt = Vault.DepositReceipt({
+        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
             round: 1,
             amount: uint104(assetAmount),
             unredeemedShares: 0
         });
 
-        uint256 shares = depositReceipt.getSharesFromReceipt(
+        uint256 shares = stakeReceipt.getSharesFromReceipt(
             2,
             assetPerShare,
             decimals
