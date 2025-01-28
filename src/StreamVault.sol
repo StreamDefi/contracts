@@ -15,7 +15,6 @@ import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
  * @title StreamVault
  * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
  * @notice Users receive shares for their stakes, which can be redeemed for assets
- * @notice The vault is managed by a keeper, who is responsible for rolling to the next round
  * @notice The rounds will be rolled over on a weekly basis
  */
 
@@ -39,10 +38,6 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     /// @notice Vault's lifecycle state like round and locked amounts
     Vault.VaultState public vaultState;
-
-    /// @notice role in charge of weekly vault operations such as rollToNextRound
-    // no access to critical vault changes
-    address public keeper;
 
     /// @notice address of the stable wrapper contract
     address public stableWrapper;
@@ -78,30 +73,16 @@ contract StreamVault is ReentrancyGuard, OFT {
     );
 
     /************************************************
-     *  MODIFIERS
-     ***********************************************/
-
-    /**
-     * @dev Throws if called by any account other than the keeper.
-     */
-    modifier onlyKeeper() {
-        require(msg.sender == keeper, "!keeper");
-        _;
-    }
-
-    /************************************************
      *  CONSTRUCTOR & INITIALIZATION
      ***********************************************/
 
     /**
      * @notice Initializes the contract with immutable variables
-     * @param _keeper is the role that will handle funds and advancing rounds
      * @param _tokenName is the token name of the share ERC-20
      * @param _tokenSymbol is the token symbol of the share ERC-20
      * @param _vaultParams is the `VaultParams` struct with general vault data
      */
     constructor(
-        address _keeper,
         string memory _tokenName,
         string memory _tokenSymbol,
         address _stableWrapper,
@@ -113,11 +94,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         OFT(_tokenName, _tokenSymbol, _lzEndpoint, _delegate)
         Ownable(msg.sender)
     {
-        require(_keeper != address(0), "!_keeper");
         require(_vaultParams.cap > 0, "!_cap");
         require(_vaultParams.asset != address(0), "!_asset");
         require(_stableWrapper != address(0), "!_stableWrapper");
-        keeper = _keeper;
         stableWrapper = _stableWrapper;
         vaultParams = _vaultParams;
 
@@ -394,7 +373,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     function rollToNextRound(
         uint256 yield,
         bool isYieldPositive
-    ) external onlyKeeper nonReentrant {
+    ) external onlyOwner nonReentrant {
         uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(
             address(this)
         );
@@ -484,15 +463,6 @@ contract StreamVault is ReentrancyGuard, OFT {
      ***********************************************/
 
     /**
-     * @notice Sets the new keeper
-     * @param newKeeper is the address of the new keeper
-     */
-    function setNewKeeper(address newKeeper) external onlyOwner {
-        require(newKeeper != address(0), "!newKeeper");
-        keeper = newKeeper;
-    }
-
-    /**
      * @notice Sets a new stable wrapper contract address
      * @param newStableWrapper is the address of the new stable wrapper contract
      */
@@ -518,8 +488,8 @@ contract StreamVault is ReentrancyGuard, OFT {
     function setVaultParams(
         Vault.VaultParams memory newVaultParams
     ) external onlyOwner {
-        require(newVaultParams.cap > 0, "!newCap");
-        require(newVaultParams.asset != address(0), "!newAsset");
+        if (newVaultParams.cap == 0) revert("14");
+        if (newVaultParams.asset == address(0)) revert("3");
         vaultParams = newVaultParams;
     }
 
@@ -607,12 +577,12 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Rescues ERC20 tokens stuck in the contract
      * @param _token The address of the token to rescue
      * @param amount The amount of tokens to rescue
-     * @dev Only callable by keeper
+     * @dev Only callable by owner
      */
-    function rescueTokens(address _token, uint256 amount) external onlyKeeper {
-        require(_token != address(0), "Invalid token");
-        require(amount > 0, "Amount must be greater than 0");
+    function rescueTokens(address _token, uint256 amount) external onlyOwner {
+        if (_token == address(0)) revert("3");
+        if (amount == 0) revert("2");
 
-        IERC20(_token).safeTransfer(keeper, amount);
+        IERC20(_token).safeTransfer(msg.sender, amount);
     }
 }
