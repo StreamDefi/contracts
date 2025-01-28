@@ -211,13 +211,14 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows owner to transfer assets to specified address
      * @param to Address to transfer assets to
      * @param amount Amount of assets to transfer
+     * @param token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount) public {
+    function transferAsset(address to, uint256 amount, address token) public {
         _onlyAddress(keeper);
         require(to != address(0), "Invalid address");
         require(amount > 0, "Amount must be greater than 0");
 
-        IERC20(asset).safeTransfer(to, amount);
+        IERC20(token).safeTransfer(to, amount);
         emit AssetTransferred(to, amount);
     }
 
