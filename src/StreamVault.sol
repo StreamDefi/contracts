@@ -302,8 +302,6 @@ contract StreamVault is ReentrancyGuard, OFT {
     function _redeem(uint256 numShares, bool isMax) internal {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
 
-        // This handles the null case when stakeReceipt.round = 0
-        // Because we start with round = 1 at `initialize`
         uint256 currentRound = vaultState.round;
 
         uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
@@ -341,14 +339,12 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param isYieldPositive is true if the yield is positive, false if it is negative
      */
     function rollToNextRound(uint256 yield, bool isYieldPositive) external onlyOwner nonReentrant {
-        uint256 currentBalance = IERC20(vaultParams.asset).balanceOf(address(this));
+        uint256 balance = IERC20(vaultParams.asset).balanceOf(address(this));
+        uint256 currentBalance;
         if (isYieldPositive) {
-            currentBalance = currentBalance + yield;
+            currentBalance = balance + yield;
         } else {
-            if (currentBalance < yield) {
-                revert("0");
-            }
-            currentBalance = currentBalance - yield;
+            currentBalance = balance - yield;
         }
 
         Vault.VaultParams memory _vaultParams = vaultParams;
@@ -371,8 +367,6 @@ contract StreamVault is ReentrancyGuard, OFT {
         _mint(address(this), mintShares);
 
         omniTotalSupply = omniTotalSupply + mintShares;
-
-        uint256 balance = IERC20(_vaultParams.asset).balanceOf(address(this));
 
         if (currentBalance > balance) {
             IStableWrapper(stableWrapper).permissionedMint(address(this), currentBalance - balance);
@@ -474,7 +468,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     function shareBalances(address account) public view returns (uint256 heldByAccount, uint256 heldByVault) {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[account];
 
-        if (stakeReceipt.round < ShareMath.PLACEHOLDER_UINT) {
+        if (stakeReceipt.round < 2) {
             return (balanceOf(account), 0);
         }
 

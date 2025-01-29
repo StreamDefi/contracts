@@ -55,6 +55,15 @@ contract StableWrapper is OFT, ReentrancyGuard {
         keeper = _keeper;
     }
 
+
+    /**
+     * @dev Throws if called by any account other than the keeper.
+     */
+    modifier onlyKeeper() {
+        if (msg.sender != keeper) revert("13");
+        _;
+    }
+
     /**
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
@@ -83,10 +92,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
         // Mint equivalent tokens to the specified address
         _mint(to, amount);
 
+        emit Deposit(msg.sender, to, amount);
+
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        emit Deposit(msg.sender, to, amount);
     }
 
     /**
@@ -153,29 +162,22 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() public {
-        _onlyAddress(keeper);
+    function advanceEpoch() public onlyKeeper {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
 
-    function setKeeper(address _keeper) public {
-        _onlyAddress(keeper);
+    function setKeeper(address _keeper) public onlyKeeper {
         require(_keeper != address(0), "Invalid keeper address");
         keeper = _keeper;
         emit KeeperSet(_keeper);
-    }
-
-    function _onlyAddress(address privilegedAddy) internal view {
-        if (msg.sender != privilegedAddy) revert("13");
     }
 
     /**
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) public {
-        _onlyAddress(keeper);
+    function setAllowIndependence(bool _allowIndependence) public onlyKeeper {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
@@ -184,8 +186,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) public {
-        _onlyAddress(keeper);
+    function setAsset(address _asset) public onlyKeeper{
         require(_asset != address(0), "Invalid asset address");
         asset = _asset;
     }
@@ -196,8 +197,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address _token) public {
-        _onlyAddress(keeper);
+    function transferAsset(address to, uint256 amount, address _token) public onlyKeeper {
         require(amount > 0, "Amount must be greater than 0");
 
         emit AssetTransferred(to, amount);
