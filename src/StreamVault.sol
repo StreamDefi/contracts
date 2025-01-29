@@ -106,7 +106,6 @@ contract StreamVault is ReentrancyGuard, OFT {
         Vault.VaultParams memory _vaultParams
     ) ReentrancyGuard() OFT(_tokenName, _tokenSymbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
         if(_vaultParams.cap == 0) revert CapMustBeGreaterThanZero();
-        if(_vaultParams.asset == address(0)) revert AddressMustBeNonZero();
         if(_stableWrapper == address(0)) revert AddressMustBeNonZero();
         
         stableWrapper = _stableWrapper;
@@ -169,7 +168,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (creditor == address(0)) revert AddressMustBeNonZero();
 
         // An approve() by the msg.sender is required beforehand
-        IERC20(vaultParams.asset).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(stableWrapper).safeTransferFrom(msg.sender, address(this), amount);
 
         _stakeInternal(amount, creditor);
     }
@@ -182,7 +181,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     function _stakeInternal(uint104 amount, address creditor) private {
         uint16 currentRound = vaultState.round;
         Vault.VaultParams memory _vaultParams = vaultParams;
-        uint256 totalWithStakedAmount = IERC20(_vaultParams.asset).balanceOf(address(this));
+        uint256 totalWithStakedAmount = IERC20(stableWrapper).balanceOf(address(this));
 
         if (totalWithStakedAmount > _vaultParams.cap) revert CapExceeded();
         if (totalWithStakedAmount < _vaultParams.minimumSupply) revert MinimumSupplyNotMet();
@@ -280,7 +279,7 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         omniTotalSupply = omniTotalSupply - numShares;
 
-        IERC20(vaultParams.asset).safeTransfer(to, withdrawAmount);
+        IERC20(stableWrapper).safeTransfer(to, withdrawAmount);
 
         return withdrawAmount;
     }
@@ -351,7 +350,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param isYieldPositive is true if the yield is positive, false if it is negative
      */
     function rollToNextRound(uint256 yield, bool isYieldPositive) external onlyOwner nonReentrant {
-        uint256 balance = IERC20(vaultParams.asset).balanceOf(address(this));
+        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
         uint256 currentBalance;
         if (isYieldPositive) {
             currentBalance = balance + yield;
@@ -399,8 +398,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount is the transfer amount
      */
     function _transferAsset(address recipient, uint256 amount) internal {
-        address asset = vaultParams.asset;
-        IERC20(asset).safeTransfer(recipient, amount);
+        IERC20(stableWrapper).safeTransfer(recipient, amount);
     }
 
     /************************************************
@@ -441,7 +439,6 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function setVaultParams(Vault.VaultParams memory newVaultParams) external onlyOwner {
         if (newVaultParams.cap == 0) revert CapMustBeGreaterThanZero();
-        if (newVaultParams.asset == address(0)) revert AddressMustBeNonZero();
         vaultParams = newVaultParams;
     }
 
