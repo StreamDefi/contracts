@@ -16,6 +16,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     address public asset;
     uint32 public currentEpoch;
     bool public allowIndependence;
+    uint8 public underlyingDecimals;
 
     address public keeper;
 
@@ -30,7 +31,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
     // Events
     event Deposit(address indexed from, address indexed to, uint256 amount);
     event DepositToVault(address indexed user, uint256 amount);
-    event WithdrawalInitiated(address indexed user, uint224 amount, uint32 epoch);
+    event WithdrawalInitiated(
+        address indexed user,
+        uint224 amount,
+        uint32 epoch
+    );
     event Withdrawn(address indexed user, uint256 amount);
     event EpochAdvanced(uint32 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
@@ -45,23 +50,24 @@ contract StableWrapper is OFT, ReentrancyGuard {
     error InsufficientBalance();
     error NotKeeper();
     error CannotCompleteWithdrawalInSameEpoch();
-    
+
     constructor(
         address _asset,
         string memory _name,
         string memory _symbol,
+        uint8 _underlyingDecimals,
         address _keeper,
         address _lzEndpoint,
         address _delegate
-    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
-        if(_asset == address(0)) revert AddressMustBeNonZero();
-        if(_keeper == address(0)) revert AddressMustBeNonZero();
+    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(_delegate) {
+        if (_asset == address(0)) revert AddressMustBeNonZero();
+        if (_keeper == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
         currentEpoch = 1;
         allowIndependence = false;
         keeper = _keeper;
+        underlyingDecimals = _underlyingDecimals;
     }
-
 
     /**
      * @dev Throws if called by any account other than the keeper.
@@ -75,7 +81,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
+    function depositToVault(
+        address from,
+        uint256 amount
+    ) public nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Mint equivalent tokens to the vault
@@ -120,7 +129,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint224 currentAmount = withdrawalReceipts[msg.sender].amount;
 
         // Create withdrawal receipt
-        withdrawalReceipts[msg.sender] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
+        withdrawalReceipts[msg.sender] = WithdrawalReceipt({
+            amount: currentAmount + amount,
+            epoch: currentEpoch
+        });
 
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
@@ -130,7 +142,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawalFromVault(address from, uint224 amount) public nonReentrant onlyOwner {
+    function initiateWithdrawalFromVault(
+        address from,
+        uint224 amount
+    ) public nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Burn tokens from the specified address
@@ -139,7 +154,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint224 currentAmount = withdrawalReceipts[from].amount;
 
         // Create withdrawal receipt for the specified address
-        withdrawalReceipts[from] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
+        withdrawalReceipts[from] = WithdrawalReceipt({
+            amount: currentAmount + amount,
+            epoch: currentEpoch
+        });
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }
@@ -152,7 +170,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
         if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
-        if (receipt.epoch >= currentEpoch) revert CannotCompleteWithdrawalInSameEpoch();
+        if (receipt.epoch >= currentEpoch)
+            revert CannotCompleteWithdrawalInSameEpoch();
 
         // Cast uint224 to uint256 explicitly for the transfer
         uint256 amountToTransfer = uint256(receipt.amount);
@@ -175,7 +194,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     }
 
     function setKeeper(address _keeper) public onlyKeeper {
-        if(_keeper == address(0)) revert AddressMustBeNonZero();
+        if (_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
     }
@@ -193,8 +212,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) public onlyKeeper{
-        if(_asset == address(0)) revert AddressMustBeNonZero();
+    function setAsset(address _asset) public onlyKeeper {
+        if (_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
 
@@ -204,8 +223,12 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address _token) public onlyKeeper {
-        if(amount == 0) revert AmountMustBeGreaterThanZero();
+    function transferAsset(
+        address to,
+        uint256 amount,
+        address _token
+    ) public onlyKeeper {
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
 
@@ -235,10 +258,17 @@ contract StableWrapper is OFT, ReentrancyGuard {
     }
 
     /**
+     * @notice modify the token decimals
+     */
+    function setDecimals(uint8 _newDecimals) public onlyKeeper {
+        underlyingDecimals = _newDecimals;
+    }
+
+    /**
      * @notice Returns the token decimals
      */
     function decimals() public view override returns (uint8) {
-        return ERC20(asset).decimals();
+        underlyingDecimals;
     }
 
     /**
