@@ -269,7 +269,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
         if (stakeReceipts[msg.sender].amount > 0 || stakeReceipts[msg.sender].unredeemedShares > 0) {
-            _redeem(0, true);
+            _redeem(0);
         }
 
         // This caches the `round` variable used in shareBalances
@@ -301,22 +301,22 @@ contract StreamVault is ReentrancyGuard, OFT {
     function redeem(uint256 numShares) external nonReentrant {
         if (numShares == 0) revert AmountMustBeGreaterThanZero();
 
-        _redeem(numShares, false);
+        _redeem(numShares);
     }
 
     /**
      * @notice Redeems the entire unredeemedShares balance that is owed to the account
      */
     function maxRedeem() external nonReentrant {
-        _redeem(0, true);
+        _redeem(0);
     }
 
     /**
      * @notice Redeems shares that are owed to the account
-     * @param numShares is the number of shares to redeem, could be 0 when isMax=true
-     * @param isMax is flag for when callers do a max redemption
+     * @param numShares is the number of shares to redeem, 
+     * if numShares is 0, it will redeem all unredeemed shares
      */
-    function _redeem(uint256 numShares, bool isMax) internal {
+    function _redeem(uint256 numShares) internal {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
 
         uint256 currentRound = vaultState.round;
@@ -325,7 +325,7 @@ contract StreamVault is ReentrancyGuard, OFT {
             currentRound, roundPricePerShare[stakeReceipt.round], vaultParams.decimals
         );
 
-        numShares = isMax ? unredeemedShares : numShares;
+        numShares = numShares == 0 ? unredeemedShares : numShares;
         if (numShares == 0) {
             return;
         }
@@ -458,7 +458,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @return the amount of `asset` custodied by the vault for the user
      */
     function accountVaultBalance(address account) public view returns (uint256) {
-        if(vaultState.round <= 1) revert RoundMustBeGreaterThanOne();
+        if(vaultState.round < MINIMUM_VALID_ROUND) revert RoundMustBeGreaterThanOne();
         uint256 _decimals = vaultParams.decimals;
         uint256 pricePerShare = roundPricePerShare[vaultState.round - 1];
         return ShareMath.sharesToAsset(shares(account), pricePerShare, _decimals);
