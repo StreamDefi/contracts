@@ -451,7 +451,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param account is the address to lookup balance for
      * @return the amount of `asset` custodied by the vault for the user
      */
-    function accountVaultBalance(address account) external view returns (uint256) {
+    function accountVaultBalance(address account) public view returns (uint256) {
         if(vaultState.round <= 1) revert RoundMustBeGreaterThanOne();
         uint256 _decimals = vaultParams.decimals;
         uint256 pricePerShare = roundPricePerShare[vaultState.round - 1];
@@ -502,15 +502,15 @@ contract StreamVault is ReentrancyGuard, OFT {
         return decimals();
     }
 
-    function cap() external view returns (uint256) {
+    function cap() public view returns (uint256) {
         return vaultParams.cap;
     }
 
-    function totalPending() external view returns (uint256) {
+    function totalPending() public view returns (uint256) {
         return vaultState.totalPending;
     }
 
-    function round() external view returns (uint256) {
+    function round() public view returns (uint256) {
         return vaultState.round;
     }
 
