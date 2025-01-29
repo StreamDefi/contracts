@@ -11,13 +11,13 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+
 /**
  * @title StreamVault
  * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
  * @notice Users receive shares for their stakes, which can be redeemed for assets
  * @notice The rounds will be rolled over on a weekly basis
  */
-
 contract StreamVault is ReentrancyGuard, OFT {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.StakeReceipt;
@@ -51,6 +51,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     /// @notice the total supply of shares across all chains
     uint256 public omniTotalSupply;
 
+    /// @notice Whether the vault allows independence from the stable wrapper
     bool public allowIndependence;
 
     /************************************************
@@ -81,15 +82,27 @@ contract StreamVault is ReentrancyGuard, OFT {
     );
     event AllowIndependenceSet(bool allowIndependence);
 
+    /************************************************
+     *  ERRORS
+     ***********************************************/
     error IndependenceNotAllowed();
+
     error AmountMustBeGreaterThanZero();
+
     error AddressMustBeNonZero();
+
     error CapExceeded();
+
     error MinimumSupplyNotMet();
+
     error RoundMismatch();
+
     error AmountExceedsReceipt();
+
     error RoundMustBeGreaterThanOne();
+
     error InsufficientUnredeemedShares();
+
     error CapMustBeGreaterThanZero();
 
 
@@ -101,6 +114,9 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Initializes the contract with immutable variables
      * @param _tokenName is the token name of the share ERC-20
      * @param _tokenSymbol is the token symbol of the share ERC-20
+     * @param _stableWrapper is the address of the stable wrapper contract
+     * @param _lzEndpoint is the address of the LayerZero endpoint
+     * @param _delegate is the address of the delegate
      * @param _vaultParams is the `VaultParams` struct with general vault data
      */
     constructor(
@@ -167,13 +183,13 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Used for vault -> vault stakes on the user's behalf
      * @param amount is the amount of `asset` to stake
      * @param creditor is the address that can claim/withdraw staked amount
+     * @dev An approve() by the msg.sender is required beforehand
      */
     function stake(uint104 amount, address creditor) public nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (creditor == address(0)) revert AddressMustBeNonZero();
 
-        // An approve() by the msg.sender is required beforehand
         IERC20(stableWrapper).safeTransferFrom(msg.sender, address(this), amount);
 
         _stakeInternal(amount, creditor);
@@ -183,6 +199,8 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Manages the stake receipts for a staker
      * @param amount is the amount of `asset` staked
      * @param creditor is the address to receieve the stake
+     * @dev This function should be called after the underlying
+     * token has been transferred to the vault
      */
     function _stakeInternal(uint104 amount, address creditor) private {
         uint16 currentRound = vaultState.round;
