@@ -218,14 +218,14 @@ contract StableWrapper is OFT, ReentrancyGuard {
         if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
         if (receipt.epoch >= currentEpoch) revert CannotCompleteWithdrawalInSameEpoch();
 
+        delete withdrawalReceipts[msg.sender];
+
         // Cast uint224 to uint256 explicitly for the transfer
         uint256 amountToTransfer = uint256(receipt.amount);
 
-        delete withdrawalReceipts[msg.sender];
+        emit Withdrawn(to, amountToTransfer);
 
         IERC20(asset).safeTransfer(to, amountToTransfer);
-
-        emit Withdrawn(to, amountToTransfer);
     }
 
     /************************************************
