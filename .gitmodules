@@ -10,9 +10,6 @@
 [submodule "lib/murky"]
 	path = lib/murky
 	url = https://github.com/dmfxyz/murky
-[submodule "lib/devtools"]
-	path = lib/devtools
-	url = https://github.com/LayerZero-Labs/devtools
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/LayerZero-Labs/layerzero-v2
