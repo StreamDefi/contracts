@@ -65,10 +65,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
         // Mint equivalent tokens to the vault
         _mint(owner(), amount);
 
+        emit DepositToVault(from, amount);
+
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(from, address(this), amount);
-
-        emit DepositToVault(from, amount);
     }
 
     /**

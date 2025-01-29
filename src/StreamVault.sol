@@ -45,6 +45,8 @@ contract StreamVault is ReentrancyGuard, OFT {
     /// @notice the total supply of shares across all chains
     uint256 public omniTotalSupply;
 
+    bool public allowIndependence;
+
     /************************************************
      *  EVENTS
      ***********************************************/
@@ -66,7 +68,12 @@ contract StreamVault is ReentrancyGuard, OFT {
         bool isYieldPositive
     );
 
-    event InstantWithdraw(address indexed account, uint256 amount, uint256 round);
+    event InstantUnstake(
+        address indexed account,
+        uint256 amount,
+        uint256 round
+    );
+    event AllowIndependenceSet(bool allowIndependence);
 
     /************************************************
      *  CONSTRUCTOR & INITIALIZATION
@@ -89,10 +96,11 @@ contract StreamVault is ReentrancyGuard, OFT {
         require(_vaultParams.cap > 0, "!_cap");
         require(_vaultParams.asset != address(0), "!_asset");
         require(_stableWrapper != address(0), "!_stableWrapper");
+        
         stableWrapper = _stableWrapper;
         vaultParams = _vaultParams;
-
         vaultState.round = 1;
+        allowIndependence = false;
     }
     /************************************************
      *  Wrapper functions
@@ -144,7 +152,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param creditor is the address that can claim/withdraw staked amount
      */
     function stake(uint104 amount, address creditor) public nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
+        if (!allowIndependence) revert("1");
         if (amount == 0) revert("2");
         if (creditor == address(0)) revert("3");
 
@@ -198,7 +206,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param amount is the amount to withdraw
      */
     function instantUnstake(uint104 amount) external nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
+        if (!allowIndependence) revert("1");
         _instantUnstake(amount, msg.sender);
     }
 
@@ -220,7 +228,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         stakeReceipt.amount = receiptAmount - amount;
         vaultState.totalPending = vaultState.totalPending - amount;
 
-        emit InstantWithdraw(msg.sender, amount, currentRound);
+        emit InstantUnstake(msg.sender, amount, currentRound);
 
         _transferAsset(to, amount);
     }
@@ -230,7 +238,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @param numShares is the number of shares to withdraw and burn
      */
     function unstake(uint256 numShares) external nonReentrant {
-        if (!IStableWrapper(stableWrapper).allowIndependence()) revert("1");
+        if (!allowIndependence) revert("1");
         _unstake(numShares, msg.sender);
     }
 
@@ -400,6 +408,15 @@ contract StreamVault is ReentrancyGuard, OFT {
     function setStableWrapper(address newStableWrapper) external onlyOwner {
         require(newStableWrapper != address(0), "!newStableWrapper");
         stableWrapper = newStableWrapper;
+    }
+
+    /**
+     * @notice Allows owner to set allowIndependence
+     * @param _allowIndependence New allowIndependence value
+     */
+    function setAllowIndependence(bool _allowIndependence) public onlyOwner {
+        allowIndependence = _allowIndependence;
+        emit AllowIndependenceSet(_allowIndependence);
     }
 
     /**
