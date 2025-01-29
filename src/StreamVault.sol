@@ -23,6 +23,12 @@ contract StreamVault is ReentrancyGuard, OFT {
     using ShareMath for Vault.StakeReceipt;
 
     /************************************************
+     *  CONSTANTS
+     ***********************************************/
+    /// @notice Minimum round number for valid stake receipts
+    uint256 private constant MINIMUM_VALID_ROUND = 2;
+
+    /************************************************
      *  STATE
      ***********************************************/
     /// @notice Stores the user's pending stake for the round
@@ -268,7 +274,7 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        if (currentRound <= 1) revert RoundMustBeGreaterThanOne();
+        if (currentRound < MINIMUM_VALID_ROUND) revert RoundMustBeGreaterThanOne();
 
         uint256 withdrawAmount =
             ShareMath.sharesToAsset(numShares, roundPricePerShare[currentRound - 1], vaultParams.decimals);
@@ -464,28 +470,37 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @return the share balance
      */
     function shares(address account) public view returns (uint256) {
-        (uint256 heldByAccount, uint256 heldByVault) = shareBalances(account);
+        uint256 heldByAccount = shareBalancesHeldByAccount(account);
+        uint256 heldByVault = shareBalancesHeldByVault(account);
         return heldByAccount + heldByVault;
     }
 
     /**
-     * @notice Getter for returning the account's share balance split between account and vault holdings
+     * @notice Getter for returning the account's share balance held by the account
      * @param account is the account to lookup share balance for
      * @return heldByAccount is the shares held by account
-     * @return heldByVault is the shares held on the vault (unredeemedShares)
      */
-    function shareBalances(address account) public view returns (uint256 heldByAccount, uint256 heldByVault) {
+    function shareBalancesHeldByAccount(address account) public view returns (uint256) {
+        return balanceOf(account);
+    }
+
+    /**
+     * @notice Getter for returning the account's share balance held by the vault
+     * @param account is the account to lookup share balance for
+     * @return heldByVault is the shares held by the vault (unredeemedShares)
+     */
+    function shareBalancesHeldByVault(address account) public view returns (uint256) {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[account];
 
-        if (stakeReceipt.round < 2) {
-            return (balanceOf(account), 0);
+        if (stakeReceipt.round < MINIMUM_VALID_ROUND) {
+            return 0;
         }
-
-        uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
-            vaultState.round, roundPricePerShare[stakeReceipt.round], vaultParams.decimals
+        
+        return stakeReceipt.getSharesFromReceipt(
+            vaultState.round,
+            roundPricePerShare[stakeReceipt.round],
+            vaultParams.decimals
         );
-
-        return (balanceOf(account), unredeemedShares);
     }
 
     /**
