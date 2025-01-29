@@ -283,6 +283,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function _unstake(uint256 numShares, address to) internal nonReentrant returns (uint256) {
         if (numShares == 0) revert AmountMustBeGreaterThanZero();
+        if (to == address(0)) revert AddressMustBeNonZero();
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
