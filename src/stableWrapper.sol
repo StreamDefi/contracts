@@ -144,7 +144,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param to Address to transfer assets to
      * @param amount Amount of assets to deposit
      */
-    function deposit(address to, uint256 amount) public nonReentrant {
+    function deposit(address to, uint256 amount) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
@@ -159,7 +159,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
+    function depositToVault(address from, uint256 amount) external nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(owner(), amount);
@@ -177,7 +177,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Burns tokens and creates withdrawal receipt
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawal(uint224 amount) public nonReentrant {
+    function initiateWithdrawal(uint224 amount) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (balanceOf(msg.sender) < amount) revert InsufficientBalance();
@@ -196,7 +196,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawalFromVault(address from, uint224 amount) public nonReentrant onlyOwner {
+    function initiateWithdrawalFromVault(address from, uint224 amount) external nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _burn(address(this), amount);
@@ -212,7 +212,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Complete withdrawal if epoch has passed
      * @param to Address to transfer assets to
      */
-    function completeWithdrawal(address to) public nonReentrant {
+    function completeWithdrawal(address to) external nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
         if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
@@ -237,7 +237,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
      */
-    function permissionedMint(address to, uint256 amount) public onlyOwner {
+    function permissionedMint(address to, uint256 amount) external onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         _mint(to, amount);
         emit PermissionedMint(to, amount);
@@ -248,7 +248,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) public onlyOwner {
+    function permissionedBurn(address from, uint256 amount) external onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
@@ -261,7 +261,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() public onlyKeeper {
+    function advanceEpoch() external onlyKeeper {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
@@ -272,7 +272,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address _token) public onlyKeeper {
+    function transferAsset(address to, uint256 amount, address _token) external onlyKeeper {
         if(amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
@@ -288,7 +288,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the keeper address
      * @param _keeper New keeper address
      */
-    function setKeeper(address _keeper) public onlyKeeper {
+    function setKeeper(address _keeper) external onlyKeeper {
         if(_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
@@ -298,7 +298,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) public onlyKeeper {
+    function setAllowIndependence(bool _allowIndependence) external onlyKeeper {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
@@ -307,7 +307,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) public onlyKeeper{
+    function setAsset(address _asset) external onlyKeeper{
         if(_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
