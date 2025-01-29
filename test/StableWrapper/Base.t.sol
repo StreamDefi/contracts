@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {StableWrapper} from "../../src/stableWrapper.sol";
+import {StableWrapper} from "../../src/StableWrapper.sol";
 import {MockERC20} from "../../mocks/MockERC20.sol";
 
 contract Base is Test {
