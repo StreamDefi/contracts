@@ -9,8 +9,6 @@ library Vault {
     struct VaultParams {
         // Token decimals for vault shares
         uint8 decimals;
-        // Asset used in Stream Vault
-        address asset;
         // Minimum supply of the vault shares issued, for ETH it's 10**10
         uint56 minimumSupply;
         // Vault cap

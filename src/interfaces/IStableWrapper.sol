@@ -13,14 +13,16 @@ interface IStableWrapper {
     }
 
     // Events
-    event Deposit(address indexed user, uint256 amount);
-    event WithdrawalInitiated(address indexed user, uint256 amount, uint256 epoch);
+    event Deposit(address indexed from, address indexed to, uint256 amount);
+    event DepositToVault(address indexed user, uint256 amount);
+    event WithdrawalInitiated(address indexed user, uint224 amount, uint32 epoch);
     event Withdrawn(address indexed user, uint256 amount);
-    event EpochAdvanced(uint256 newEpoch);
+    event EpochAdvanced(uint32 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
     event PermissionedMint(address indexed to, uint256 amount);
     event PermissionedBurn(address indexed from, uint256 amount);
     event AllowIndependenceSet(bool allowIndependence);
+    event KeeperSet(address keeper);
 
     // View Functions
     function asset() external view returns (address);
@@ -33,10 +35,12 @@ interface IStableWrapper {
     function deposit(address to, uint256 amount) external;
     function initiateWithdrawal(uint224 amount) external;
     function initiateWithdrawalFromVault(address from, uint224 amount) external;
-    function completeWithdrawal() external;
+    function completeWithdrawal(address to) external;
     function advanceEpoch() external;
+    function setKeeper(address _keeper) external;
     function setAllowIndependence(bool _allowIndependence) external;
-    function transferAsset(address to, uint256 amount) external;
+    function setAsset(address _asset) external;
+    function transferAsset(address to, uint256 amount, address _token) external;
     function permissionedMint(address to, uint256 amount) external;
     function permissionedBurn(address from, uint256 amount) external;
 

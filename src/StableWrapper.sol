@@ -39,6 +39,13 @@ contract StableWrapper is OFT, ReentrancyGuard {
     event AllowIndependenceSet(bool allowIndependence);
     event KeeperSet(address keeper);
 
+    error IndependenceNotAllowed();
+    error AmountMustBeGreaterThanZero();
+    error AddressMustBeNonZero();
+    error InsufficientBalance();
+    error NotKeeper();
+    error CannotCompleteWithdrawalInSameEpoch();
+    
     constructor(
         address _asset,
         string memory _name,
@@ -47,12 +54,21 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address _lzEndpoint,
         address _delegate
     ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
-        require(_asset != address(0), "Invalid asset address");
-        require(_keeper != address(0), "Invalid keeper address");
+        if(_asset == address(0)) revert AddressMustBeNonZero();
+        if(_keeper == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
         currentEpoch = 1;
         allowIndependence = false;
         keeper = _keeper;
+    }
+
+
+    /**
+     * @dev Throws if called by any account other than the keeper.
+     */
+    modifier onlyKeeper() {
+        if (msg.sender != keeper) revert NotKeeper();
+        _;
     }
 
     /**
@@ -60,15 +76,15 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to deposit
      */
     function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
-        if (amount == 0) revert("2");
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Mint equivalent tokens to the vault
         _mint(owner(), amount);
 
+        emit DepositToVault(from, amount);
+
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(from, address(this), amount);
-
-        emit DepositToVault(from, amount);
     }
 
     /**
@@ -77,16 +93,16 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to deposit
      */
     function deposit(address to, uint256 amount) public nonReentrant {
-        if (!allowIndependence) revert("1");
-        if (amount == 0) revert("2");
+        if (!allowIndependence) revert IndependenceNotAllowed();
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Mint equivalent tokens to the specified address
         _mint(to, amount);
 
+        emit Deposit(msg.sender, to, amount);
+
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-
-        emit Deposit(msg.sender, to, amount);
     }
 
     /**
@@ -94,9 +110,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn for withdrawal
      */
     function initiateWithdrawal(uint224 amount) public nonReentrant {
-        if (!allowIndependence) revert("1");
-        if (amount == 0) revert("2");
-        if (balanceOf(msg.sender) < amount) revert("10");
+        if (!allowIndependence) revert IndependenceNotAllowed();
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
+        if (balanceOf(msg.sender) < amount) revert InsufficientBalance();
 
         // Burn tokens
         _burn(msg.sender, amount);
@@ -115,7 +131,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn for withdrawal
      */
     function initiateWithdrawalFromVault(address from, uint224 amount) public nonReentrant onlyOwner {
-        if (amount == 0) revert("2");
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Burn tokens from the specified address
         _burn(address(this), amount);
@@ -135,8 +151,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function completeWithdrawal(address to) public nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
-        if (receipt.amount == 0) revert("11");
-        if (receipt.epoch >= currentEpoch) revert("12");
+        if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
+        if (receipt.epoch >= currentEpoch) revert CannotCompleteWithdrawalInSameEpoch();
 
         // Cast uint224 to uint256 explicitly for the transfer
         uint256 amountToTransfer = uint256(receipt.amount);
@@ -153,29 +169,22 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() public {
-        _onlyAddress(keeper);
+    function advanceEpoch() public onlyKeeper {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
 
-    function setKeeper(address _keeper) public {
-        _onlyAddress(keeper);
-        require(_keeper != address(0), "Invalid keeper address");
+    function setKeeper(address _keeper) public onlyKeeper {
+        if(_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
-    }
-
-    function _onlyAddress(address privilegedAddy) internal view {
-        if (msg.sender != privilegedAddy) revert("13");
     }
 
     /**
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) public {
-        _onlyAddress(keeper);
+    function setAllowIndependence(bool _allowIndependence) public onlyKeeper {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
@@ -184,9 +193,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) public {
-        _onlyAddress(keeper);
-        require(_asset != address(0), "Invalid asset address");
+    function setAsset(address _asset) public onlyKeeper{
+        if(_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
 
@@ -196,9 +204,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address _token) public {
-        _onlyAddress(keeper);
-        require(amount > 0, "Amount must be greater than 0");
+    function transferAsset(address to, uint256 amount, address _token) public onlyKeeper {
+        if(amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
 
@@ -211,7 +218,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to mint
      */
     function permissionedMint(address to, uint256 amount) public onlyOwner {
-        if (amount == 0) revert("2");
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -222,7 +229,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn
      */
     function permissionedBurn(address from, uint256 amount) public onlyOwner {
-        if (amount == 0) revert("2");
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
