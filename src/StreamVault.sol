@@ -502,17 +502,32 @@ contract StreamVault is ReentrancyGuard, OFT {
         return decimals();
     }
 
+    /**
+     * @notice Returns the maximum amount of wrapped tokens
+     * that can be deposited into the vault
+     */
     function cap() public view returns (uint256) {
         return vaultParams.cap;
     }
 
+    /**
+     * @notice Returns the total amount of wrapped tokens
+     * for which share issuance is pending
+     */
     function totalPending() public view returns (uint256) {
         return vaultState.totalPending;
     }
 
+    /**
+     * @notice Returns the current round number
+     */
     function round() public view returns (uint256) {
         return vaultState.round;
     }
+
+    /************************************************
+     *  OTHER
+     ***********************************************/
 
     /**
      * @notice Rescues ERC20 tokens stuck in the contract
