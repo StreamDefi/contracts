@@ -8,6 +8,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+
 contract StableWrapper is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -23,16 +24,13 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint224 amount;
         uint32 epoch;
     }
+
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
     // Events
     event Deposit(address indexed from, address indexed to, uint256 amount);
     event DepositToVault(address indexed user, uint256 amount);
-    event WithdrawalInitiated(
-        address indexed user,
-        uint224 amount,
-        uint32 epoch
-    );
+    event WithdrawalInitiated(address indexed user, uint224 amount, uint32 epoch);
     event Withdrawn(address indexed user, uint256 amount);
     event EpochAdvanced(uint32 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
@@ -61,10 +59,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(
-        address from,
-        uint256 amount
-    ) public nonReentrant onlyOwner {
+    function depositToVault(address from, uint256 amount) public nonReentrant onlyOwner {
         if (amount == 0) revert("2");
 
         // Mint equivalent tokens to the vault
@@ -109,10 +104,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint224 currentAmount = withdrawalReceipts[msg.sender].amount;
 
         // Create withdrawal receipt
-        withdrawalReceipts[msg.sender] = WithdrawalReceipt({
-            amount: currentAmount + amount,
-            epoch: currentEpoch
-        });
+        withdrawalReceipts[msg.sender] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
 
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
@@ -122,10 +114,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawalFromVault(
-        address from,
-        uint224 amount
-    ) public nonReentrant onlyOwner {
+    function initiateWithdrawalFromVault(address from, uint224 amount) public nonReentrant onlyOwner {
         if (amount == 0) revert("2");
 
         // Burn tokens from the specified address
@@ -134,10 +123,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint224 currentAmount = withdrawalReceipts[from].amount;
 
         // Create withdrawal receipt for the specified address
-        withdrawalReceipts[from] = WithdrawalReceipt({
-            amount: currentAmount + amount,
-            epoch: currentEpoch
-        });
+        withdrawalReceipts[from] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }

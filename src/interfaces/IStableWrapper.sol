@@ -14,11 +14,7 @@ interface IStableWrapper {
 
     // Events
     event Deposit(address indexed user, uint256 amount);
-    event WithdrawalInitiated(
-        address indexed user,
-        uint256 amount,
-        uint256 epoch
-    );
+    event WithdrawalInitiated(address indexed user, uint256 amount, uint256 epoch);
     event Withdrawn(address indexed user, uint256 amount);
     event EpochAdvanced(uint256 newEpoch);
     event AssetTransferred(address indexed to, uint256 amount);
@@ -30,9 +26,7 @@ interface IStableWrapper {
     function asset() external view returns (address);
     function currentEpoch() external view returns (uint256);
     function allowIndependence() external view returns (bool);
-    function withdrawalReceipts(
-        address user
-    ) external view returns (WithdrawalReceipt memory);
+    function withdrawalReceipts(address user) external view returns (WithdrawalReceipt memory);
 
     // State-Changing Functions
     function depositToVault(address from, uint256 amount) external;
@@ -50,14 +44,7 @@ interface IStableWrapper {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 amount) external returns (bool);
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
