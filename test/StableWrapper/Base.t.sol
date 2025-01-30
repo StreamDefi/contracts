@@ -72,14 +72,7 @@ contract Base is Test {
         usdc = new MockERC20("USD Coin", "USDC");
 
         vm.startPrank(owner);
-        stableWrapper = new StableWrapper(
-            address(usdc),
-            "Wrapped USD Coin",
-            "wUSDC",
-            keeper,
-            lzEndpoint,
-            lzDelegate
-        );
+        stableWrapper = new StableWrapper(address(usdc), "Wrapped USD Coin", "wUSDC", keeper, lzEndpoint, lzDelegate);
         vm.stopPrank();
 
         // fund deposirs with 10_000 USDC and 100 ETH each and approve vault
@@ -98,14 +91,9 @@ contract Base is Test {
     }
 
     function assertWithdrawalReceipt(address user, uint224 amount) public {
-        (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper
-            .withdrawalReceipts(user);
+        (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper.withdrawalReceipts(user);
         assertEq(receiptAmount, amount, "withdrawal receipt amount");
-        assertEq(
-            receiptEpoch,
-            stableWrapper.currentEpoch(),
-            "withdrawal receipt epoch"
-        );
+        assertEq(receiptEpoch, stableWrapper.currentEpoch(), "withdrawal receipt epoch");
     }
 
     function assertWrapperBalance(uint256 expectedBalance) public {

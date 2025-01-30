@@ -77,7 +77,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     event KeeperSet(address keeper);
 
-
     // #############################################
     // ERRORS
     // #############################################
@@ -273,7 +272,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param _token Address of the token to transfer
      */
     function transferAsset(address to, uint256 amount, address _token) external onlyKeeper {
-        if(amount == 0) revert AmountMustBeGreaterThanZero();
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
 
@@ -289,7 +288,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param _keeper New keeper address
      */
     function setKeeper(address _keeper) external onlyKeeper {
-        if(_keeper == address(0)) revert AddressMustBeNonZero();
+        if (_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
     }
@@ -307,8 +306,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) external onlyKeeper{
-        if(_asset == address(0)) revert AddressMustBeNonZero();
+    function setAsset(address _asset) external onlyKeeper {
+        if (_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
 
