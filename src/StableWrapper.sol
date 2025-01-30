@@ -61,17 +61,13 @@ contract StableWrapper is OFT, ReentrancyGuard {
     event Deposit(address indexed from, address indexed to, uint256 amount);
 
     event DepositToVault(address indexed user, uint256 amount);
-<<<<<<< HEAD
+
     event WithdrawalInitiated(
         address indexed user,
         uint224 amount,
         uint32 epoch
     );
-=======
 
-    event WithdrawalInitiated(address indexed user, uint224 amount, uint32 epoch);
-
->>>>>>> main
     event Withdrawn(address indexed user, uint256 amount);
 
     event EpochAdvanced(uint32 newEpoch);
@@ -102,8 +98,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     error CannotCompleteWithdrawalInSameEpoch();
 
-<<<<<<< HEAD
-=======
     // #############################################
     // MODIFIERS
     // #############################################
@@ -129,7 +123,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param _lzEndpoint is the address of the LayerZero endpoint
      * @param _delegate is the address of the delegate
      */
->>>>>>> main
     constructor(
         address _asset,
         string memory _name,
@@ -148,38 +141,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         underlyingDecimals = _underlyingDecimals;
     }
 
-<<<<<<< HEAD
-    /**
-     * @dev Throws if called by any account other than the keeper.
-     */
-    modifier onlyKeeper() {
-        if (msg.sender != keeper) revert NotKeeper();
-        _;
-    }
-
-    /**
-     * @notice Deposits assets and mints equivalent tokens to the vault
-     * @param amount Amount of assets to deposit
-     */
-    function depositToVault(
-        address from,
-        uint256 amount
-    ) public nonReentrant onlyOwner {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
-
-        // Mint equivalent tokens to the vault
-        _mint(owner(), amount);
-
-        emit DepositToVault(from, amount);
-
-        // Transfer assets from specified address
-        IERC20(asset).safeTransferFrom(from, address(this), amount);
-    }
-=======
     // #############################################
     // DEPOSIT
     // #############################################
->>>>>>> main
 
     /**
      * @notice Deposits assets from a specified address and mints equivalent tokens
@@ -201,7 +165,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
-    function depositToVault(address from, uint256 amount) external nonReentrant onlyOwner {
+    function depositToVault(
+        address from,
+        uint256 amount
+    ) external nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(owner(), amount);
@@ -228,15 +195,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         uint224 currentAmount = withdrawalReceipts[msg.sender].amount;
 
-<<<<<<< HEAD
-        // Create withdrawal receipt
         withdrawalReceipts[msg.sender] = WithdrawalReceipt({
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
-=======
-        withdrawalReceipts[msg.sender] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
->>>>>>> main
 
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
@@ -246,29 +208,20 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
-<<<<<<< HEAD
     function initiateWithdrawalFromVault(
         address from,
         uint224 amount
-    ) public nonReentrant onlyOwner {
-=======
-    function initiateWithdrawalFromVault(address from, uint224 amount) external nonReentrant onlyOwner {
->>>>>>> main
+    ) external nonReentrant onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _burn(address(this), amount);
 
         uint224 currentAmount = withdrawalReceipts[from].amount;
 
-<<<<<<< HEAD
-        // Create withdrawal receipt for the specified address
         withdrawalReceipts[from] = WithdrawalReceipt({
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
-=======
-        withdrawalReceipts[from] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
->>>>>>> main
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }
@@ -294,61 +247,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         IERC20(asset).safeTransfer(to, amountToTransfer);
     }
 
-<<<<<<< HEAD
-    /**
-     * @notice Advances to next epoch
-     */
-    function advanceEpoch() public onlyKeeper {
-        currentEpoch += 1;
-        emit EpochAdvanced(currentEpoch);
-    }
-
-    function setKeeper(address _keeper) public onlyKeeper {
-        if (_keeper == address(0)) revert AddressMustBeNonZero();
-        keeper = _keeper;
-        emit KeeperSet(_keeper);
-    }
-
-    /**
-     * @notice Allows owner to set allowIndependence
-     * @param _allowIndependence New allowIndependence value
-     */
-    function setAllowIndependence(bool _allowIndependence) public onlyKeeper {
-        allowIndependence = _allowIndependence;
-        emit AllowIndependenceSet(_allowIndependence);
-    }
-
-    /**
-     * @notice Allows keeper to set the asset address
-     * @param _asset New asset address
-     */
-    function setAsset(address _asset) public onlyKeeper {
-        if (_asset == address(0)) revert AddressMustBeNonZero();
-        asset = _asset;
-    }
-
-    /**
-     * @notice Allows owner to transfer assets to specified address
-     * @param to Address to transfer assets to
-     * @param amount Amount of assets to transfer
-     * @param _token Address of the token to transfer
-     */
-    function transferAsset(
-        address to,
-        uint256 amount,
-        address _token
-    ) public onlyKeeper {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
-
-        emit AssetTransferred(to, amount);
-
-        IERC20(_token).safeTransfer(to, amount);
-    }
-=======
     // #############################################
     // MINT & BURN
     // #############################################
->>>>>>> main
 
     /**
      * @notice Allows owner to mint tokens to a specified address
@@ -390,7 +291,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of assets to transfer
      * @param _token Address of the token to transfer
      */
-    function transferAsset(address to, uint256 amount, address _token) external onlyKeeper {
+    function transferAsset(
+        address to,
+        uint256 amount,
+        address _token
+    ) external onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
