@@ -22,15 +22,15 @@ contract StreamVault is ReentrancyGuard, OFT {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.StakeReceipt;
 
-    /************************************************
-     *  CONSTANTS
-     ***********************************************/
+    // #############################################
+    // CONSTANTS
+    // #############################################
     /// @notice Minimum round number for valid stake receipts
     uint256 private constant MINIMUM_VALID_ROUND = 2;
 
-    /************************************************
-     *  STATE
-     ***********************************************/
+    // #############################################
+    // STATE
+    // #############################################
     /// @notice Stores the user's pending stake for the round
     mapping(address => Vault.StakeReceipt) public stakeReceipts;
 
@@ -54,9 +54,9 @@ contract StreamVault is ReentrancyGuard, OFT {
     /// @notice Whether the vault allows independence from the stable wrapper
     bool public allowIndependence;
 
-    /************************************************
-     *  EVENTS
-     ***********************************************/
+    // #############################################
+    // EVENTS
+    // #############################################
     event Stake(address indexed account, uint256 amount, uint256 round);
 
     event Unstake(address indexed account, uint256 amount, uint256 round);
@@ -82,9 +82,9 @@ contract StreamVault is ReentrancyGuard, OFT {
     );
     event AllowIndependenceSet(bool allowIndependence);
 
-    /************************************************
-     *  ERRORS
-     ***********************************************/
+    // #############################################
+    // ERRORS
+    // #############################################
     error IndependenceNotAllowed();
 
     error AmountMustBeGreaterThanZero();
@@ -106,9 +106,9 @@ contract StreamVault is ReentrancyGuard, OFT {
     error CapMustBeGreaterThanZero();
 
 
-    /************************************************
-     *  CONSTRUCTOR & INITIALIZATION
-     ***********************************************/
+    // #############################################
+    // CONSTRUCTOR & INITIALIZATION
+    // #############################################
 
     /**
      * @notice Initializes the contract with immutable variables
@@ -135,9 +135,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultState.round = 1;
         allowIndependence = false;
     }
-    /************************************************
-     *  Wrapper functions
-     ***********************************************/
+    // #############################################
+    // Wrapper functions
+    // #############################################
 
     /**
      * @notice Deposits assets and stakes them in a single transaction
@@ -174,9 +174,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         IStableWrapper(stableWrapper).initiateWithdrawalFromVault(msg.sender, uint224(amount));
     }
 
-    /************************************************
-     *  PUBLIC STAKING
-     ***********************************************/
+    // #############################################
+    // PUBLIC STAKING
+    // #############################################
 
     /**
      * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
@@ -232,9 +232,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultState.totalPending = vaultState.totalPending + amount;
     }
 
-    /************************************************
-     *  WITHDRAWALS
-     ***********************************************/
+    // #############################################
+    // WITHDRAWALS
+    // #############################################
 
     /**
      * @notice External wrapper for instant unstaking
@@ -309,9 +309,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         return withdrawAmount;
     }
 
-    /************************************************
-     *  REDEMPTIONS
-     ***********************************************/
+    // #############################################
+    // REDEMPTIONS
+    // #############################################
 
     /**
      * @notice Redeems shares that are owed to the account
@@ -365,9 +365,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         _transfer(address(this), msg.sender, numShares);
     }
 
-    /************************************************
-     *  VAULT OPERATIONS
-     ***********************************************/
+    // #############################################
+    // VAULT OPERATIONS
+    // #############################################
 
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
@@ -426,9 +426,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         IERC20(stableWrapper).safeTransfer(recipient, amount);
     }
 
-    /************************************************
-     *  SETTERS
-     ***********************************************/
+    // #############################################
+    // SETTERS
+    // #############################################
 
     /**
      * @notice Sets a new stable wrapper contract address
@@ -467,9 +467,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultParams = newVaultParams;
     }
 
-    /************************************************
-     *  GETTERS
-     ***********************************************/
+    // #############################################
+    // GETTERS
+    // #############################################
 
     /**
      * @notice Returns the asset balance held on the vault for the account not accounting for current round stakes
@@ -559,9 +559,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         return vaultState.round;
     }
 
-    /************************************************
-     *  OTHER
-     ***********************************************/
+    // #############################################
+    // OTHER
+    // #############################################
 
     /**
      * @notice Rescues ERC20 tokens stuck in the contract

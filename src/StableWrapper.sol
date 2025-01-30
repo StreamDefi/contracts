@@ -18,9 +18,9 @@ import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 contract StableWrapper is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /************************************************
-     *  STATE
-     ***********************************************/
+    // #############################################
+    // STATE
+    // #############################################
 
     /// @notice The asset that the wrapper is wrapping
     address public asset;
@@ -38,9 +38,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice Stores the user's pending withdrawals
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
-    /************************************************
-     *  STRUCTS
-     ***********************************************/
+    // #############################################
+    // STRUCTS
+    // #############################################
 
     /**
      * @notice Struct representing a withdrawal receipt
@@ -53,9 +53,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         uint32 epoch;
     }
 
-    /************************************************
-     *  EVENTS
-     ***********************************************/
+    // #############################################
+    // EVENTS
+    // #############################################
 
     event Deposit(address indexed from, address indexed to, uint256 amount);
 
@@ -78,9 +78,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     event KeeperSet(address keeper);
 
 
-    /************************************************
-     *  ERRORS
-     ***********************************************/
+    // #############################################
+    // ERRORS
+    // #############################################
 
     error IndependenceNotAllowed();
 
@@ -94,9 +94,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     error CannotCompleteWithdrawalInSameEpoch();
 
-    /************************************************
-     *  MODIFIERS
-     ***********************************************/
+    // #############################################
+    // MODIFIERS
+    // #############################################
 
     /**
      * @dev Throws if called by any account other than the keeper
@@ -106,9 +106,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         _;
     }
 
-    /************************************************
-     *  CONSTRUCTOR & INITIALIZATION
-     ***********************************************/
+    // #############################################
+    // CONSTRUCTOR & INITIALIZATION
+    // #############################################
 
     /**
      * @notice Initializes the contract
@@ -135,9 +135,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         keeper = _keeper;
     }
 
-    /************************************************
-     *  DEPOSIT
-     ***********************************************/
+    // #############################################
+    // DEPOSIT
+    // #############################################
 
     /**
      * @notice Deposits assets from a specified address and mints equivalent tokens
@@ -169,9 +169,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         IERC20(asset).safeTransferFrom(from, address(this), amount);
     }
 
-    /************************************************
-     *  WITHDRAWAL
-     ***********************************************/
+    // #############################################
+    // WITHDRAWAL
+    // #############################################
 
     /**
      * @notice Burns tokens and creates withdrawal receipt
@@ -228,9 +228,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         IERC20(asset).safeTransfer(to, amountToTransfer);
     }
 
-    /************************************************
-     *  MINT & BURN
-     ***********************************************/
+    // #############################################
+    // MINT & BURN
+    // #############################################
 
     /**
      * @notice Allows owner to mint tokens to a specified address
@@ -254,9 +254,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         emit PermissionedBurn(from, amount);
     }
 
-    /************************************************
-     *  PROTOCOL CONTROL
-     ***********************************************/
+    // #############################################
+    // PROTOCOL CONTROL
+    // #############################################
 
     /**
      * @notice Advances to next epoch
@@ -280,9 +280,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         IERC20(_token).safeTransfer(to, amount);
     }
 
-    /************************************************
-     *  SETTERS
-     ***********************************************/
+    // #############################################
+    // SETTERS
+    // #############################################
 
     /**
      * @notice Allows keeper to set the keeper address
@@ -312,9 +312,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
         asset = _asset;
     }
 
-    /************************************************
-     *  GETTERS
-     ***********************************************/
+    // #############################################
+    // GETTERS
+    // #############################################
 
     /**
      * @notice Returns the token decimals
