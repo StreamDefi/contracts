@@ -14,16 +14,16 @@ contract Base is TestHelperOz5 {
     MockERC20 usdc;
 
     // depositors
-    address depositer1;
-    address depositer2;
-    address depositer3;
-    address depositer4;
-    address depositer5;
-    address depositer6;
-    address depositer7;
-    address depositer8;
-    address depositer9;
-    address depositer10;
+    address depositor1;
+    address depositor2;
+    address depositor3;
+    address depositor4;
+    address depositor5;
+    address depositor6;
+    address depositor7;
+    address depositor8;
+    address depositor9;
+    address depositor10;
     address[] depositors;
 
     // admin
@@ -38,32 +38,33 @@ contract Base is TestHelperOz5 {
 
     // helper
     uint8 decimals = 6;
+    uint256 startingBal = 10000 * (10 ** 6);
 
     function setUp() public virtual override {
         super.setUp();
         setUpEndpoints(2, LibraryType.UltraLightNode);
-        depositer1 = vm.addr(1);
-        depositer2 = vm.addr(2);
-        depositer3 = vm.addr(3);
-        depositer4 = vm.addr(4);
-        depositer5 = vm.addr(5);
-        depositer6 = vm.addr(6);
-        depositer7 = vm.addr(7);
-        depositer8 = vm.addr(8);
-        depositer9 = vm.addr(9);
-        depositer10 = vm.addr(10);
+        depositor1 = vm.addr(1);
+        depositor2 = vm.addr(2);
+        depositor3 = vm.addr(3);
+        depositor4 = vm.addr(4);
+        depositor5 = vm.addr(5);
+        depositor6 = vm.addr(6);
+        depositor7 = vm.addr(7);
+        depositor8 = vm.addr(8);
+        depositor9 = vm.addr(9);
+        depositor10 = vm.addr(10);
 
         depositors = [
-            depositer1,
-            depositer2,
-            depositer3,
-            depositer4,
-            depositer5,
-            depositer6,
-            depositer7,
-            depositer8,
-            depositer9,
-            depositer10
+            depositor1,
+            depositor2,
+            depositor3,
+            depositor4,
+            depositor5,
+            depositor6,
+            depositor7,
+            depositor8,
+            depositor9,
+            depositor10
         ];
 
         keeper = vm.addr(11);
@@ -91,7 +92,7 @@ contract Base is TestHelperOz5 {
         for (uint256 i = 0; i < depositors.length; i++) {
             vm.startPrank(depositors[i]);
             usdc.mint(depositors[i], 10000 * (10 ** 6));
-            usdc.approve(address(stableWrapper), 1000 * (10 ** 18));
+            usdc.approve(address(stableWrapper), 10000 * (10 ** 18));
             vm.deal(depositors[i], 10 * (10 ** 18));
             vm.stopPrank();
         }
