@@ -91,8 +91,8 @@ contract Base is TestHelperOz5 {
         // fund deposirs with 10_000 USDC and 100 ETH each and approve vault
         for (uint256 i = 0; i < depositors.length; i++) {
             vm.startPrank(depositors[i]);
-            usdc.mint(depositors[i], 10000 * (10 ** 6));
-            usdc.approve(address(stableWrapper), 10000 * (10 ** 18));
+            usdc.mint(depositors[i], startingBal);
+            usdc.approve(address(stableWrapper), startingBal);
             vm.deal(depositors[i], 10 * (10 ** 18));
             vm.stopPrank();
         }
@@ -124,5 +124,28 @@ contract Base is TestHelperOz5 {
 
     function _assertBalance(address account, uint256 expectedBalance) public {
         assertEq(usdc.balanceOf(account), expectedBalance, "balance");
+    }
+
+    /************************************************
+     *  WITHDRAW HELPERS
+     ***********************************************/
+    function depositFromAddyAndRollEpoch(
+        address _depositor,
+        uint256 _amount
+    ) public {
+        vm.prank(owner);
+        stableWrapper.depositToVault(_depositor, _amount);
+        vm.prank(keeper);
+        stableWrapper.advanceEpoch();
+    }
+
+    function assertNoStateChangeAfterRevert_Vault(
+        address _depositor,
+        uint256 _amount
+    ) public {
+        vm.assertEq(usdc.balanceOf(_depositor), startingBal - _amount);
+        vm.assertEq(stableWrapper.totalSupply(), _amount);
+        vm.assertEq(stableWrapper.balanceOf(owner), _amount);
+        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
 }

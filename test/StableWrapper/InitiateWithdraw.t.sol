@@ -8,7 +8,7 @@ import {Base} from "./Base.t.sol";
 /************************************************
  * INITIATE WITHDRAW TESTS
  ***********************************************/
-contract StableWrapperWithdrawTest is Base {
+contract StableWrapperInitiateWithdrawTest is Base {
     /************************************************
      *  INITIATE WITHDRAW FROM VAULT
      ***********************************************/
@@ -181,28 +181,5 @@ contract StableWrapperWithdrawTest is Base {
         vm.assertEq(stableWrapper.totalSupply(), 1);
         vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
-    }
-
-    /************************************************
-     *  WITHDRAW HELPERS
-     ***********************************************/
-    function depositFromAddyAndRollEpoch(
-        address _depositor,
-        uint256 _amount
-    ) public {
-        vm.prank(owner);
-        stableWrapper.depositToVault(_depositor, _amount);
-        vm.prank(keeper);
-        stableWrapper.advanceEpoch();
-    }
-
-    function assertNoStateChangeAfterRevert_Vault(
-        address _depositor,
-        uint256 _amount
-    ) public {
-        vm.assertEq(usdc.balanceOf(_depositor), startingBal - _amount);
-        vm.assertEq(stableWrapper.totalSupply(), _amount);
-        vm.assertEq(stableWrapper.balanceOf(owner), _amount);
-        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
 }
