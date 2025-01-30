@@ -31,6 +31,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice Whether the wrapper allows independence.
     /// If false, autostaking is enabled.
     bool public allowIndependence;
+
+    /// @notice The number of decimals for the underlying asset
+    /// and the wrapped token
     uint8 public underlyingDecimals;
 
     /// @notice The address of the keeper
