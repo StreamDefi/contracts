@@ -11,20 +11,26 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+
 /**
  * @title StreamVault
  * @notice A vault that allows users to stake and withdraw from an off-chain managed Stream strategy
  * @notice Users receive shares for their stakes, which can be redeemed for assets
  * @notice The rounds will be rolled over on a weekly basis
  */
-
 contract StreamVault is ReentrancyGuard, OFT {
     using SafeERC20 for IERC20;
     using ShareMath for Vault.StakeReceipt;
 
-    /************************************************
-     *  STATE
-     ***********************************************/
+    // #############################################
+    // CONSTANTS
+    // #############################################
+    /// @notice Minimum round number for valid stake receipts
+    uint256 private constant MINIMUM_VALID_ROUND = 2;
+
+    // #############################################
+    // STATE
+    // #############################################
     /// @notice Stores the user's pending stake for the round
     mapping(address => Vault.StakeReceipt) public stakeReceipts;
 
@@ -45,11 +51,12 @@ contract StreamVault is ReentrancyGuard, OFT {
     /// @notice the total supply of shares across all chains
     uint256 public omniTotalSupply;
 
+    /// @notice Whether the vault allows independence from the stable wrapper
     bool public allowIndependence;
 
-    /************************************************
-     *  EVENTS
-     ***********************************************/
+    // #############################################
+    // EVENTS
+    // #############################################
     event Stake(address indexed account, uint256 amount, uint256 round);
 
     event Unstake(address indexed account, uint256 amount, uint256 round);
@@ -75,25 +82,40 @@ contract StreamVault is ReentrancyGuard, OFT {
     );
     event AllowIndependenceSet(bool allowIndependence);
 
+    // #############################################
+    // ERRORS
+    // #############################################
     error IndependenceNotAllowed();
+
     error AmountMustBeGreaterThanZero();
+
     error AddressMustBeNonZero();
+
     error CapExceeded();
+
     error MinimumSupplyNotMet();
+
     error RoundMismatch();
+
     error AmountExceedsReceipt();
+
     error RoundMustBeGreaterThanOne();
+
     error InsufficientUnredeemedShares();
+
     error CapMustBeGreaterThanZero();
 
-    /************************************************
-     *  CONSTRUCTOR & INITIALIZATION
-     ***********************************************/
+    // #############################################
+    // CONSTRUCTOR & INITIALIZATION
+    // #############################################
 
     /**
      * @notice Initializes the contract with immutable variables
      * @param _tokenName is the token name of the share ERC-20
      * @param _tokenSymbol is the token symbol of the share ERC-20
+     * @param _stableWrapper is the address of the stable wrapper contract
+     * @param _lzEndpoint is the address of the LayerZero endpoint
+     * @param _delegate is the address of the delegate
      * @param _vaultParams is the `VaultParams` struct with general vault data
      */
     constructor(
@@ -116,9 +138,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultState.round = 1;
         allowIndependence = false;
     }
-    /************************************************
-     *  Wrapper functions
-     ***********************************************/
+    // #############################################
+    // Wrapper functions
+    // #############################################
 
     /**
      * @notice Deposits assets and stakes them in a single transaction
@@ -161,22 +183,22 @@ contract StreamVault is ReentrancyGuard, OFT {
         );
     }
 
-    /************************************************
-     *  PUBLIC STAKING
-     ***********************************************/
+    // #############################################
+    // PUBLIC STAKING
+    // #############################################
 
     /**
      * @notice Stakes the `asset` from msg.sender added to `creditor`'s stake.
      * @notice Used for vault -> vault stakes on the user's behalf
      * @param amount is the amount of `asset` to stake
      * @param creditor is the address that can claim/withdraw staked amount
+     * @dev An approve() by the msg.sender is required beforehand
      */
     function stake(uint104 amount, address creditor) public nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (creditor == address(0)) revert AddressMustBeNonZero();
 
-        // An approve() by the msg.sender is required beforehand
         IERC20(stableWrapper).safeTransferFrom(
             msg.sender,
             address(this),
@@ -190,6 +212,8 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Manages the stake receipts for a staker
      * @param amount is the amount of `asset` staked
      * @param creditor is the address to receieve the stake
+     * @dev This function should be called after the underlying
+     * token has been transferred to the vault
      */
     function _stakeInternal(uint104 amount, address creditor) private {
         uint16 currentRound = vaultState.round;
@@ -229,9 +253,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultState.totalPending = vaultState.totalPending + amount;
     }
 
-    /************************************************
-     *  WITHDRAWALS
-     ***********************************************/
+    // #############################################
+    // WITHDRAWALS
+    // #############################################
 
     /**
      * @notice External wrapper for instant unstaking
@@ -283,6 +307,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         address to
     ) internal nonReentrant returns (uint256) {
         if (numShares == 0) revert AmountMustBeGreaterThanZero();
+        if (to == address(0)) revert AddressMustBeNonZero();
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
@@ -290,12 +315,13 @@ contract StreamVault is ReentrancyGuard, OFT {
             stakeReceipts[msg.sender].amount > 0 ||
             stakeReceipts[msg.sender].unredeemedShares > 0
         ) {
-            _redeem(0, true);
+            _redeem(0);
         }
 
         // This caches the `round` variable used in shareBalances
         uint256 currentRound = vaultState.round;
-        if (currentRound <= 1) revert RoundMustBeGreaterThanOne();
+        if (currentRound < MINIMUM_VALID_ROUND)
+            revert RoundMustBeGreaterThanOne();
 
         uint256 withdrawAmount = ShareMath.sharesToAsset(
             numShares,
@@ -314,9 +340,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         return withdrawAmount;
     }
 
-    /************************************************
-     *  REDEMPTIONS
-     ***********************************************/
+    // #############################################
+    // REDEMPTIONS
+    // #############################################
 
     /**
      * @notice Redeems shares that are owed to the account
@@ -325,22 +351,22 @@ contract StreamVault is ReentrancyGuard, OFT {
     function redeem(uint256 numShares) external nonReentrant {
         if (numShares == 0) revert AmountMustBeGreaterThanZero();
 
-        _redeem(numShares, false);
+        _redeem(numShares);
     }
 
     /**
      * @notice Redeems the entire unredeemedShares balance that is owed to the account
      */
     function maxRedeem() external nonReentrant {
-        _redeem(0, true);
+        _redeem(0);
     }
 
     /**
      * @notice Redeems shares that are owed to the account
-     * @param numShares is the number of shares to redeem, could be 0 when isMax=true
-     * @param isMax is flag for when callers do a max redemption
+     * @param numShares is the number of shares to redeem,
+     * if numShares is 0, it will redeem all unredeemed shares
      */
-    function _redeem(uint256 numShares, bool isMax) internal {
+    function _redeem(uint256 numShares) internal {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
 
         uint256 currentRound = vaultState.round;
@@ -351,7 +377,7 @@ contract StreamVault is ReentrancyGuard, OFT {
             vaultParams.decimals
         );
 
-        numShares = isMax ? unredeemedShares : numShares;
+        numShares = numShares == 0 ? unredeemedShares : numShares;
         if (numShares == 0) {
             return;
         }
@@ -374,9 +400,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         _transfer(address(this), msg.sender, numShares);
     }
 
-    /************************************************
-     *  VAULT OPERATIONS
-     ***********************************************/
+    // #############################################
+    // VAULT OPERATIONS
+    // #############################################
 
     /**
      * @notice Rolls to the next round, finalizing prev round pricePerShare and minting new shares
@@ -464,9 +490,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         IERC20(stableWrapper).safeTransfer(recipient, amount);
     }
 
-    /************************************************
-     *  SETTERS
-     ***********************************************/
+    // #############################################
+    // SETTERS
+    // #############################################
 
     /**
      * @notice Sets a new stable wrapper contract address
@@ -507,9 +533,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         vaultParams = newVaultParams;
     }
 
-    /************************************************
-     *  GETTERS
-     ***********************************************/
+    // #############################################
+    // GETTERS
+    // #############################################
 
     /**
      * @notice Returns the asset balance held on the vault for the account not accounting for current round stakes
@@ -518,8 +544,9 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function accountVaultBalance(
         address account
-    ) external view returns (uint256) {
-        if (vaultState.round <= 1) revert RoundMustBeGreaterThanOne();
+    ) public view returns (uint256) {
+        if (vaultState.round < MINIMUM_VALID_ROUND)
+            revert RoundMustBeGreaterThanOne();
         uint256 _decimals = vaultParams.decimals;
         uint256 pricePerShare = roundPricePerShare[vaultState.round - 1];
         return
@@ -532,32 +559,42 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @return the share balance
      */
     function shares(address account) public view returns (uint256) {
-        (uint256 heldByAccount, uint256 heldByVault) = shareBalances(account);
+        uint256 heldByAccount = shareBalancesHeldByAccount(account);
+        uint256 heldByVault = shareBalancesHeldByVault(account);
         return heldByAccount + heldByVault;
     }
 
     /**
-     * @notice Getter for returning the account's share balance split between account and vault holdings
+     * @notice Getter for returning the account's share balance held by the account
      * @param account is the account to lookup share balance for
      * @return heldByAccount is the shares held by account
-     * @return heldByVault is the shares held on the vault (unredeemedShares)
      */
-    function shareBalances(
+    function shareBalancesHeldByAccount(
         address account
-    ) public view returns (uint256 heldByAccount, uint256 heldByVault) {
+    ) public view returns (uint256) {
+        return balanceOf(account);
+    }
+
+    /**
+     * @notice Getter for returning the account's share balance held by the vault
+     * @param account is the account to lookup share balance for
+     * @return heldByVault is the shares held by the vault (unredeemedShares)
+     */
+    function shareBalancesHeldByVault(
+        address account
+    ) public view returns (uint256) {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[account];
 
-        if (stakeReceipt.round < 2) {
-            return (balanceOf(account), 0);
+        if (stakeReceipt.round < MINIMUM_VALID_ROUND) {
+            return 0;
         }
 
-        uint256 unredeemedShares = stakeReceipt.getSharesFromReceipt(
-            vaultState.round,
-            roundPricePerShare[stakeReceipt.round],
-            vaultParams.decimals
-        );
-
-        return (balanceOf(account), unredeemedShares);
+        return
+            stakeReceipt.getSharesFromReceipt(
+                vaultState.round,
+                roundPricePerShare[stakeReceipt.round],
+                vaultParams.decimals
+            );
     }
 
     /**
@@ -574,17 +611,32 @@ contract StreamVault is ReentrancyGuard, OFT {
         return decimals();
     }
 
-    function cap() external view returns (uint256) {
+    /**
+     * @notice Returns the maximum amount of wrapped tokens
+     * that can be deposited into the vault
+     */
+    function cap() public view returns (uint256) {
         return vaultParams.cap;
     }
 
-    function totalPending() external view returns (uint256) {
+    /**
+     * @notice Returns the total amount of wrapped tokens
+     * for which share issuance is pending
+     */
+    function totalPending() public view returns (uint256) {
         return vaultState.totalPending;
     }
 
-    function round() external view returns (uint256) {
+    /**
+     * @notice Returns the current round number
+     */
+    function round() public view returns (uint256) {
         return vaultState.round;
     }
+
+    // #############################################
+    // OTHER
+    // #############################################
 
     /**
      * @notice Rescues ERC20 tokens stuck in the contract

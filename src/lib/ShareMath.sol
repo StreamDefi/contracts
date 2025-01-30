@@ -59,9 +59,9 @@ library ShareMath {
         return totalSupply > 0 ? (singleShare * (totalBalance - pendingAmount)) / totalSupply : singleShare;
     }
 
-    /************************************************
-     *  HELPERS
-     ***********************************************/
+    // #############################################
+    // HELPERS
+    // #############################################
 
     function assertUint104(uint256 num) internal pure {
         require(num <= type(uint104).max, "Overflow uint104");

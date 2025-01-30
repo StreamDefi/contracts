@@ -9,48 +9,127 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 
+/**
+ * @title StableWrapper
+ * @notice A token wrapper that allows users to obtain tokens needed to deposit into a StreamVault.
+ * @notice Users receive a Stream token that maps 1:1 to the asset deposited.
+ * @notice Initiated withdrawals can be completed after the epoch has passed.
+ */
 contract StableWrapper is OFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    // State variables
+    // #############################################
+    // STATE
+    // #############################################
+
+    /// @notice The asset that the wrapper is wrapping
     address public asset;
+
+    /// @notice The current epoch number
     uint32 public currentEpoch;
+
+    /// @notice Whether the wrapper allows independence.
+    /// If false, autostaking is enabled.
     bool public allowIndependence;
     uint8 public underlyingDecimals;
 
+    /// @notice The address of the keeper
     address public keeper;
 
-    // Withdrawal receipt mapping
+    /// @notice Stores the user's pending withdrawals
+    mapping(address => WithdrawalReceipt) public withdrawalReceipts;
+
+    // #############################################
+    // STRUCTS
+    // #############################################
+
+    /**
+     * @notice Struct representing a withdrawal receipt
+     * @dev Uses packed storage with uint224 for amount and uint32 for epoch
+     * @param amount The amount of tokens requested for withdrawal
+     * @param epoch The epoch during which the withdrawal was initiated
+     */
     struct WithdrawalReceipt {
         uint224 amount;
         uint32 epoch;
     }
 
-    mapping(address => WithdrawalReceipt) public withdrawalReceipts;
+    // #############################################
+    // EVENTS
+    // #############################################
 
-    // Events
     event Deposit(address indexed from, address indexed to, uint256 amount);
+
     event DepositToVault(address indexed user, uint256 amount);
+<<<<<<< HEAD
     event WithdrawalInitiated(
         address indexed user,
         uint224 amount,
         uint32 epoch
     );
+=======
+
+    event WithdrawalInitiated(address indexed user, uint224 amount, uint32 epoch);
+
+>>>>>>> main
     event Withdrawn(address indexed user, uint256 amount);
+
     event EpochAdvanced(uint32 newEpoch);
+
     event AssetTransferred(address indexed to, uint256 amount);
+
     event PermissionedMint(address indexed to, uint256 amount);
+
     event PermissionedBurn(address indexed from, uint256 amount);
+
     event AllowIndependenceSet(bool allowIndependence);
+
     event KeeperSet(address keeper);
 
+    // #############################################
+    // ERRORS
+    // #############################################
+
     error IndependenceNotAllowed();
+
     error AmountMustBeGreaterThanZero();
+
     error AddressMustBeNonZero();
+
     error InsufficientBalance();
+
     error NotKeeper();
+
     error CannotCompleteWithdrawalInSameEpoch();
 
+<<<<<<< HEAD
+=======
+    // #############################################
+    // MODIFIERS
+    // #############################################
+
+    /**
+     * @dev Throws if called by any account other than the keeper
+     */
+    modifier onlyKeeper() {
+        if (msg.sender != keeper) revert NotKeeper();
+        _;
+    }
+
+    // #############################################
+    // CONSTRUCTOR & INITIALIZATION
+    // #############################################
+
+    /**
+     * @notice Initializes the contract
+     * @param _asset is the address of the asset to wrap
+     * @param _name is the name of the wrapped ERC-20
+     * @param _symbol is the symbol of the wrapped ERC-20
+     * @param _keeper is the address of the keeper
+     * @param _lzEndpoint is the address of the LayerZero endpoint
+     * @param _delegate is the address of the delegate
+     */
+>>>>>>> main
     constructor(
         address _asset,
         string memory _name,
@@ -69,6 +148,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         underlyingDecimals = _underlyingDecimals;
     }
 
+<<<<<<< HEAD
     /**
      * @dev Throws if called by any account other than the keeper.
      */
@@ -95,44 +175,68 @@ contract StableWrapper is OFT, ReentrancyGuard {
         // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(from, address(this), amount);
     }
+=======
+    // #############################################
+    // DEPOSIT
+    // #############################################
+>>>>>>> main
 
     /**
      * @notice Deposits assets from a specified address and mints equivalent tokens
      * @param to Address to transfer assets to
      * @param amount Amount of assets to deposit
      */
-    function deposit(address to, uint256 amount) public nonReentrant {
+    function deposit(address to, uint256 amount) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
-        // Mint equivalent tokens to the specified address
         _mint(to, amount);
 
         emit Deposit(msg.sender, to, amount);
 
-        // Transfer assets from specified address
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
     }
+
+    /**
+     * @notice Deposits assets and mints equivalent tokens to the vault
+     * @param amount Amount of assets to deposit
+     */
+    function depositToVault(address from, uint256 amount) external nonReentrant onlyOwner {
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
+
+        _mint(owner(), amount);
+
+        emit DepositToVault(from, amount);
+
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
+    }
+
+    // #############################################
+    // WITHDRAWAL
+    // #############################################
 
     /**
      * @notice Burns tokens and creates withdrawal receipt
      * @param amount Amount of tokens to burn for withdrawal
      */
-    function initiateWithdrawal(uint224 amount) public nonReentrant {
+    function initiateWithdrawal(uint224 amount) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (balanceOf(msg.sender) < amount) revert InsufficientBalance();
 
-        // Burn tokens
         _burn(msg.sender, amount);
 
         uint224 currentAmount = withdrawalReceipts[msg.sender].amount;
 
+<<<<<<< HEAD
         // Create withdrawal receipt
         withdrawalReceipts[msg.sender] = WithdrawalReceipt({
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
+=======
+        withdrawalReceipts[msg.sender] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
+>>>>>>> main
 
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
@@ -142,22 +246,29 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from and create withdrawal receipt for
      * @param amount Amount of tokens to burn for withdrawal
      */
+<<<<<<< HEAD
     function initiateWithdrawalFromVault(
         address from,
         uint224 amount
     ) public nonReentrant onlyOwner {
+=======
+    function initiateWithdrawalFromVault(address from, uint224 amount) external nonReentrant onlyOwner {
+>>>>>>> main
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
-        // Burn tokens from the specified address
         _burn(address(this), amount);
 
         uint224 currentAmount = withdrawalReceipts[from].amount;
 
+<<<<<<< HEAD
         // Create withdrawal receipt for the specified address
         withdrawalReceipts[from] = WithdrawalReceipt({
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
+=======
+        withdrawalReceipts[from] = WithdrawalReceipt({amount: currentAmount + amount, epoch: currentEpoch});
+>>>>>>> main
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }
@@ -166,25 +277,24 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Complete withdrawal if epoch has passed
      * @param to Address to transfer assets to
      */
-    function completeWithdrawal(address to) public nonReentrant {
+    function completeWithdrawal(address to) external nonReentrant {
         WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
 
         if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
         if (receipt.epoch >= currentEpoch)
             revert CannotCompleteWithdrawalInSameEpoch();
 
+        delete withdrawalReceipts[msg.sender];
+
         // Cast uint224 to uint256 explicitly for the transfer
         uint256 amountToTransfer = uint256(receipt.amount);
 
-        // Clear receipt
-        delete withdrawalReceipts[msg.sender];
-
-        // Transfer assets back to user
-        IERC20(asset).safeTransfer(to, amountToTransfer);
-
         emit Withdrawn(to, amountToTransfer);
+
+        IERC20(asset).safeTransfer(to, amountToTransfer);
     }
 
+<<<<<<< HEAD
     /**
      * @notice Advances to next epoch
      */
@@ -234,13 +344,18 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         IERC20(_token).safeTransfer(to, amount);
     }
+=======
+    // #############################################
+    // MINT & BURN
+    // #############################################
+>>>>>>> main
 
     /**
      * @notice Allows owner to mint tokens to a specified address
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
      */
-    function permissionedMint(address to, uint256 amount) public onlyOwner {
+    function permissionedMint(address to, uint256 amount) external onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         _mint(to, amount);
         emit PermissionedMint(to, amount);
@@ -251,11 +366,73 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) public onlyOwner {
+    function permissionedBurn(address from, uint256 amount) external onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
+
+    // #############################################
+    // PROTOCOL CONTROL
+    // #############################################
+
+    /**
+     * @notice Advances to next epoch
+     */
+    function advanceEpoch() external onlyKeeper {
+        currentEpoch += 1;
+        emit EpochAdvanced(currentEpoch);
+    }
+
+    /**
+     * @notice Allows owner to transfer assets to specified address
+     * @param to Address to transfer assets to
+     * @param amount Amount of assets to transfer
+     * @param _token Address of the token to transfer
+     */
+    function transferAsset(address to, uint256 amount, address _token) external onlyKeeper {
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
+
+        emit AssetTransferred(to, amount);
+
+        IERC20(_token).safeTransfer(to, amount);
+    }
+
+    // #############################################
+    // SETTERS
+    // #############################################
+
+    /**
+     * @notice Allows keeper to set the keeper address
+     * @param _keeper New keeper address
+     */
+    function setKeeper(address _keeper) external onlyKeeper {
+        if (_keeper == address(0)) revert AddressMustBeNonZero();
+        keeper = _keeper;
+        emit KeeperSet(_keeper);
+    }
+
+    /**
+     * @notice Allows owner to set allowIndependence
+     * @param _allowIndependence New allowIndependence value
+     */
+    function setAllowIndependence(bool _allowIndependence) external onlyKeeper {
+        allowIndependence = _allowIndependence;
+        emit AllowIndependenceSet(_allowIndependence);
+    }
+
+    /**
+     * @notice Allows keeper to set the asset address
+     * @param _asset New asset address
+     */
+    function setAsset(address _asset) external onlyKeeper {
+        if (_asset == address(0)) revert AddressMustBeNonZero();
+        asset = _asset;
+    }
+
+    // #############################################
+    // GETTERS
+    // #############################################
 
     /**
      * @notice modify the token decimals

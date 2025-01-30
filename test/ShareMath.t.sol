@@ -60,17 +60,10 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
-            round: 1,
-            amount: uint104(assetAmount),
-            unredeemedShares: 0
-        });
+        Vault.StakeReceipt memory stakeReceipt =
+            Vault.StakeReceipt({round: 1, amount: uint104(assetAmount), unredeemedShares: 0});
 
-        uint256 shares = stakeReceipt.getSharesFromReceipt(
-            2,
-            assetPerShare,
-            decimals
-        );
+        uint256 shares = stakeReceipt.getSharesFromReceipt(2, assetPerShare, decimals);
 
         assertEq(shares, 10 * (10 ** 18));
     }
@@ -80,18 +73,11 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
-            round: 1,
-            amount: uint104(assetAmount),
-            unredeemedShares: 0
-        });
+        Vault.StakeReceipt memory stakeReceipt =
+            Vault.StakeReceipt({round: 1, amount: uint104(assetAmount), unredeemedShares: 0});
 
         // same round so should be zero shares
-        uint256 shares = stakeReceipt.getSharesFromReceipt(
-            1,
-            assetPerShare,
-            decimals
-        );
+        uint256 shares = stakeReceipt.getSharesFromReceipt(1, assetPerShare, decimals);
 
         assertEq(shares, 0);
     }
@@ -102,17 +88,10 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 10 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
-            round: 1,
-            amount: uint104(assetAmount),
-            unredeemedShares: 40 * (10 ** 18)
-        });
+        Vault.StakeReceipt memory stakeReceipt =
+            Vault.StakeReceipt({round: 1, amount: uint104(assetAmount), unredeemedShares: 40 * (10 ** 18)});
 
-        uint256 shares = stakeReceipt.getSharesFromReceipt(
-            2,
-            assetPerShare,
-            decimals
-        );
+        uint256 shares = stakeReceipt.getSharesFromReceipt(2, assetPerShare, decimals);
 
         assertEq(shares, 10 * (10 ** 18) + 40 * (10 ** 18));
     }
@@ -123,17 +102,10 @@ contract ShareMathTest is Test {
         uint256 assetPerShare = 2.3 * (10 ** 18);
         uint256 decimals = 18;
 
-        Vault.StakeReceipt memory stakeReceipt = Vault.StakeReceipt({
-            round: 1,
-            amount: uint104(assetAmount),
-            unredeemedShares: 0
-        });
+        Vault.StakeReceipt memory stakeReceipt =
+            Vault.StakeReceipt({round: 1, amount: uint104(assetAmount), unredeemedShares: 0});
 
-        uint256 shares = stakeReceipt.getSharesFromReceipt(
-            2,
-            assetPerShare,
-            decimals
-        );
+        uint256 shares = stakeReceipt.getSharesFromReceipt(2, assetPerShare, decimals);
 
         assertEq(shares, 36086956521739130434);
     }

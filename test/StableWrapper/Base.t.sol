@@ -81,9 +81,8 @@ contract Base is TestHelperOz5 {
             address(usdc),
             "Wrapped USD Coin",
             "wUSDC",
-            decimals,
             keeper,
-            address(endpoints[aEid]),
+            lzEndpoint,
             lzDelegate
         );
         vm.stopPrank();
