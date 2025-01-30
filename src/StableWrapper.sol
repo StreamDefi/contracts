@@ -59,7 +59,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address _keeper,
         address _lzEndpoint,
         address _delegate
-    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(_delegate) {
+    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
         if (_asset == address(0)) revert AddressMustBeNonZero();
         if (_keeper == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
@@ -267,8 +267,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Returns the token decimals
      */
-    function decimals() public view override returns (uint8) {
-        underlyingDecimals;
+    function decimals() public view virtual override returns (uint8) {
+        return underlyingDecimals;
     }
 
     /**
