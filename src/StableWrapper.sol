@@ -260,7 +260,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to mint
      */
     function permissionedMint(address to, uint256 amount) external onlyOwner {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -271,7 +270,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param amount Amount of tokens to burn
      */
     function permissionedBurn(address from, uint256 amount) external onlyOwner {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
