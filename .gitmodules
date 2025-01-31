@@ -7,3 +7,12 @@
 [submodule "lib/devtools"]
 	path = lib/devtools
 	url = https://github.com/LayerZero-Labs/devtools
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/LayerZero-v2"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/LayerZero-v2
+	url = https://github.com/LayerZero-Labs/LayerZero-v2

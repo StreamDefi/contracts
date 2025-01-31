@@ -84,11 +84,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function depositToVault(
         address from,
         uint256 amount
-    ) public nonReentrant onlyOwner {
+    ) public nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Mint equivalent tokens to the vault
-        _mint(owner(), amount);
+        _mint(keeper, amount);
 
         emit DepositToVault(from, amount);
 
@@ -145,7 +145,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function initiateWithdrawalFromVault(
         address from,
         uint224 amount
-    ) public nonReentrant onlyOwner {
+    ) public nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Burn tokens from the specified address
@@ -188,12 +188,12 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() public onlyKeeper {
+    function advanceEpoch() public onlyOwner {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
 
-    function setKeeper(address _keeper) public onlyKeeper {
+    function setKeeper(address _keeper) public onlyOwner {
         if (_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
@@ -203,16 +203,16 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) public onlyKeeper {
+    function setAllowIndependence(bool _allowIndependence) public onlyOwner {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
 
     /**
-     * @notice Allows keeper to set the asset address
+     * @notice Allows owner to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) public onlyKeeper {
+    function setAsset(address _asset) public onlyOwner {
         if (_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
@@ -227,7 +227,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address to,
         uint256 amount,
         address _token
-    ) public onlyKeeper {
+    ) public onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
@@ -240,8 +240,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
      */
-    function permissionedMint(address to, uint256 amount) public onlyOwner {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
+    function permissionedMint(address to, uint256 amount) public onlyKeeper {
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -251,8 +250,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) public onlyOwner {
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
+    function permissionedBurn(address from, uint256 amount) public onlyKeeper {
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
@@ -260,7 +258,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice modify the token decimals
      */
-    function setDecimals(uint8 _newDecimals) public onlyKeeper {
+    function setDecimals(uint8 _newDecimals) public onlyOwner {
         underlyingDecimals = _newDecimals;
     }
 

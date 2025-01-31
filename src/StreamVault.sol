@@ -438,7 +438,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 yield,
                 isYieldPositive
             );
-        } else {
+        } else if (currentBalance < balance) {
             IStableWrapper(stableWrapper).permissionedBurn(
                 address(this),
                 balance - currentBalance
@@ -449,6 +449,16 @@ contract StreamVault is ReentrancyGuard, OFT {
                 mintShares,
                 0,
                 balance - currentBalance,
+                yield,
+                isYieldPositive
+            );
+        } else {
+            emit RoundRolled(
+                currentRound,
+                newPricePerShare,
+                mintShares,
+                0,
+                0,
                 yield,
                 isYieldPositive
             );

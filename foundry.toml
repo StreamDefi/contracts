@@ -26,6 +26,8 @@ remappings = [
 solc-version = "0.8.22"
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
+arbitrum-sepolia = "${ARBITRUM_SEPOLIA_RPC}"
+base-sepolia = "${BASE_SEPOLIA_RPC}"
 berachain = "${BERACHIAN_RPC_URL}"
 
 [etherscan]
