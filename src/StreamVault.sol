@@ -585,10 +585,6 @@ contract StreamVault is ReentrancyGuard, OFT {
     ) public view returns (uint256) {
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[account];
 
-        if (stakeReceipt.round < MINIMUM_VALID_ROUND) {
-            return 0;
-        }
-
         return
             stakeReceipt.getSharesFromReceipt(
                 vaultState.round,
