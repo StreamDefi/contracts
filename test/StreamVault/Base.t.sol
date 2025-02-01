@@ -2,12 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import {StreamVault} from "../../src/StreamVault.sol";
 import {StableWrapper} from "../../src/StableWrapper.sol";
+import {Vault} from "../../src/lib/Vault.sol";
 import {MockERC20} from "../../mocks/MockERC20.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 contract Base is TestHelperOz5 {
     // contract
+    StreamVault streamVault;
     StableWrapper stableWrapper;
 
     // assets
@@ -39,6 +42,8 @@ contract Base is TestHelperOz5 {
     // helper
     uint8 decimals = 6;
     uint256 startingBal = 10000 * (10 ** 6);
+    uint104 cap = 10 ** 24;
+    uint56 minSupply = 10 ** 3;
 
     function setUp() public virtual override {
         super.setUp();
@@ -86,6 +91,23 @@ contract Base is TestHelperOz5 {
             address(endpoints[aEid]),
             lzDelegate
         );
+
+        Vault.VaultParams memory vaultParams = Vault.VaultParams({
+            decimals: decimals,
+            minimumSupply: minSupply,
+            cap: cap
+        });
+
+        streamVault = new StreamVault(
+            "Stream Yield Bearing USDC",
+            "syUSDC",
+            address(stableWrapper),
+            address(endpoints[aEid]),
+            lzDelegate,
+            vaultParams
+        );
+
+        stableWrapper.transferOwnership(address(streamVault));
         vm.stopPrank();
 
         // fund deposirs with 10_000 USDC and 100 ETH each and approve vault
@@ -98,54 +120,57 @@ contract Base is TestHelperOz5 {
         }
     }
 
-    function assertEpoch(uint32 expectedEpoch) public {
-        uint32 currentEpoch = stableWrapper.currentEpoch();
-        assertEq(currentEpoch, expectedEpoch, "current epoch");
+    function verifyVaultState(Vault.VaultState memory state) public {
+        (uint16 round, uint128 totalPending) = streamVault.vaultState();
+        assertEq(round, state.round);
+        assertEq(totalPending, state.totalPending);
     }
 
-    function assertWithdrawalReceipt(address user, uint224 amount) public {
-        (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper
-            .withdrawalReceipts(user);
-        assertEq(receiptAmount, amount, "withdrawal receipt amount");
-        assertEq(
-            receiptEpoch,
-            stableWrapper.currentEpoch(),
-            "withdrawal receipt epoch"
-        );
+    function assertBaseState() public {
+        assertEq(streamVault.name(), "Stream Yield Bearing USDC");
+        assertEq(streamVault.symbol(), "syUSDC");
+        assertEq(streamVault.decimals(), 6);
+        assertEq(streamVault.totalSupply(), 0);
+        assertEq(address(streamVault.endpoint()), address(endpoints[1]));
+        assertEq(streamVault.owner(), owner);
+        assertEq(streamVault.stableWrapper(), address(stableWrapper));
+        verifyVaultState(Vault.VaultState(uint16(1), uint128(0)));
+        assertEq(stableWrapper.balanceOf(address(streamVault)), 0);
+        assertEq(streamVault.omniTotalSupply(), 0);
     }
 
-    function assertWrapperBalance(uint256 expectedBalance) public {
-        _assertBalance(address(stableWrapper), expectedBalance);
+    function assertVaultState(uint16 round, uint128 totalPending) public {
+        (uint16 _round, uint128 _totalPending) = streamVault.vaultState();
+        assertEq(_round, round);
+        assertEq(_totalPending, totalPending);
     }
 
-    function assertUserBalance(address user, uint256 expectedBalance) public {
-        _assertBalance(user, expectedBalance);
-    }
-
-    function _assertBalance(address account, uint256 expectedBalance) public {
-        assertEq(usdc.balanceOf(account), expectedBalance, "balance");
-    }
-
-    /************************************************
-     *  WITHDRAW HELPERS
-     ***********************************************/
-    function depositFromAddyAndRollEpoch(
-        address _depositor,
-        uint256 _amount
+    function assertStakeReceipt(
+        address depositor,
+        uint16 round,
+        uint104 amount,
+        uint128 unredeemedShares
     ) public {
-        vm.prank(owner);
-        stableWrapper.depositToVault(_depositor, _amount);
-        vm.prank(keeper);
-        stableWrapper.advanceEpoch();
+        (
+            uint16 _round,
+            uint104 _amount,
+            uint128 _unredeemedShares
+        ) = streamVault.stakeReceipts(depositor);
+        assertEq(_round, round);
+        assertEq(_amount, amount);
+        assertEq(_unredeemedShares, unredeemedShares);
     }
 
-    function assertNoStateChangeAfterRevert_Vault(
+    function assertAccountVaultBalance(
         address _depositor,
-        uint256 _amount
+        uint256 _balance
     ) public {
-        vm.assertEq(usdc.balanceOf(_depositor), startingBal - _amount);
-        vm.assertEq(stableWrapper.totalSupply(), _amount);
-        vm.assertEq(stableWrapper.balanceOf(owner), _amount);
-        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        uint256 balance = streamVault.accountVaultBalance(_depositor);
+        assertEq(balance, _balance);
+    }
+
+    function assertShares(address _depositor, uint256 _shares) public {
+        uint256 shares = streamVault.shares(_depositor);
+        assertEq(shares, _shares);
     }
 }

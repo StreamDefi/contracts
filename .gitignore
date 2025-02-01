@@ -10,6 +10,7 @@ broadcast/
 
 .DS_Store
 .gas-snapshot
+node_modules
 # Docs
 docs/
 
@@ -18,3 +19,4 @@ docs/
 
 # VSCode IDE
 .vscode/
+
