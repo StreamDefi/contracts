@@ -147,11 +147,11 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Deposits assets and stakes them in a single transaction
      * @param amount Amount of assets to deposit and stake
      */
-    function depositAndStake(uint104 amount) external nonReentrant {
+    function depositAndStake(uint104 amount, address creditor) external nonReentrant {
         IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
         // Then stake the wrapped tokens
-        _stakeInternal(amount, msg.sender);
+        _stakeInternal(amount, creditor);
     }
 
     /**

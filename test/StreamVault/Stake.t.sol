@@ -16,7 +16,7 @@ contract StreamVaultStakeTest is Base {
         vm.startPrank(depositor1);
         usdc.approve(address(stableWrapper), cap + 1);
         vm.expectRevert(StreamVault.CapExceeded.selector);
-        streamVault.depositAndStake(cap + 1);
+        streamVault.depositAndStake(cap + 1, depositor1);
         vm.stopPrank();
 
         assertBaseState();
@@ -25,7 +25,7 @@ contract StreamVaultStakeTest is Base {
     function test_RevertIfDepositIsShortOfMinSupply() public {
         vm.startPrank(depositor1);
         vm.expectRevert(StreamVault.MinimumSupplyNotMet.selector);
-        streamVault.depositAndStake(minSupply - 1);
+        streamVault.depositAndStake(minSupply - 1, depositor1);
         vm.stopPrank();
 
         assertBaseState();
@@ -34,7 +34,7 @@ contract StreamVaultStakeTest is Base {
     function test_SuccessfullDepositAndStake_Receipt(uint104 _amount) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.prank(depositor1);
-        streamVault.depositAndStake(_amount);
+        streamVault.depositAndStake(_amount, depositor1);
 
         assertEq(streamVault.balanceOf(depositor1), 0);
         assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
@@ -51,7 +51,7 @@ contract StreamVaultStakeTest is Base {
     function test_SuccessfullDepositAndStake_WithRoll(uint104 _amount) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.prank(depositor1);
-        streamVault.depositAndStake(_amount);
+        streamVault.depositAndStake(_amount, depositor1);
 
         vm.prank(owner);
         streamVault.rollToNextRound(0, true);
@@ -75,7 +75,7 @@ contract StreamVaultStakeTest is Base {
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.prank(depositor1);
-        streamVault.depositAndStake(_amount);
+        streamVault.depositAndStake(_amount, depositor1);
 
         vm.prank(owner);
         streamVault.rollToNextRound(0, true);
@@ -100,7 +100,7 @@ contract StreamVaultStakeTest is Base {
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.prank(depositor1);
-        streamVault.depositAndStake(_amount);
+        streamVault.depositAndStake(_amount, depositor1);
 
         vm.prank(owner);
         streamVault.rollToNextRound(0, true);

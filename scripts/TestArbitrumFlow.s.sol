@@ -28,7 +28,7 @@ contract TestArbitrumFlowScript is Script {
         token.approve(address(wrapper), 2000e6);
 
         // 3. Deposit and stake
-        vault.depositAndStake(200e6);  // Let's start with 200 USDC
+        vault.depositAndStake(200e6, deployer);  // Let's start with 200 USDC
         console2.log("After deposit token balance:", token.balanceOf(deployer));
         console2.log("After deposit vault shares:", vault.balanceOf(deployer));
 
