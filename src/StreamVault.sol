@@ -11,6 +11,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title StreamVault
@@ -183,6 +184,21 @@ contract StreamVault is ReentrancyGuard, OFT {
         );
     }
 
+    function bridgeWithRedeem(
+        SendParam calldata sendParam,
+        MessagingFee calldata fee,
+        address payable refundAddress
+    ) external payable returns (MessagingReceipt memory, OFTReceipt memory) {
+        // First redeem any shares if needed
+        Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
+        if (stakeReceipt.amount > 0 || stakeReceipt.unredeemedShares > 0) {
+            _redeem(0, true);
+        }
+
+        // Then call the internal _send
+        return _send(sendParam, fee, refundAddress);
+    }
+
     // #############################################
     // PUBLIC STAKING
     // #############################################
@@ -311,11 +327,14 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
-        if (
-            stakeReceipts[msg.sender].amount > 0 ||
-            stakeReceipts[msg.sender].unredeemedShares > 0
-        ) {
-            _redeem(0);
+        {
+            Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
+            if (
+                stakeReceipt.amount > 0 ||
+                stakeReceipt.unredeemedShares > 0
+            ) {
+                _redeem(0, true);
+            }
         }
 
         // This caches the `round` variable used in shareBalances
@@ -464,7 +483,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 yield,
                 isYieldPositive
             );
-        } else {
+        } else if (currentBalance < balance) {
             IStableWrapper(stableWrapper).permissionedBurn(
                 address(this),
                 balance - currentBalance
@@ -478,7 +497,16 @@ contract StreamVault is ReentrancyGuard, OFT {
                 yield,
                 isYieldPositive
             );
-        }
+        } else {
+            emit RoundRolled(
+                currentRound,
+                newPricePerShare,
+                mintShares,
+                0,
+                0,
+                yield,
+                isYieldPositive
+            );
     }
 
     /**

@@ -171,7 +171,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function depositToVault(
         address from,
         uint256 amount
-    ) external nonReentrant onlyOwner {
+    ) external nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(owner(), amount);
@@ -214,7 +214,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function initiateWithdrawalFromVault(
         address from,
         uint224 amount
-    ) external nonReentrant onlyOwner {
+    ) external nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _burn(address(this), amount);
@@ -259,7 +259,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
      */
-    function permissionedMint(address to, uint256 amount) external onlyOwner {
+    function permissionedMint(address to, uint256 amount) external onlyKeeper {
         _mint(to, amount);
         emit PermissionedMint(to, amount);
     }
@@ -269,7 +269,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) external onlyOwner {
+    function permissionedBurn(address from, uint256 amount) external onlyKeeper {
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }
@@ -281,7 +281,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Advances to next epoch
      */
-    function advanceEpoch() external onlyKeeper {
+    function advanceEpoch() external onlyOwner {
         currentEpoch += 1;
         emit EpochAdvanced(currentEpoch);
     }
@@ -296,7 +296,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address to,
         uint256 amount,
         address _token
-    ) external onlyKeeper {
+    ) external onlyOwner {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         emit AssetTransferred(to, amount);
@@ -312,7 +312,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the keeper address
      * @param _keeper New keeper address
      */
-    function setKeeper(address _keeper) external onlyKeeper {
+    function setKeeper(address _keeper) external onlyOwner {
         if (_keeper == address(0)) revert AddressMustBeNonZero();
         keeper = _keeper;
         emit KeeperSet(_keeper);
@@ -322,7 +322,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows owner to set allowIndependence
      * @param _allowIndependence New allowIndependence value
      */
-    function setAllowIndependence(bool _allowIndependence) external onlyKeeper {
+    function setAllowIndependence(bool _allowIndependence) external onlyOwner {
         allowIndependence = _allowIndependence;
         emit AllowIndependenceSet(_allowIndependence);
     }
@@ -331,7 +331,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Allows keeper to set the asset address
      * @param _asset New asset address
      */
-    function setAsset(address _asset) external onlyKeeper {
+    function setAsset(address _asset) external onlyOwner {
         if (_asset == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
     }
@@ -343,7 +343,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice modify the token decimals
      */
-    function setDecimals(uint8 _newDecimals) public onlyKeeper {
+    function setDecimals(uint8 _newDecimals) public onlyOwner {
         underlyingDecimals = _newDecimals;
     }
 

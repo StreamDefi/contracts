@@ -10,6 +10,23 @@ contract MyOFT is OFT {
         string memory _name,
         string memory _symbol,
         address _lzEndpoint,
-        address _delegate
-    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {}
+        address _delegate,
+        uint8 _underlyingDecimals
+    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(_delegate) {
+        underlyingDecimals = _underlyingDecimals;
+    }
+
+    /**
+     * @notice Returns the shared token decimals for OFT
+     */
+    function sharedDecimals() public view virtual override returns (uint8) {
+        return decimals();
+    }
+
+    /**
+     * @notice Returns the token decimals
+     */
+    function decimals() public view virtual override returns (uint8) {
+        return underlyingDecimals;
+    }
 }
