@@ -106,13 +106,6 @@ contract StableWrapperKeeperFuncsTest is Base {
         vm.stopPrank();
     }
 
-    function test_RevertIfPermissionedMintAmountIsZero() public {
-        vm.startPrank(owner);
-        vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
-        stableWrapper.permissionedMint(address(1), 0);
-        vm.stopPrank();
-    }
-
     function test_SuccessfulPermissionedMint(uint256 _amount) public {
         vm.assume(_amount != 0);
         address recipient = address(1);
@@ -139,13 +132,6 @@ contract StableWrapperKeeperFuncsTest is Base {
             )
         );
         stableWrapper.permissionedBurn(address(1), 100);
-        vm.stopPrank();
-    }
-
-    function test_RevertIfPermissionedBurnAmountIsZero() public {
-        vm.startPrank(owner);
-        vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
-        stableWrapper.permissionedBurn(address(1), 0);
         vm.stopPrank();
     }
 

@@ -138,4 +138,39 @@ contract Base is TestHelperOz5 {
         assertEq(stableWrapper.balanceOf(address(streamVault)), 0);
         assertEq(streamVault.omniTotalSupply(), 0);
     }
+
+    function assertVaultState(uint16 round, uint128 totalPending) public {
+        (uint16 _round, uint128 _totalPending) = streamVault.vaultState();
+        assertEq(_round, round);
+        assertEq(_totalPending, totalPending);
+    }
+
+    function assertStakeReceipt(
+        address depositor,
+        uint16 round,
+        uint104 amount,
+        uint128 unredeemedShares
+    ) public {
+        (
+            uint16 _round,
+            uint104 _amount,
+            uint128 _unredeemedShares
+        ) = streamVault.stakeReceipts(depositor);
+        assertEq(_round, round);
+        assertEq(_amount, amount);
+        assertEq(_unredeemedShares, unredeemedShares);
+    }
+
+    function assertAccountVaultBalance(
+        address _depositor,
+        uint256 _balance
+    ) public {
+        uint256 balance = streamVault.accountVaultBalance(_depositor);
+        assertEq(balance, _balance);
+    }
+
+    function assertShares(address _depositor, uint256 _shares) public {
+        uint256 shares = streamVault.shares(_depositor);
+        assertEq(shares, _shares);
+    }
 }
