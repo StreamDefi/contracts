@@ -192,7 +192,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         // First redeem any shares if needed
         Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
         if (stakeReceipt.amount > 0 || stakeReceipt.unredeemedShares > 0) {
-            _redeem(0, true);
+            _redeem(0);
         }
 
         // Then call the internal _send
@@ -333,7 +333,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 stakeReceipt.amount > 0 ||
                 stakeReceipt.unredeemedShares > 0
             ) {
-                _redeem(0, true);
+                _redeem(0);
             }
         }
 
@@ -507,6 +507,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 yield,
                 isYieldPositive
             );
+        }
     }
 
     /**

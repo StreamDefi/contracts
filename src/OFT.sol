@@ -6,6 +6,9 @@ import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 
 /// @notice OFT is an ERC-20 token that extends the OFTCore contract.
 contract MyOFT is OFT {
+
+    uint8 public underlyingDecimals;
+    
     constructor(
         string memory _name,
         string memory _symbol,
