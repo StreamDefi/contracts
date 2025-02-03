@@ -147,7 +147,10 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Deposits assets and stakes them in a single transaction
      * @param amount Amount of assets to deposit and stake
      */
-    function depositAndStake(uint104 amount, address creditor) external nonReentrant {
+    function depositAndStake(
+        uint104 amount,
+        address creditor
+    ) external nonReentrant {
         IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
         // Then stake the wrapped tokens
@@ -286,7 +289,7 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Withdraws the assets on the vault using the outstanding `StakeReceipt.amount`
      * @param amount is the amount to withdraw
      */
-    function _instantUnstake(uint104 amount, address to) internal nonReentrant {
+    function _instantUnstake(uint104 amount, address to) internal {
         Vault.StakeReceipt storage stakeReceipt = stakeReceipts[msg.sender];
 
         uint16 currentRound = vaultState.round;
@@ -329,10 +332,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         // But we check if they must first have unredeemed shares
         {
             Vault.StakeReceipt memory stakeReceipt = stakeReceipts[msg.sender];
-            if (
-                stakeReceipt.amount > 0 ||
-                stakeReceipt.unredeemedShares > 0
-            ) {
+            if (stakeReceipt.amount > 0 || stakeReceipt.unredeemedShares > 0) {
                 _redeem(0);
             }
         }
