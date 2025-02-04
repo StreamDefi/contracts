@@ -174,4 +174,34 @@ contract Base is TestHelperOz5 {
         uint256 shares = streamVault.shares(_depositor);
         assertEq(shares, _shares);
     }
+
+    function stakeAssets(
+        address _depositor,
+        address _creditor,
+        uint104 _amount
+    ) public {
+        vm.prank(_depositor);
+        streamVault.depositAndStake(_amount, _creditor);
+    }
+
+    function rollRound() public {
+        vm.prank(owner);
+        streamVault.rollToNextRound(0, true);
+    }
+
+    function stakeAndRollRound(
+        address _depositor,
+        address _creditor,
+        uint104 _amount
+    ) public {
+        stakeAssets(_depositor, _creditor, _amount);
+        rollRound();
+    }
+
+    function assertOneRollBaseState(uint104 _amount) public {
+        assertEq(streamVault.totalSupply(), uint256(_amount));
+        assertEq(streamVault.balanceOf(address(streamVault)), uint256(_amount));
+        assertEq(streamVault.omniTotalSupply(), uint256(_amount));
+        verifyVaultState(Vault.VaultState(uint16(2), uint128(0)));
+    }
 }
