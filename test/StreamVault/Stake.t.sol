@@ -27,7 +27,6 @@ contract StreamVaultStakeTest is Base {
         vm.expectRevert(StreamVault.MinimumSupplyNotMet.selector);
         streamVault.depositAndStake(minSupply - 1, depositor1);
         vm.stopPrank();
-
         assertBaseState();
     }
 
@@ -165,7 +164,7 @@ contract StreamVaultStakeTest is Base {
         uint104 _amount
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         vm.prank(owner);
         streamVault.setAllowIndependence(true);

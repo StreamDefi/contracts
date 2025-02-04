@@ -6,90 +6,10 @@ import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.so
 import {Base} from "./Base.t.sol";
 
 /************************************************
- * KEEPER FUNCS
+ * PERMISSIONED FUNCS
  ***********************************************/
-contract StableWrapperKeeperFuncsTest is Base {
+contract StableWrapperPermissionedFuncsTest is Base {
     function test_RevertIfAdvanceToEpochCallerIsNotOwner(
-        address _caller
-    ) public {
-        vm.assume(_caller != keeper);
-        vm.assume(_caller != address(0));
-
-        vm.startPrank(_caller);
-        vm.expectRevert(StableWrapper.NotKeeper.selector);
-        stableWrapper.advanceEpoch();
-        vm.stopPrank();
-    }
-
-    function test_AdvanceEpochAdvancedEpochByOne() public {
-        assertEpoch(1);
-        vm.prank(keeper);
-        stableWrapper.advanceEpoch();
-        assertEpoch(2);
-    }
-
-    function test_RevertIfSetKeeperNotCalledByKeeper(address _caller) public {
-        vm.assume(_caller != keeper);
-        vm.assume(_caller != address(0));
-        vm.startPrank(_caller);
-        vm.expectRevert(StableWrapper.NotKeeper.selector);
-        stableWrapper.setKeeper(vm.addr(1001));
-        assertEq(stableWrapper.keeper(), keeper);
-    }
-
-    function test_RevertIfSetKeeperSetsAddressZero() public {
-        vm.startPrank(keeper);
-        vm.expectRevert(StableWrapper.AddressMustBeNonZero.selector);
-        stableWrapper.setKeeper(address(0));
-        assertEq(stableWrapper.keeper(), keeper);
-    }
-
-    function test_RevertIfsetAllowIndependenceNotCalledByKeeper(
-        address _caller
-    ) public {
-        vm.assume(_caller != keeper);
-        vm.assume(_caller != address(0));
-        vm.startPrank(_caller);
-        vm.expectRevert(StableWrapper.NotKeeper.selector);
-        stableWrapper.setAllowIndependence(true);
-        assertEq(stableWrapper.allowIndependence(), false);
-    }
-
-    function test_SuccessfullSetAllowIndependence() public {
-        assertEq(stableWrapper.allowIndependence(), false);
-        vm.prank(keeper);
-        stableWrapper.setAllowIndependence(true);
-        assertEq(stableWrapper.allowIndependence(), true);
-    }
-
-    function test_RevertIfTransferAssetWithAmountZero() public {
-        vm.startPrank(keeper);
-        vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
-        stableWrapper.transferAsset(keeper, 0, address(0));
-        vm.stopPrank();
-    }
-    function test_RevertIfKeeperDoesNotCallTransferAsset(
-        address _caller
-    ) public {
-        vm.assume(_caller != keeper);
-        vm.assume(_caller != address(0));
-        vm.startPrank(_caller);
-        vm.expectRevert(StableWrapper.NotKeeper.selector);
-        stableWrapper.transferAsset(keeper, 0, address(0));
-        vm.stopPrank();
-    }
-
-    function test_SuccessfullTransferAsset() public {
-        vm.prank(depositor1);
-        usdc.transfer(address(stableWrapper), 100);
-        assertEq(usdc.balanceOf(address(stableWrapper)), 100);
-        vm.prank(keeper);
-        stableWrapper.transferAsset(keeper, 100, address(usdc));
-        assertEq(usdc.balanceOf(keeper), 100);
-        assertEq(usdc.balanceOf(address(stableWrapper)), 0);
-    }
-
-    function test_RevertIfPermissionedMintCallerIsNotOwner(
         address _caller
     ) public {
         vm.assume(_caller != owner);
@@ -102,6 +22,101 @@ contract StableWrapperKeeperFuncsTest is Base {
                 _caller
             )
         );
+        stableWrapper.advanceEpoch();
+        vm.stopPrank();
+    }
+
+    function test_AdvanceEpochAdvancedEpochByOne() public {
+        assertEpoch(1);
+        vm.prank(owner);
+        stableWrapper.advanceEpoch();
+        assertEpoch(2);
+    }
+
+    function test_RevertIfSetKeeperNotCalledByOwner(address _caller) public {
+        vm.assume(_caller != owner);
+        vm.assume(_caller != address(0));
+        vm.startPrank(_caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                _caller
+            )
+        );
+        stableWrapper.setKeeper(vm.addr(1001));
+        assertEq(stableWrapper.keeper(), keeper);
+    }
+
+    function test_RevertIfSetKeeperSetsAddressZero() public {
+        vm.startPrank(owner);
+        vm.expectRevert(StableWrapper.AddressMustBeNonZero.selector);
+        stableWrapper.setKeeper(address(0));
+        assertEq(stableWrapper.keeper(), keeper);
+    }
+
+    function test_RevertIfsetAllowIndependenceNotCalledByOwner(
+        address _caller
+    ) public {
+        vm.assume(_caller != owner);
+        vm.assume(_caller != address(0));
+        vm.startPrank(_caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                _caller
+            )
+        );
+        stableWrapper.setAllowIndependence(true);
+        assertEq(stableWrapper.allowIndependence(), false);
+    }
+
+    function test_SuccessfullSetAllowIndependence() public {
+        assertEq(stableWrapper.allowIndependence(), false);
+        vm.prank(owner);
+        stableWrapper.setAllowIndependence(true);
+        assertEq(stableWrapper.allowIndependence(), true);
+    }
+
+    function test_RevertIfTransferAssetWithAmountZero() public {
+        vm.startPrank(owner);
+        vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
+        stableWrapper.transferAsset(keeper, 0, address(0));
+        vm.stopPrank();
+    }
+    function test_RevertIfKeeperDoesNotCallTransferAsset(
+        address _caller
+    ) public {
+        vm.assume(_caller != owner);
+        vm.assume(_caller != address(0));
+        vm.startPrank(_caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                _caller
+            )
+        );
+        stableWrapper.transferAsset(keeper, 0, address(0));
+        vm.stopPrank();
+    }
+
+    function test_SuccessfullTransferAsset() public {
+        vm.prank(depositor1);
+        usdc.transfer(address(stableWrapper), 100);
+        assertEq(usdc.balanceOf(address(stableWrapper)), 100);
+        vm.prank(owner);
+        stableWrapper.transferAsset(keeper, 100, address(usdc));
+        assertEq(usdc.balanceOf(keeper), 100);
+        assertEq(usdc.balanceOf(address(stableWrapper)), 0);
+    }
+
+    function test_RevertIfPermissionedMintCallerIsNotKeeper(
+        address _caller
+    ) public {
+        vm.assume(_caller != keeper);
+        vm.assume(_caller != address(0));
+
+        vm.startPrank(_caller);
+        vm.expectRevert(StableWrapper.NotKeeper.selector);
         stableWrapper.permissionedMint(address(1), 100);
         vm.stopPrank();
     }
@@ -111,16 +126,39 @@ contract StableWrapperKeeperFuncsTest is Base {
         address recipient = address(1);
         uint256 amount = _amount;
 
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.permissionedMint(recipient, _amount);
 
         assertEq(stableWrapper.balanceOf(recipient), _amount);
         assertEq(stableWrapper.totalSupply(), _amount);
     }
 
-    function test_RevertIfPermissionedBurnCallerIsNotOwner(
+    function test_RevertIfPermissionedBurnCallerIsNotKeeper(
         address _caller
     ) public {
+        vm.assume(_caller != keeper);
+        vm.assume(_caller != address(0));
+
+        vm.startPrank(_caller);
+        vm.expectRevert(StableWrapper.NotKeeper.selector);
+        stableWrapper.permissionedBurn(address(1), 100);
+        vm.stopPrank();
+    }
+
+    function test_SuccessfulPermissionedBurn() public {
+        address burner = address(1);
+        uint256 amount = 100;
+
+        vm.prank(keeper);
+        stableWrapper.permissionedMint(burner, amount);
+        assertEq(stableWrapper.balanceOf(burner), amount);
+
+        vm.prank(keeper);
+        stableWrapper.permissionedBurn(burner, amount);
+        assertEq(stableWrapper.balanceOf(burner), 0);
+    }
+
+    function test_RevertIfSetDecimalsCallerIsNotOwner(address _caller) public {
         vm.assume(_caller != owner);
         vm.assume(_caller != address(0));
 
@@ -131,35 +169,12 @@ contract StableWrapperKeeperFuncsTest is Base {
                 _caller
             )
         );
-        stableWrapper.permissionedBurn(address(1), 100);
-        vm.stopPrank();
-    }
-
-    function test_SuccessfulPermissionedBurn() public {
-        address burner = address(1);
-        uint256 amount = 100;
-
-        vm.prank(owner);
-        stableWrapper.permissionedMint(burner, amount);
-        assertEq(stableWrapper.balanceOf(burner), amount);
-
-        vm.prank(owner);
-        stableWrapper.permissionedBurn(burner, amount);
-        assertEq(stableWrapper.balanceOf(burner), 0);
-    }
-
-    function test_RevertIfSetDecimalsCallerIsNotKeeper(address _caller) public {
-        vm.assume(_caller != keeper);
-        vm.assume(_caller != address(0));
-
-        vm.startPrank(_caller);
-        vm.expectRevert(StableWrapper.NotKeeper.selector);
         stableWrapper.setDecimals(18);
         vm.stopPrank();
     }
 
     function test_SuccessfulSetDecimals(uint8 _newDecimals) public {
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setDecimals(_newDecimals);
 
         assertEq(stableWrapper.decimals(), _newDecimals);

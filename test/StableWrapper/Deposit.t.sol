@@ -20,22 +20,17 @@ contract StableWrapperDepositTest is Base {
         vm.stopPrank();
     }
 
-    function test_RevertIfCallerIsTheOwner_Vault(
+    function test_RevertIfCallerIsNotTheKeeper_Vault(
         address _caller,
         address _depositor,
         uint256 _amount
     ) public {
         vm.assume(_amount != 0);
-        vm.assume(_caller != owner);
+        vm.assume(_caller != keeper);
         vm.assume(_depositor != address(0));
         vm.assume(_caller != address(0));
         vm.startPrank(_caller);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                _caller
-            )
-        );
+        vm.expectRevert(StableWrapper.NotKeeper.selector);
         stableWrapper.depositToVault(_depositor, _amount);
         vm.stopPrank();
     }
@@ -63,7 +58,7 @@ contract StableWrapperDepositTest is Base {
         vm.stopPrank();
 
         assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
-        assertEq(stableWrapper.balanceOf(owner), _amount);
+        assertEq(stableWrapper.balanceOf(keeper), _amount);
         assertEq(stableWrapper.totalSupply(), _amount);
         assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
