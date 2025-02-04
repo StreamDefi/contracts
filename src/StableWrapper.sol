@@ -45,6 +45,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice The amount of assets that have been withdrawn
     uint256 public withdrawalAmountForEpoch;
 
+    /// @notice The amount of assets that have been deposited
+    uint256 public depositAmountForEpoch;
+
     // #############################################
     // STRUCTS
     // #############################################
@@ -162,6 +165,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         _mint(to, amount);
 
+        depositAmountForEpoch += amount;
+
         emit Deposit(msg.sender, to, amount);
 
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -178,6 +183,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(keeper, amount);
+
+        depositAmountForEpoch += amount;
 
         emit DepositToVault(from, amount);
 
@@ -293,20 +300,17 @@ contract StableWrapper is OFT, ReentrancyGuard {
      */
     function processWithdrawals() external onlyOwner nonReentrant {
 
-        uint256 balance = IERC20(asset).balanceOf(address(this));
-
-
-        if (withdrawalAmountForEpoch > balance) {
-            IERC20(asset).safeTransferFrom(owner(), address(this), withdrawalAmountForEpoch - balance);
-        } else if (withdrawalAmountForEpoch < balance) {
-            IERC20(asset).safeTransfer(owner(), balance - withdrawalAmountForEpoch);
+        if (withdrawalAmountForEpoch > depositAmountForEpoch) {
+            IERC20(asset).safeTransferFrom(owner(), address(this), withdrawalAmountForEpoch - depositAmountForEpoch);
+        } else if (withdrawalAmountForEpoch < depositAmountForEpoch) {
+            IERC20(asset).safeTransfer(owner(), depositAmountForEpoch - withdrawalAmountForEpoch);
         }
 
-        emit WithdrawalsProcessed(withdrawalAmountForEpoch, balance, currentEpoch);
+        emit WithdrawalsProcessed(withdrawalAmountForEpoch, depositAmountForEpoch, currentEpoch);
 
         currentEpoch += 1;
         withdrawalAmountForEpoch = 0;
-        
+        depositAmountForEpoch = 0;
     }
 
     /**
