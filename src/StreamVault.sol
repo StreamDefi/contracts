@@ -318,7 +318,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     }
 
     /**
-     * @notice Initiates a withdrawal that can be processed once the round completes
+     * @notice Initiates a withdrawal
      * @param numShares is the number of shares to withdraw and burn
      */
     function _unstake(

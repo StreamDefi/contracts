@@ -42,6 +42,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice Stores the user's pending withdrawals
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
+    /// @notice The amount of assets that have been withdrawn
+    uint256 public withdrawalAmountForEpoch;
+
     // #############################################
     // STRUCTS
     // #############################################
@@ -73,7 +76,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     event Withdrawn(address indexed user, uint256 amount);
 
-    event EpochAdvanced(uint32 newEpoch);
+    event WithdrawalsProcessed(uint256 withdrawalAmount, uint256 balance, uint32 epoch);
 
     event AssetTransferred(address indexed to, uint256 amount);
 
@@ -203,6 +206,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
             epoch: currentEpoch
         });
 
+        withdrawalAmountForEpoch += amount;
+
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
 
@@ -225,6 +230,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
+
+        withdrawalAmountForEpoch += amount;
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }
@@ -282,11 +289,24 @@ contract StableWrapper is OFT, ReentrancyGuard {
     // #############################################
 
     /**
-     * @notice Advances to next epoch
+     * @notice Processes the withdrawal for the current epoch
      */
-    function advanceEpoch() external onlyOwner {
+    function processWithdrawals() external onlyOwner nonReentrant {
+
+        uint256 balance = IERC20(asset).balanceOf(address(this));
+
+
+        if (withdrawalAmountForEpoch > balance) {
+            IERC20(asset).safeTransferFrom(owner(), address(this), withdrawalAmountForEpoch - balance);
+        } else if (withdrawalAmountForEpoch < balance) {
+            IERC20(asset).safeTransfer(owner(), balance - withdrawalAmountForEpoch);
+        }
+
+        emit WithdrawalsProcessed(withdrawalAmountForEpoch, balance, currentEpoch);
+
         currentEpoch += 1;
-        emit EpochAdvanced(currentEpoch);
+        withdrawalAmountForEpoch = 0;
+        
     }
 
     /**
