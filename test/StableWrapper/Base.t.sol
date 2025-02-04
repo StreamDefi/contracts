@@ -86,6 +86,7 @@ contract Base is TestHelperOz5 {
             address(endpoints[aEid]),
             lzDelegate
         );
+        stableWrapper.transferOwnership(keeper);
         vm.stopPrank();
 
         // fund deposirs with 10_000 USDC and 100 ETH each and approve vault
@@ -133,9 +134,9 @@ contract Base is TestHelperOz5 {
         address _depositor,
         uint256 _amount
     ) public {
-        vm.prank(owner);
-        stableWrapper.depositToVault(_depositor, _amount);
         vm.prank(keeper);
+        stableWrapper.depositToVault(_depositor, _amount);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
     }
 

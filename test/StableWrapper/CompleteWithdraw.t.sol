@@ -13,7 +13,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);
@@ -21,7 +21,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.prank(owner);
         stableWrapper.transfer(depositor1, _amount);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
 
         vm.startPrank(depositor1);
@@ -39,7 +39,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);

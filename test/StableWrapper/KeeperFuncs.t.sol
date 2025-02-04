@@ -9,7 +9,7 @@ import {Base} from "./Base.t.sol";
  * KEEPER FUNCS
  ***********************************************/
 contract StableWrapperKeeperFuncsTest is Base {
-    function test_RevertIfAdvanceToEpochCallerIsNotKeeper(
+    function test_RevertIfAdvanceToEpochCallerIsNotOwner(
         address _caller
     ) public {
         vm.assume(_caller != keeper);

@@ -14,7 +14,7 @@ contract StableWrapperDepositTest is Base {
      ***********************************************/
     function test_RevertIfAmountIsZero_Vault(address _depositor) public {
         vm.assume(_depositor != address(0));
-        vm.startPrank(owner);
+        vm.startPrank(keeper);
         vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
         stableWrapper.depositToVault(_depositor, 0);
         vm.stopPrank();
@@ -42,7 +42,7 @@ contract StableWrapperDepositTest is Base {
 
     function test_RevertIfInsufficientApproval_Vault(uint256 _amount) public {
         vm.assume(_amount != 0);
-        vm.startPrank(owner);
+        vm.startPrank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IERC20Errors.ERC20InsufficientAllowance.selector,
@@ -58,7 +58,7 @@ contract StableWrapperDepositTest is Base {
     function test_SuccessfullDepositToVault_Vault(uint256 _amount) public {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
-        vm.startPrank(owner);
+        vm.startPrank(keeper);
         stableWrapper.depositToVault(depositor1, _amount);
         vm.stopPrank();
 
@@ -73,7 +73,7 @@ contract StableWrapperDepositTest is Base {
      ***********************************************/
     function test_RevertIfAmountIsZero_Regular(address _depositor) public {
         vm.assume(_depositor != address(0));
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         vm.startPrank(depositor1);
@@ -84,7 +84,7 @@ contract StableWrapperDepositTest is Base {
 
     function test_RevertIfInsufficientApproval_Regular(uint256 _amount) public {
         vm.assume(_amount != 0);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         vm.startPrank(vm.addr(1001));
         vm.expectRevert(
@@ -102,7 +102,7 @@ contract StableWrapperDepositTest is Base {
     function test_SuccessfullDeposit_Regular(uint256 _amount) public {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         vm.startPrank(depositor1);
         stableWrapper.deposit(depositor1, _amount);
@@ -120,7 +120,7 @@ contract StableWrapperDepositTest is Base {
     ) public {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         vm.startPrank(depositor2);
         stableWrapper.deposit(depositor1, _amount);
