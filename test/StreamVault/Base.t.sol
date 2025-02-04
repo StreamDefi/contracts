@@ -107,10 +107,11 @@ contract Base is TestHelperOz5 {
             vaultParams
         );
 
-        stableWrapper.transferOwnership(address(streamVault));
+        stableWrapper.setKeeper(address(streamVault));
+        keeper = address(streamVault);
         vm.stopPrank();
 
-        // fund deposirs with 10_000 USDC and 100 ETH each and approve vault
+        // fund deposits with 10_000 USDC and 100 ETH each and approve vault
         for (uint256 i = 0; i < depositors.length; i++) {
             vm.startPrank(depositors[i]);
             usdc.mint(depositors[i], startingBal);

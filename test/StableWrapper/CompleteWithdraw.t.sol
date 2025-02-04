@@ -13,15 +13,15 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);
 
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(depositor1, _amount);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
 
         vm.startPrank(depositor1);
@@ -39,12 +39,12 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);
 
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(depositor1, _amount);
 
         vm.prank(depositor1);
@@ -66,18 +66,18 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);
 
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(depositor1, _amount);
 
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
 
         vm.prank(depositor1);
@@ -99,18 +99,18 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
 
         depositFromAddyAndRollEpoch(depositor1, _amount);
 
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(depositor1, _amount);
 
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount);
 
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
 
         vm.prank(depositor1);

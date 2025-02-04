@@ -14,7 +14,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
      ***********************************************/
     function test_RevertIfAmountIsZero_Vault() public {
         depositFromAddyAndRollEpoch(depositor1, startingBal);
-        vm.startPrank(owner);
+        vm.startPrank(keeper);
         vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
         stableWrapper.initiateWithdrawalFromVault(depositor1, 0);
         vm.stopPrank();
@@ -26,7 +26,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
         uint224 _amount
     ) public {
         vm.assume(_amount != 0);
-        vm.startPrank(owner);
+        vm.startPrank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IERC20Errors.ERC20InsufficientBalance.selector,
@@ -41,17 +41,12 @@ contract StableWrapperInitiateWithdrawTest is Base {
         assertNoStateChangeAfterRevert_Vault(depositor1, 0);
     }
 
-    function test_RevertIfCallerIsNotTheOwner_Vault(address _caller) public {
-        vm.assume(_caller != owner);
+    function test_RevertIfCallerIsNotTheKeeper_Vault(address _caller) public {
+        vm.assume(_caller != keeper);
         vm.assume(_caller != address(0));
         depositFromAddyAndRollEpoch(depositor1, startingBal);
         vm.startPrank(_caller);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                _caller
-            )
-        );
+        vm.expectRevert(StableWrapper.NotKeeper.selector);
         stableWrapper.initiateWithdrawalFromVault(
             depositor1,
             uint224(startingBal)
@@ -67,10 +62,10 @@ contract StableWrapperInitiateWithdrawTest is Base {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
         depositFromAddyAndRollEpoch(depositor1, _amount);
-        vm.startPrank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(address(stableWrapper), _amount);
+        vm.prank(keeper);
         stableWrapper.initiateWithdrawalFromVault(depositor1, _amount);
-        vm.stopPrank();
 
         (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper
             .withdrawalReceipts(depositor1);
@@ -89,10 +84,10 @@ contract StableWrapperInitiateWithdrawTest is Base {
         vm.assume(_amount >= 2);
         vm.assume(_amount <= startingBal);
         depositFromAddyAndRollEpoch(depositor1, _amount);
-        vm.startPrank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(address(stableWrapper), _amount - 1);
+        vm.prank(keeper);
         stableWrapper.initiateWithdrawalFromVault(depositor1, _amount - 1);
-        vm.stopPrank();
 
         (uint224 receiptAmount, uint32 receiptEpoch) = stableWrapper
             .withdrawalReceipts(depositor1);
@@ -101,7 +96,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
         vm.assertEq(receiptEpoch, 2);
         vm.assertEq(stableWrapper.balanceOf(depositor1), 0);
         vm.assertEq(stableWrapper.totalSupply(), 1);
-        vm.assertEq(stableWrapper.balanceOf(address(owner)), 1);
+        vm.assertEq(stableWrapper.balanceOf(address(keeper)), 1);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
     }
 
@@ -110,7 +105,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
      ***********************************************/
 
     function test_RevertIfAmountIsZero_Regular() public {
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         depositFromAddyAndRollEpoch(depositor1, startingBal);
         vm.startPrank(depositor1);
@@ -125,7 +120,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
         uint224 _amount
     ) public {
         vm.assume(_amount != 0);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         vm.startPrank(depositor1);
         vm.expectRevert(StableWrapper.InsufficientBalance.selector);
@@ -140,10 +135,10 @@ contract StableWrapperInitiateWithdrawTest is Base {
     ) public {
         vm.assume(_amount != 0);
         vm.assume(_amount <= startingBal);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         depositFromAddyAndRollEpoch(depositor1, _amount);
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(address(depositor1), _amount);
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount);
@@ -164,10 +159,10 @@ contract StableWrapperInitiateWithdrawTest is Base {
     ) public {
         vm.assume(_amount >= 2);
         vm.assume(_amount <= startingBal);
-        vm.prank(keeper);
+        vm.prank(owner);
         stableWrapper.setAllowIndependence(true);
         depositFromAddyAndRollEpoch(depositor1, _amount);
-        vm.prank(owner);
+        vm.prank(keeper);
         stableWrapper.transfer(address(depositor1), _amount);
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount - 1);

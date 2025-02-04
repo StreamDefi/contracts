@@ -174,7 +174,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     ) external nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
-        _mint(owner(), amount);
+        _mint(keeper, amount);
 
         emit DepositToVault(from, amount);
 
@@ -269,7 +269,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param from Address to burn tokens from
      * @param amount Amount of tokens to burn
      */
-    function permissionedBurn(address from, uint256 amount) external onlyKeeper {
+    function permissionedBurn(
+        address from,
+        uint256 amount
+    ) external onlyKeeper {
         _burn(from, amount);
         emit PermissionedBurn(from, amount);
     }

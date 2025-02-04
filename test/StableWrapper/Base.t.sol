@@ -133,9 +133,9 @@ contract Base is TestHelperOz5 {
         address _depositor,
         uint256 _amount
     ) public {
-        vm.prank(owner);
-        stableWrapper.depositToVault(_depositor, _amount);
         vm.prank(keeper);
+        stableWrapper.depositToVault(_depositor, _amount);
+        vm.prank(owner);
         stableWrapper.advanceEpoch();
     }
 
@@ -145,7 +145,7 @@ contract Base is TestHelperOz5 {
     ) public {
         vm.assertEq(usdc.balanceOf(_depositor), startingBal - _amount);
         vm.assertEq(stableWrapper.totalSupply(), _amount);
-        vm.assertEq(stableWrapper.balanceOf(owner), _amount);
+        vm.assertEq(stableWrapper.balanceOf(keeper), _amount);
         vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
 }
