@@ -42,6 +42,12 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice Stores the user's pending withdrawals
     mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 
+    /// @notice The amount of assets that have been withdrawn
+    uint256 public withdrawalAmountForEpoch;
+
+    /// @notice The amount of assets that have been deposited
+    uint256 public depositAmountForEpoch;
+
     // #############################################
     // STRUCTS
     // #############################################
@@ -73,7 +79,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     event Withdrawn(address indexed user, uint256 amount);
 
-    event EpochAdvanced(uint32 newEpoch);
+    event WithdrawalsProcessed(uint256 withdrawalAmount, uint256 balance, uint32 epoch);
 
     event AssetTransferred(address indexed to, uint256 amount);
 
@@ -159,6 +165,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         _mint(to, amount);
 
+        depositAmountForEpoch += amount;
+
         emit Deposit(msg.sender, to, amount);
 
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
@@ -175,6 +183,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(keeper, amount);
+
+        depositAmountForEpoch += amount;
 
         emit DepositToVault(from, amount);
 
@@ -203,6 +213,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
             epoch: currentEpoch
         });
 
+        withdrawalAmountForEpoch += amount;
+
         emit WithdrawalInitiated(msg.sender, amount, currentEpoch);
     }
 
@@ -225,6 +237,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
             amount: currentAmount + amount,
             epoch: currentEpoch
         });
+
+        withdrawalAmountForEpoch += amount;
 
         emit WithdrawalInitiated(from, amount, currentEpoch);
     }
@@ -282,11 +296,21 @@ contract StableWrapper is OFT, ReentrancyGuard {
     // #############################################
 
     /**
-     * @notice Advances to next epoch
+     * @notice Processes the withdrawal for the current epoch
      */
-    function advanceEpoch() external onlyOwner {
+    function processWithdrawals() external onlyOwner nonReentrant {
+
+        if (withdrawalAmountForEpoch > depositAmountForEpoch) {
+            IERC20(asset).safeTransferFrom(owner(), address(this), withdrawalAmountForEpoch - depositAmountForEpoch);
+        } else if (withdrawalAmountForEpoch < depositAmountForEpoch) {
+            IERC20(asset).safeTransfer(owner(), depositAmountForEpoch - withdrawalAmountForEpoch);
+        }
+
+        emit WithdrawalsProcessed(withdrawalAmountForEpoch, depositAmountForEpoch, currentEpoch);
+
         currentEpoch += 1;
-        emit EpochAdvanced(currentEpoch);
+        withdrawalAmountForEpoch = 0;
+        depositAmountForEpoch = 0;
     }
 
     /**
