@@ -19,7 +19,7 @@ contract StreamVaultUnstakeTest is Base {
         streamVault.unstakeAndWithdraw(0);
         vm.stopPrank();
 
-        assertOneRollBaseState(_amount);
+        assertOneRollBaseState(_amount, 2);
     }
 
     function test_RevertIfUnstakingInRoundOne_Vault(
