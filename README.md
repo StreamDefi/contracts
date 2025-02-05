@@ -1,5 +1,31 @@
 <h1 align="center"> Stream V2 </h1>
 
+## Deployments & Resources
+
+### Repository
+- GitHub: [Link to GitHub Repository]
+
+### Contract Deployments
+
+#### Ethereum Mainnet
+- StreamVault: `0x...`
+- StableWrapper: `0x...`
+
+#### Arbitrum
+- StreamVault: `0x...`
+- StableWrapper: `0x...`
+
+#### Optimism
+- StreamVault: `0x...`
+- StableWrapper: `0x...`
+
+[Additional networks as needed]
+
+### Documentation & Resources
+- Technical Documentation: [Link]
+- Security Audit Report: [Link]
+- Analytics Dashboard: [Link]
+
 ## What is Stream V2?
 Stream V2 constructs yield bearing vaults. There are two core pieces of infrasturcture:
 
