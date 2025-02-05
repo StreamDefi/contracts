@@ -175,6 +175,22 @@ contract Base is TestHelperOz5 {
         assertEq(shares, _shares);
     }
 
+    function assertSharesHeldByVault(
+        address _depositor,
+        uint256 _shares
+    ) public {
+        uint256 shares = streamVault.shareBalancesHeldByVault(_depositor);
+        assertEq(shares, _shares);
+    }
+
+    function assertSharesHeldByAccount(
+        address _depositor,
+        uint256 _shares
+    ) public {
+        uint256 shares = streamVault.shareBalancesHeldByAccount(_depositor);
+        assertEq(shares, _shares);
+    }
+
     function stakeAssets(
         address _depositor,
         address _creditor,
@@ -184,9 +200,9 @@ contract Base is TestHelperOz5 {
         streamVault.depositAndStake(_amount, _creditor);
     }
 
-    function rollRound() public {
+    function rollRound(uint256 _yield, bool _isPositive) public {
         vm.prank(owner);
-        streamVault.rollToNextRound(0, true);
+        streamVault.rollToNextRound(_yield, _isPositive);
     }
 
     function stakeAndRollRound(
@@ -195,13 +211,21 @@ contract Base is TestHelperOz5 {
         uint104 _amount
     ) public {
         stakeAssets(_depositor, _creditor, _amount);
-        rollRound();
+        rollRound(0, true);
     }
 
-    function assertOneRollBaseState(uint104 _amount) public {
+    function assertOneRollBaseState(uint104 _amount, uint16 _round) public {
         assertEq(streamVault.totalSupply(), uint256(_amount));
         assertEq(streamVault.balanceOf(address(streamVault)), uint256(_amount));
         assertEq(streamVault.omniTotalSupply(), uint256(_amount));
-        verifyVaultState(Vault.VaultState(uint16(2), uint128(0)));
+        verifyVaultState(Vault.VaultState(_round, uint128(0)));
+    }
+
+    function assertPricePerShare(
+        uint256 _round,
+        uint256 _pricePerShare
+    ) public {
+        uint256 pricePerShare = streamVault.roundPricePerShare(_round);
+        assertEq(pricePerShare, _pricePerShare);
     }
 }
