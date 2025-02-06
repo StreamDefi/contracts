@@ -22,7 +22,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         stableWrapper.transfer(depositor1, _amount);
 
         vm.prank(owner);
-        stableWrapper.advanceEpoch();
+        stableWrapper.processWithdrawals();
 
         vm.startPrank(depositor1);
         vm.expectRevert(StableWrapper.AmountMustBeGreaterThanZero.selector);
@@ -32,7 +32,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         assertEq(stableWrapper.balanceOf(depositor1), _amount);
         assertEq(stableWrapper.totalSupply(), _amount);
         assertEq(stableWrapper.currentEpoch(), 3);
-        assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        assertEq(usdc.balanceOf(address(stableWrapper)), 0);
     }
 
     function test_RevertIfEpochHasNotPassed(uint224 _amount) public {
@@ -60,7 +60,7 @@ contract StableWrapperCompleteWithdrawTest is Base {
         assertEq(stableWrapper.balanceOf(depositor1), 0);
         assertEq(stableWrapper.totalSupply(), 0);
         assertEq(stableWrapper.currentEpoch(), 2);
-        assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        assertEq(usdc.balanceOf(address(stableWrapper)), 0);
     }
     function test_SuccessfullBasicCompleteWithdraw(uint224 _amount) public {
         vm.assume(_amount != 0);
@@ -77,8 +77,10 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount);
 
-        vm.prank(owner);
-        stableWrapper.advanceEpoch();
+        vm.startPrank(owner);
+        usdc.approve(address(stableWrapper), _amount);
+        stableWrapper.processWithdrawals();
+        vm.stopPrank();
 
         vm.prank(depositor1);
         stableWrapper.completeWithdrawal(depositor1);
@@ -110,8 +112,10 @@ contract StableWrapperCompleteWithdrawTest is Base {
         vm.prank(depositor1);
         stableWrapper.initiateWithdrawal(_amount);
 
-        vm.prank(owner);
-        stableWrapper.advanceEpoch();
+        vm.startPrank(owner);
+        usdc.approve(address(stableWrapper), _amount);
+        stableWrapper.processWithdrawals();
+        vm.stopPrank();
 
         vm.prank(depositor1);
         stableWrapper.completeWithdrawal(depositor2);

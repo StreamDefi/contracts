@@ -22,14 +22,14 @@ contract StableWrapperPermissionedFuncsTest is Base {
                 _caller
             )
         );
-        stableWrapper.advanceEpoch();
+        stableWrapper.processWithdrawals();
         vm.stopPrank();
     }
 
     function test_AdvanceEpochAdvancedEpochByOne() public {
         assertEpoch(1);
         vm.prank(owner);
-        stableWrapper.advanceEpoch();
+        stableWrapper.processWithdrawals();
         assertEpoch(2);
     }
 

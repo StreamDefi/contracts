@@ -136,7 +136,7 @@ contract Base is TestHelperOz5 {
         vm.prank(keeper);
         stableWrapper.depositToVault(_depositor, _amount);
         vm.prank(owner);
-        stableWrapper.advanceEpoch();
+        stableWrapper.processWithdrawals();
     }
 
     function assertNoStateChangeAfterRevert_Vault(
@@ -146,6 +146,6 @@ contract Base is TestHelperOz5 {
         vm.assertEq(usdc.balanceOf(_depositor), startingBal - _amount);
         vm.assertEq(stableWrapper.totalSupply(), _amount);
         vm.assertEq(stableWrapper.balanceOf(keeper), _amount);
-        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        vm.assertEq(usdc.balanceOf(address(stableWrapper)), 0);
     }
 }

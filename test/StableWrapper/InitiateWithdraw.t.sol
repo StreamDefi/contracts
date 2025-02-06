@@ -150,7 +150,8 @@ contract StableWrapperInitiateWithdrawTest is Base {
         vm.assertEq(receiptEpoch, 2);
         vm.assertEq(stableWrapper.balanceOf(depositor1), 0);
         vm.assertEq(stableWrapper.totalSupply(), 0);
-        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        vm.assertEq(usdc.balanceOf(address(stableWrapper)), 0);
+
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
     }
 
@@ -174,7 +175,7 @@ contract StableWrapperInitiateWithdrawTest is Base {
         vm.assertEq(receiptEpoch, 2);
         vm.assertEq(stableWrapper.balanceOf(depositor1), 1);
         vm.assertEq(stableWrapper.totalSupply(), 1);
-        vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
+        vm.assertEq(usdc.balanceOf(address(stableWrapper)), 0);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
     }
 }
