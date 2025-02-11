@@ -451,6 +451,9 @@ contract StreamVault is ReentrancyGuard, OFT {
         }
 
         Vault.VaultParams memory _vaultParams = vaultParams;
+        if (currentBalance > _vaultParams.cap) {
+            revert CapExceeded();
+        }
         if (currentBalance < uint256(_vaultParams.minimumSupply)) {
             revert MinimumSupplyNotMet();
         }
