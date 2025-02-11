@@ -79,7 +79,11 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     event Withdrawn(address indexed user, uint256 amount);
 
-    event WithdrawalsProcessed(uint256 withdrawalAmount, uint256 balance, uint32 epoch);
+    event WithdrawalsProcessed(
+        uint256 withdrawalAmount,
+        uint256 balance,
+        uint32 epoch
+    );
 
     event AssetTransferred(address indexed to, uint256 amount);
 
@@ -299,14 +303,24 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @notice Processes the withdrawal for the current epoch
      */
     function processWithdrawals() external onlyOwner nonReentrant {
-
         if (withdrawalAmountForEpoch > depositAmountForEpoch) {
-            IERC20(asset).safeTransferFrom(owner(), address(this), withdrawalAmountForEpoch - depositAmountForEpoch);
+            IERC20(asset).safeTransferFrom(
+                owner(),
+                address(this),
+                withdrawalAmountForEpoch - depositAmountForEpoch
+            );
         } else if (withdrawalAmountForEpoch < depositAmountForEpoch) {
-            IERC20(asset).safeTransfer(owner(), depositAmountForEpoch - withdrawalAmountForEpoch);
+            IERC20(asset).safeTransfer(
+                owner(),
+                depositAmountForEpoch - withdrawalAmountForEpoch
+            );
         }
 
-        emit WithdrawalsProcessed(withdrawalAmountForEpoch, depositAmountForEpoch, currentEpoch);
+        emit WithdrawalsProcessed(
+            withdrawalAmountForEpoch,
+            depositAmountForEpoch,
+            currentEpoch
+        );
 
         currentEpoch += 1;
         withdrawalAmountForEpoch = 0;
@@ -379,12 +393,5 @@ contract StableWrapper is OFT, ReentrancyGuard {
      */
     function decimals() public view virtual override returns (uint8) {
         return underlyingDecimals;
-    }
-
-    /**
-     * @notice Returns the shared token decimals for OFT
-     */
-    function sharedDecimals() public view virtual override returns (uint8) {
-        return decimals();
     }
 }

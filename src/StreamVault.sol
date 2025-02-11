@@ -630,13 +630,6 @@ contract StreamVault is ReentrancyGuard, OFT {
     }
 
     /**
-     * @notice Returns the shared token decimals for OFT
-     */
-    function sharedDecimals() public view virtual override returns (uint8) {
-        return decimals();
-    }
-
-    /**
      * @notice Returns the maximum amount of wrapped tokens
      * that can be deposited into the vault
      */
