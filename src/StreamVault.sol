@@ -106,6 +106,8 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     error CapMustBeGreaterThanZero();
 
+    error InsufficientWithdrawal();
+
     // #############################################
     // CONSTRUCTOR & INITIALIZATION
     // #############################################
@@ -163,9 +165,16 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice Unstakes tokens and initiates withdrawal in a single transaction
      * @param numShares Number of shares to unstake
      */
-    function unstakeAndWithdraw(uint256 numShares) external nonReentrant {
+    function unstakeAndWithdraw(
+        uint256 numShares,
+        uint256 minAmountOut
+    ) external nonReentrant {
         // First unstake the tokens
-        uint256 withdrawAmount = _unstake(numShares, stableWrapper);
+        uint256 withdrawAmount = _unstake(
+            numShares,
+            stableWrapper,
+            minAmountOut
+        );
 
         // Then initiate withdrawal in the wrapper
         IStableWrapper(stableWrapper).initiateWithdrawalFromVault(
@@ -319,9 +328,12 @@ contract StreamVault is ReentrancyGuard, OFT {
      * @notice External wrapper for unstaking shares
      * @param numShares is the number of shares to withdraw and burn
      */
-    function unstake(uint256 numShares) external nonReentrant {
+    function unstake(
+        uint256 numShares,
+        uint256 minAmountOut
+    ) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
-        _unstake(numShares, msg.sender);
+        _unstake(numShares, msg.sender, minAmountOut);
     }
 
     /**
@@ -330,7 +342,8 @@ contract StreamVault is ReentrancyGuard, OFT {
      */
     function _unstake(
         uint256 numShares,
-        address to
+        address to,
+        uint256 minAmountOut
     ) internal returns (uint256) {
         if (numShares == 0) revert AmountMustBeGreaterThanZero();
         if (to == address(0)) revert AddressMustBeNonZero();
@@ -354,6 +367,10 @@ contract StreamVault is ReentrancyGuard, OFT {
             roundPricePerShare[currentRound - 1],
             vaultParams.decimals
         );
+
+        if (withdrawAmount < minAmountOut && minAmountOut > 0) {
+            revert InsufficientWithdrawal();
+        }
 
         uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
         if (balance - withdrawAmount < vaultParams.minimumSupply) {
