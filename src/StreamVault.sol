@@ -160,6 +160,8 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
+        totalStaked = totalStaked + amount;
+
         // Then stake the wrapped tokens
         _stakeInternal(amount, creditor);
     }
