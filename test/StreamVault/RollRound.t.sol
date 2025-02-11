@@ -39,9 +39,10 @@ contract StreamVaultRollRoundTest is Base {
 
     function test_SuccessfullMultiRollWithPositiveYield_SingleDepositor_OneDeposit(
         uint104 _amount,
-        uint104 _yield
+        uint48 _yield
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
+        vm.assume(_amount + uint104(_yield) <= cap);
         stakeAndRollRound(depositor1, depositor1, _amount);
         rollRound(uint256(_yield), true);
 
@@ -60,12 +61,12 @@ contract StreamVaultRollRoundTest is Base {
     function test_SuccessfullMultiRollWithPositiveYield_MultiDepositor_OneDeposit(
         uint104 _amount1,
         uint104 _amount2,
-        uint104 _yield
+        uint48 _yield
     ) public {
         vm.assume(_amount1 >= minSupply && _amount1 <= startingBal);
         vm.assume(_amount2 >= minSupply && _amount2 <= startingBal);
         vm.assume(_amount1 + _amount2 <= startingBal);
-        vm.assume(_amount1 + _amount2 <= cap);
+        vm.assume(_amount1 + _amount2 + uint104(_yield) <= cap);
         stakeAssets(depositor1, depositor1, _amount1);
         stakeAndRollRound(depositor2, depositor2, _amount2);
         rollRound(uint256(_yield), true);

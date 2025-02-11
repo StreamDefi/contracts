@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
-import {MyOFT} from "../src/OFT.sol";
+import {MyOFT} from "../src/MyOFT.sol";
 import {console2} from "forge-std/console2.sol";
 
 contract DeployOFTScript is Script {
@@ -15,11 +15,11 @@ contract DeployOFTScript is Script {
         // Deploy OFT for wrapped tokens (StableWrapper)
         address lzEndpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f; // Base Sepolia LZ Endpoint
         MyOFT wrappedOFT = new MyOFT(
-            "Wrapped Test USD", 
+            "Wrapped Test USD",
             "wTESTUSD",
             lzEndpoint,
-            deployer,  // delegate
-            6  // decimals
+            deployer, // delegate
+            6 // decimals
         );
         console2.log("Wrapped OFT deployed to:", address(wrappedOFT));
 
@@ -28,8 +28,8 @@ contract DeployOFTScript is Script {
             "Stream Vault Token",
             "svToken",
             lzEndpoint,
-            deployer,  // delegate
-            6  // decimals
+            deployer, // delegate
+            6 // decimals
         );
         console2.log("Staked OFT deployed to:", address(stakedOFT));
 

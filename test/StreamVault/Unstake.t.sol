@@ -16,7 +16,7 @@ contract StreamVaultUnstakeTest is Base {
         stakeAndRollRound(depositor1, depositor1, _amount);
         vm.startPrank(depositor1);
         vm.expectRevert(StreamVault.AmountMustBeGreaterThanZero.selector);
-        streamVault.unstakeAndWithdraw(0);
+        streamVault.unstakeAndWithdraw(0, 0);
         vm.stopPrank();
 
         assertOneRollBaseState(_amount, 2);
@@ -32,7 +32,7 @@ contract StreamVaultUnstakeTest is Base {
         stakeAssets(depositor1, depositor1, _amount);
         vm.startPrank(depositor1);
         vm.expectRevert(StreamVault.RoundMustBeGreaterThanOne.selector);
-        streamVault.unstakeAndWithdraw(_shares);
+        streamVault.unstakeAndWithdraw(_shares, _shares);
         vm.stopPrank();
 
         vm.assertEq(streamVault.balanceOf(depositor1), 0);
@@ -49,10 +49,12 @@ contract StreamVaultUnstakeTest is Base {
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.assume(_shares <= _amount);
+        vm.assume(_amount - _shares >= minSupply);
+
         vm.assume(_shares > 0);
         stakeAndRollRound(depositor1, depositor1, _amount);
         vm.prank(depositor1);
-        streamVault.unstakeAndWithdraw(_shares);
+        streamVault.unstakeAndWithdraw(_shares, _shares);
 
         vm.assertEq(streamVault.balanceOf(depositor1), _amount - _shares);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
@@ -73,11 +75,12 @@ contract StreamVaultUnstakeTest is Base {
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.assume(_shares <= _amount);
+        vm.assume(_amount - _shares >= minSupply);
         vm.assume(_shares > 0);
         stakeAndRollRound(depositor1, depositor1, _amount);
         vm.startPrank(depositor1);
         streamVault.maxRedeem();
-        streamVault.unstakeAndWithdraw(_shares);
+        streamVault.unstakeAndWithdraw(_shares, _shares);
 
         vm.assertEq(streamVault.balanceOf(depositor1), _amount - _shares);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
@@ -98,11 +101,12 @@ contract StreamVaultUnstakeTest is Base {
     ) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.assume(_shares <= _amount);
+        vm.assume(_amount - _shares >= minSupply);
         vm.assume(_shares > 2);
         stakeAndRollRound(depositor1, depositor1, _amount);
         vm.startPrank(depositor1);
         streamVault.redeem(_shares - 1);
-        streamVault.unstakeAndWithdraw(_shares);
+        streamVault.unstakeAndWithdraw(_shares, _shares);
 
         vm.assertEq(streamVault.balanceOf(depositor1), _amount - _shares);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
@@ -123,7 +127,7 @@ contract StreamVaultUnstakeTest is Base {
     function test_RevertIfIndependeceNotAllowed() public {
         vm.startPrank(depositor1);
         vm.expectRevert(StreamVault.IndependenceNotAllowed.selector);
-        streamVault.unstake(0);
+        streamVault.unstake(0, 0);
         vm.stopPrank();
         assertBaseState();
     }
@@ -131,12 +135,13 @@ contract StreamVaultUnstakeTest is Base {
     function test_UnstakeSuccessfull(uint104 _amount, uint104 _shares) public {
         vm.assume(_amount >= minSupply && _amount <= startingBal);
         vm.assume(_shares <= _amount);
+        vm.assume(_amount - _shares >= minSupply);
         vm.assume(_shares > 0);
         stakeAndRollRound(depositor1, depositor1, _amount);
         vm.prank(owner);
         streamVault.setAllowIndependence(true);
         vm.prank(depositor1);
-        streamVault.unstake(_shares);
+        streamVault.unstake(_shares, _shares);
 
         vm.assertEq(streamVault.balanceOf(depositor1), _amount - _shares);
         vm.assertEq(

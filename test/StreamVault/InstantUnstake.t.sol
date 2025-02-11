@@ -71,17 +71,18 @@ contract StreamVaultInstantUnstakeTest is Base {
     function test_SuccessfullInstantUnstakeAndWithdraw_Partial_Vault(
         uint104 _amount
     ) public {
-        vm.assume(_amount >= minSupply && _amount <= startingBal);
+        vm.assume(_amount > 0);
+        vm.assume(_amount - 1 >= minSupply && _amount <= startingBal);
         stakeAssets(depositor1, depositor1, _amount);
         assertStakeReceipt(depositor1, 1, _amount, 0);
         vm.prank(depositor1);
-        streamVault.instantUnstakeAndWithdraw(_amount - 1);
-        assertStakeReceipt(depositor1, 1, 1, 0);
-        assertVaultState(1, 1);
+        streamVault.instantUnstakeAndWithdraw(1);
+        assertStakeReceipt(depositor1, 1, _amount - 1, 0);
+        assertVaultState(1, _amount - 1);
         vm.assertEq(streamVault.balanceOf(depositor1), 0);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
-        vm.assertEq(stableWrapper.balanceOf(address(streamVault)), 1);
-        vm.assertEq(stableWrapper.totalSupply(), 1);
+        vm.assertEq(stableWrapper.balanceOf(address(streamVault)), _amount - 1);
+        vm.assertEq(stableWrapper.totalSupply(), _amount - 1);
         vm.assertEq(stableWrapper.balanceOf(depositor1), 0);
         vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
@@ -120,22 +121,22 @@ contract StreamVaultInstantUnstakeTest is Base {
     }
 
     function test_SuccessfullInstantUnstake_Partial(uint104 _amount) public {
-        vm.assume(_amount >= minSupply && _amount <= startingBal);
+        vm.assume(_amount > 0);
+        vm.assume(_amount - 1 >= minSupply && _amount <= startingBal);
         vm.prank(owner);
         streamVault.setAllowIndependence(true);
-
         stakeAssets(depositor1, depositor1, _amount);
         assertStakeReceipt(depositor1, 1, _amount, 0);
         vm.prank(depositor1);
-        streamVault.instantUnstake(_amount - 1);
+        streamVault.instantUnstake(1);
 
-        assertStakeReceipt(depositor1, 1, 1, 0);
-        assertVaultState(1, 1);
+        assertStakeReceipt(depositor1, 1, _amount - 1, 0);
+        assertVaultState(1, _amount - 1);
         vm.assertEq(streamVault.balanceOf(depositor1), 0);
         vm.assertEq(usdc.balanceOf(depositor1), startingBal - _amount);
-        vm.assertEq(stableWrapper.balanceOf(address(streamVault)), 1);
+        vm.assertEq(stableWrapper.balanceOf(address(streamVault)), _amount - 1);
         vm.assertEq(stableWrapper.totalSupply(), _amount);
-        vm.assertEq(stableWrapper.balanceOf(depositor1), _amount - 1);
+        vm.assertEq(stableWrapper.balanceOf(depositor1), 1);
         vm.assertEq(usdc.balanceOf(address(stableWrapper)), _amount);
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
-import {MyOFT} from "../src/OFT.sol";
+import {MyOFT} from "../src/MyOFT.sol";
 import {console2} from "forge-std/console2.sol";
 
 contract SetPeersBaseScript is Script {
