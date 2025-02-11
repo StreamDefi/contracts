@@ -10,7 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {OFT} from "./layerzero/OFT.sol";
 import {SendParam, MessagingFee, MessagingReceipt, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
@@ -133,7 +133,13 @@ contract StreamVault is ReentrancyGuard, OFT {
         Vault.VaultParams memory _vaultParams
     )
         ReentrancyGuard()
-        OFT(_tokenName, _tokenSymbol, _lzEndpoint, _delegate)
+        OFT(
+            _tokenName,
+            _tokenSymbol,
+            _vaultParams.decimals,
+            _lzEndpoint,
+            _delegate
+        )
         Ownable(msg.sender)
     {
         if (_vaultParams.cap == 0) revert CapMustBeGreaterThanZero();
@@ -312,12 +318,15 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (stakeReceipt.round != currentRound) revert RoundMismatch();
 
-        if (totalStaked - amount < vaultParams.minimumSupply && totalStaked - amount > 0) {
-            revert MinimumSupplyNotMet();
-        }
-
         uint104 receiptAmount = stakeReceipt.amount;
         if (receiptAmount < amount) revert AmountExceedsReceipt();
+
+        if (
+            totalStaked - amount < vaultParams.minimumSupply &&
+            totalStaked - amount > 0
+        ) {
+            revert MinimumSupplyNotMet();
+        }
 
         // Subtraction underflow checks already ensure it is smaller than uint104
         stakeReceipt.amount = receiptAmount - amount;
@@ -377,7 +386,10 @@ contract StreamVault is ReentrancyGuard, OFT {
             revert InsufficientWithdrawal();
         }
 
-        if (totalStaked - withdrawAmount < vaultParams.minimumSupply && totalStaked - withdrawAmount > 0) {
+        if (
+            totalStaked - withdrawAmount < vaultParams.minimumSupply &&
+            totalStaked - withdrawAmount > 0
+        ) {
             revert MinimumSupplyNotMet();
         }
 

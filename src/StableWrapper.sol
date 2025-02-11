@@ -7,7 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {OFT} from "./layerzero/OFT.sol";
 
 /**
  * @title StableWrapper
@@ -144,7 +144,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address _keeper,
         address _lzEndpoint,
         address _delegate
-    ) OFT(_name, _symbol, _lzEndpoint, _delegate) Ownable(msg.sender) {
+    )
+        OFT(_name, _symbol, _underlyingDecimals, _lzEndpoint, _delegate)
+        Ownable(msg.sender)
+    {
         if (_asset == address(0)) revert AddressMustBeNonZero();
         if (_keeper == address(0)) revert AddressMustBeNonZero();
         asset = _asset;
