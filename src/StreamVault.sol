@@ -542,17 +542,6 @@ contract StreamVault is ReentrancyGuard, OFT {
     }
 
     /**
-     * @notice Sets a new cap for stakes
-     * @param newCap is the new cap for stakes
-     */
-    function setCap(uint256 newCap) external onlyOwner {
-        if (newCap == 0) revert CapMustBeGreaterThanZero();
-        ShareMath.assertUint104(newCap);
-        emit CapSet(vaultParams.cap, newCap);
-        vaultParams.cap = uint104(newCap);
-    }
-
-    /**
      * @notice Sets the new vault parameters
      */
     function setVaultParams(
