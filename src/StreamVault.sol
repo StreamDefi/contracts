@@ -296,6 +296,11 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (stakeReceipt.round != currentRound) revert RoundMismatch();
 
+        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
+        if (balance - amount < vaultParams.minimumSupply) {
+            revert MinimumSupplyNotMet();
+        }
+
         uint104 receiptAmount = stakeReceipt.amount;
         if (receiptAmount < amount) revert AmountExceedsReceipt();
 
@@ -347,6 +352,11 @@ contract StreamVault is ReentrancyGuard, OFT {
             roundPricePerShare[currentRound - 1],
             vaultParams.decimals
         );
+
+        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
+        if (balance - withdrawAmount < vaultParams.minimumSupply) {
+            revert MinimumSupplyNotMet();
+        }
 
         emit Unstake(msg.sender, withdrawAmount, currentRound);
 
