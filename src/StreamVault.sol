@@ -312,7 +312,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (stakeReceipt.round != currentRound) revert RoundMismatch();
 
-        if (totalStaked - amount < vaultParams.minimumSupply) {
+        if (totalStaked - amount < vaultParams.minimumSupply && totalStaked - amount > 0) {
             revert MinimumSupplyNotMet();
         }
 
@@ -377,7 +377,7 @@ contract StreamVault is ReentrancyGuard, OFT {
             revert InsufficientWithdrawal();
         }
 
-        if (totalStaked - withdrawAmount < vaultParams.minimumSupply) {
+        if (totalStaked - withdrawAmount < vaultParams.minimumSupply && totalStaked - withdrawAmount > 0) {
             revert MinimumSupplyNotMet();
         }
 
