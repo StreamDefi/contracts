@@ -42,7 +42,7 @@ library ShareMath {
         uint256 assetPerShare,
         uint256 decimals
     ) internal pure returns (uint256 unredeemedShares) {
-        if (stakeReceipt.round > 0 && stakeReceipt.round < currentRound) {
+        if (stakeReceipt.round < currentRound) {
             uint256 sharesFromRound = assetToShares(stakeReceipt.amount, assetPerShare, decimals);
 
             return uint256(stakeReceipt.unredeemedShares) + sharesFromRound;
