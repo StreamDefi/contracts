@@ -151,6 +151,8 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint104 amount,
         address creditor
     ) external nonReentrant {
+        if (creditor == address(0)) revert AddressMustBeNonZero();
+
         IStableWrapper(stableWrapper).depositToVault(msg.sender, amount);
 
         // Then stake the wrapped tokens
