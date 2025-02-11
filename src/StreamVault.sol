@@ -55,6 +55,9 @@ contract StreamVault is ReentrancyGuard, OFT {
     /// @notice Whether the vault allows independence from the stable wrapper
     bool public allowIndependence;
 
+    /// @notice The total amount of wrapped tokens staked in the vault
+    uint256 public totalStaked;
+
     // #############################################
     // EVENTS
     // #############################################
@@ -235,6 +238,8 @@ contract StreamVault is ReentrancyGuard, OFT {
             amount
         );
 
+        totalStaked = totalStaked + amount;
+
         _stakeInternal(amount, creditor);
     }
 
@@ -248,9 +253,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     function _stakeInternal(uint104 amount, address creditor) private {
         uint16 currentRound = vaultState.round;
         Vault.VaultParams memory _vaultParams = vaultParams;
-        uint256 totalWithStakedAmount = IERC20(stableWrapper).balanceOf(
-            address(this)
-        );
+        uint256 totalWithStakedAmount = totalStaked;
 
         if (totalWithStakedAmount > _vaultParams.cap) revert CapExceeded();
         if (totalWithStakedAmount < _vaultParams.minimumSupply)
@@ -307,8 +310,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
         if (stakeReceipt.round != currentRound) revert RoundMismatch();
 
-        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
-        if (balance - amount < vaultParams.minimumSupply) {
+        if (totalStaked - amount < vaultParams.minimumSupply) {
             revert MinimumSupplyNotMet();
         }
 
@@ -321,7 +323,8 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         emit InstantUnstake(msg.sender, amount, currentRound);
 
-        _transferAsset(to, amount);
+        IERC20(stableWrapper).safeTransfer(to, amount);
+        totalStaked = totalStaked - amount;
     }
 
     /**
@@ -372,8 +375,7 @@ contract StreamVault is ReentrancyGuard, OFT {
             revert InsufficientWithdrawal();
         }
 
-        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
-        if (balance - withdrawAmount < vaultParams.minimumSupply) {
+        if (totalStaked - withdrawAmount < vaultParams.minimumSupply) {
             revert MinimumSupplyNotMet();
         }
 
@@ -384,7 +386,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         omniTotalSupply = omniTotalSupply - numShares;
 
         IERC20(stableWrapper).safeTransfer(to, withdrawAmount);
-
+        totalStaked = totalStaked - withdrawAmount;
         return withdrawAmount;
     }
 
@@ -461,7 +463,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         uint256 yield,
         bool isYieldPositive
     ) external onlyOwner nonReentrant {
-        uint256 balance = IERC20(stableWrapper).balanceOf(address(this));
+        uint256 balance = totalStaked;
         uint256 currentBalance;
         if (isYieldPositive) {
             currentBalance = balance + yield;
@@ -506,6 +508,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 address(this),
                 currentBalance - balance
             );
+            totalStaked = totalStaked + (currentBalance - balance);
             emit RoundRolled(
                 currentRound,
                 newPricePerShare,
@@ -520,6 +523,7 @@ contract StreamVault is ReentrancyGuard, OFT {
                 address(this),
                 balance - currentBalance
             );
+            totalStaked = totalStaked - (balance - currentBalance);
             emit RoundRolled(
                 currentRound,
                 newPricePerShare,
@@ -540,15 +544,6 @@ contract StreamVault is ReentrancyGuard, OFT {
                 isYieldPositive
             );
         }
-    }
-
-    /**
-     * @notice Helper function to make either an ETH transfer or ERC20 transfer
-     * @param recipient is the receiving address
-     * @param amount is the transfer amount
-     */
-    function _transferAsset(address recipient, uint256 amount) internal {
-        IERC20(stableWrapper).safeTransfer(recipient, amount);
     }
 
     // #############################################
