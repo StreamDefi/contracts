@@ -14,7 +14,7 @@ contract TestBridgeScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
-        StreamVault vault = StreamVault(0x58107a168E54802A7D35ebDBE6e9f82447d5Fb8d);
+        StreamVault vault = StreamVault(0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3);
 
         vm.startBroadcast(deployerPrivateKey);
 

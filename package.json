@@ -73,6 +73,7 @@
   },
   "overrides": {
     "ethers": "^5.7.2",
-    "hardhat-deploy": "^0.12.1"
+    "hardhat-deploy": "^0.12.4",
+    "hardhat-gas-reporter": "^2.2.2"
   }
 }

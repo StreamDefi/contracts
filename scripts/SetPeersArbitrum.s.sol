@@ -15,12 +15,12 @@ contract SetPeersArbitrumScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Arbitrum contracts
-        address arbWrapper = 0xc380Fc06B25242DbeD574132a0C0e7ED77e8eD28;
-        address arbVault = 0x58107a168E54802A7D35ebDBE6e9f82447d5Fb8d;
+        address arbWrapper = 0x884d60A44F6c8483780C6C4f2636195366952E34;
+        address arbVault = 0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3;
 
         // Base contracts
-        address baseWrappedOFT = 0x450607C6A43F9Acb671aff183dD2Bd048261DD70;
-        address baseStakedOFT = 0x2B890881268172d1697eB7bc9744F8424E5A3f5a;
+        address baseWrappedOFT = 0x2b82247a9BDA2B72b37e36c7db482abDe7802D31;
+        address baseStakedOFT = 0x6242EfAC2E1A85bB9ECFc10895da6e2928C89Fb1;
 
         // Base Sepolia EID
         uint32 baseSepolia = 40245;

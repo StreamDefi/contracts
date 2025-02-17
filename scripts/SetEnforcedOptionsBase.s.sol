@@ -24,8 +24,8 @@ contract SetEnforcedOptionsBaseScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Call directly with the same struct type
-        StableWrapper(0x450607C6A43F9Acb671aff183dD2Bd048261DD70).setEnforcedOptions(params);  // BASE_WRAPPER
-        StreamVault(0x2B890881268172d1697eB7bc9744F8424E5A3f5a).setEnforcedOptions(params);    // BASE_VAULT
+        StableWrapper(0x2b82247a9BDA2B72b37e36c7db482abDe7802D31).setEnforcedOptions(params);  // BASE_WRAPPER
+        StreamVault(0x6242EfAC2E1A85bB9ECFc10895da6e2928C89Fb1).setEnforcedOptions(params);    // BASE_VAULT
 
         vm.stopBroadcast();
     }
