@@ -32,6 +32,7 @@ interface IStableWrapper {
 
     // State-Changing Functions
     function depositToVault(address from, uint256 amount) external;
+    function depositETHToVault(address from) external payable;
     function deposit(address to, uint256 amount) external;
     function initiateWithdrawal(uint224 amount) external;
     function initiateWithdrawalFromVault(address from, uint224 amount) external;

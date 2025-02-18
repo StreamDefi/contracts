@@ -15,21 +15,21 @@ contract DeployOFTScript is Script {
         // Deploy OFT for wrapped tokens (StableWrapper)
         address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Base LZ Endpoint
         MyOFT wrappedOFT = new MyOFT(
-            "Stream USD", 
-            "streamUSD",
+            "Stream ETH", 
+            "streamETH",
             lzEndpoint,
             deployer, // delegate
-            6 // decimals
+            18 // decimals
         );
         console2.log("Wrapped OFT deployed to:", address(wrappedOFT));
 
         // Deploy OFT for staked tokens (StreamVault)
         MyOFT stakedOFT = new MyOFT(
-            "Staked Stream USD",
-            "xUSD",
+            "Staked Stream ETH",
+            "xETH",
             lzEndpoint,
             deployer, // delegate
-            6 // decimals
+            18 // decimals
         );
         console2.log("Staked OFT deployed to:", address(stakedOFT));
 

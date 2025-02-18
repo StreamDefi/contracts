@@ -481,4 +481,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function decimals() public view virtual override returns (uint8) {
         return underlyingDecimals;
     }
+
+    /**
+     * @notice Allows the contract to receive ETH
+     */
+    receive() external payable {}
 }

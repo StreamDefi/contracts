@@ -111,6 +111,8 @@ contract StreamVault is ReentrancyGuard, OFT {
 
     error InsufficientWithdrawal();
 
+    error TransferFailed();
+
     // #############################################
     // CONSTRUCTOR & INITIALIZATION
     // #############################################
@@ -170,6 +172,23 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         // Then stake the wrapped tokens
         _stakeInternal(amount, creditor);
+    }
+
+    /**
+     * @notice Deposits ETH and stakes them in a single transaction
+     * @param creditor Address of the creditor to stake to
+     */
+    function depositETHAndStake(
+        address creditor
+    ) external payable nonReentrant {
+        if (creditor == address(0)) revert AddressMustBeNonZero();
+        
+        IStableWrapper(stableWrapper).depositETHToVault{value: msg.value}(msg.sender);
+        
+        totalStaked = totalStaked + msg.value;
+        
+        // Then stake the wrapped tokens
+        _stakeInternal(uint104(msg.value), creditor);
     }
 
     /**
@@ -698,4 +717,22 @@ contract StreamVault is ReentrancyGuard, OFT {
 
         IERC20(_token).safeTransfer(msg.sender, amount);
     }
+
+    /**
+     * @notice Rescues ETH stuck in the contract
+     * @param amount The amount of ETH to rescue
+     * @dev Only callable by owner
+     */
+    function rescueETH(uint256 amount) external onlyOwner {
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
+        if (amount > address(this).balance) revert InsufficientWithdrawal();
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        if (!success) revert TransferFailed();
+    }
+
+    /**
+     * @notice Allows the contract to receive ETH
+     */
+    receive() external payable {}
 }
