@@ -15,7 +15,7 @@ contract SetLibraryArbScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Arbitrum Sepolia LayerZero Endpoint
-        IMessageLibManager endpoint = IMessageLibManager(0x6EDCE65403992e310A62460808c4b910D972f10f);
+        IMessageLibManager endpoint = IMessageLibManager(0x1a44076050125825900e736c501f859c50fE728c);
 
         vm.startBroadcast(deployerPrivateKey);
 

@@ -23,25 +23,25 @@ contract DeployScript is Script {
         // Deploy TestToken
         //
 
-        TestToken testToken = new TestToken(
-            "Test USD", 
-            "tUSD",
-            6  // Same decimals as USDC/USDT
-        );
-        console2.log("Test Token deployed to:", address(testToken));
+        // TestToken testToken = new TestToken(
+        //     "Test USD", 
+        //     "tUSD",
+        //     6  // Same decimals as USDC/USDT
+        // );
+        // console2.log("Test Token deployed to:", address(testToken));
 
         // Mint some initial tokens for testing
-        testToken.mint(deployer, 1000000 * 10**6); // Mint 1M tokens
+        // testToken.mint(deployer, 1000000 * 10**6); // Mint 1M tokens
 
         //
         // Deploy StableWrapper
         //
 
-        address lzEndpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f; // Sepolia LZ Endpoint
+        address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Eth LZ Endpoint
         StableWrapper wrapper = new StableWrapper(
-            address(testToken),
-            "Wrapped Test USD", 
-            "wTESTUSD",
+            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
+            "xUSDC", 
+            "xUSDC",
             6, // decimals
             deployer, // keeper
             lzEndpoint,
@@ -55,8 +55,8 @@ contract DeployScript is Script {
         //
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
             decimals: 6,
-            cap: 1000000 * 10**6, // 1M cap
-            minimumSupply: 100 * 10**6 // 100 minimum
+            cap: 10000000 * 10**6, // 10M cap
+            minimumSupply: 1 * 10**6 // 1 minimum
         });
 
         StreamVault vault = new StreamVault(
@@ -79,7 +79,6 @@ contract DeployScript is Script {
 
         console2.log("\nDeployment Summary:");
         console2.log("-------------------");
-        console2.log("TestToken:", address(testToken));
         console2.log("StableWrapper:", address(wrapper));
         console2.log("StreamVault:", address(vault));
     }
