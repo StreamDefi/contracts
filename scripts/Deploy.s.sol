@@ -40,8 +40,8 @@ contract DeployScript is Script {
         address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Eth LZ Endpoint
         StableWrapper wrapper = new StableWrapper(
             0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
-            "xUSDC", 
-            "xUSDC",
+            "Stream USD", 
+            "streamUSD",
             6, // decimals
             deployer, // keeper
             lzEndpoint,
@@ -60,8 +60,8 @@ contract DeployScript is Script {
         });
 
         StreamVault vault = new StreamVault(
-            "Staked xUSDC",
-            "sxUSDC",
+            "Staked Stream USD",
+            "xUSD",
             address(wrapper), // stableWrapper
             lzEndpoint,
             deployer, // delegate

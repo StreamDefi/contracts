@@ -8,6 +8,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IStableWrapper} from "./interfaces/IStableWrapper.sol";
 import {OFT} from "./layerzero/OFT.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 /**
  * @title StableWrapper
@@ -47,6 +48,9 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
     /// @notice The amount of assets that have been deposited
     uint256 public depositAmountForEpoch;
+
+    /// @notice WETH9 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+    address public immutable WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     // #############################################
     // STRUCTS
@@ -110,6 +114,10 @@ contract StableWrapper is OFT, ReentrancyGuard {
     error NotKeeper();
 
     error CannotCompleteWithdrawalInSameEpoch();
+
+    error AssetMustBeWETH();
+
+    error TransferFailed();
 
     // #############################################
     // MODIFIERS
@@ -178,6 +186,22 @@ contract StableWrapper is OFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Deposits ETH from a specified address and mints equivalent tokens
+     * @param to Address to transfer assets to
+     */
+    function depositETH(address to) external payable nonReentrant {
+        if (!allowIndependence) revert IndependenceNotAllowed();
+        if (msg.value == 0) revert AmountMustBeGreaterThanZero();
+        if (asset != WETH) revert AssetMustBeWETH();
+
+        _mint(to, msg.value);
+        depositAmountForEpoch += msg.value;
+        emit Deposit(msg.sender, to, msg.value);
+
+        IWETH(WETH).deposit{value: msg.value}();
+    }
+
+    /**
      * @notice Deposits assets and mints equivalent tokens to the vault
      * @param amount Amount of assets to deposit
      */
@@ -194,6 +218,25 @@ contract StableWrapper is OFT, ReentrancyGuard {
         emit DepositToVault(from, amount);
 
         IERC20(asset).safeTransferFrom(from, address(this), amount);
+
+    }
+
+    /**
+     * @notice Deposits ETH and mints equivalent tokens to the vault
+     */
+    function depositETHToVault(
+        address from
+    ) external payable nonReentrant onlyKeeper {
+        if (msg.value == 0) revert AmountMustBeGreaterThanZero();
+        if (asset != WETH) revert AssetMustBeWETH();
+
+        _mint(keeper, msg.value);
+
+        depositAmountForEpoch += msg.value;
+
+        emit DepositToVault(from, msg.value);
+
+        IWETH(WETH).deposit{value: msg.value}();
 
     }
 
@@ -268,6 +311,30 @@ contract StableWrapper is OFT, ReentrancyGuard {
         emit Withdrawn(to, amountToTransfer);
 
         IERC20(asset).safeTransfer(to, amountToTransfer);
+    }
+
+    /**
+     * @notice Complete withdrawal in ETH if epoch has passed
+     * @param to Address to transfer assets to
+     */
+    function completeWithdrawalETH(address to) external nonReentrant {
+        if (asset != WETH) revert AssetMustBeWETH();
+        WithdrawalReceipt memory receipt = withdrawalReceipts[msg.sender];
+
+        if (receipt.amount == 0) revert AmountMustBeGreaterThanZero();
+        if (receipt.epoch >= currentEpoch)
+            revert CannotCompleteWithdrawalInSameEpoch();
+
+        delete withdrawalReceipts[msg.sender];
+
+        // Cast uint224 to uint256 explicitly for the transfer
+        uint256 amountToTransfer = uint256(receipt.amount);
+
+        emit Withdrawn(to, amountToTransfer);
+
+        IWETH(WETH).withdraw(amountToTransfer);
+        (bool success, ) = to.call{value: amountToTransfer}("");
+        if (!success) revert TransferFailed();
     }
 
     // #############################################
@@ -345,6 +412,24 @@ contract StableWrapper is OFT, ReentrancyGuard {
         emit AssetTransferred(to, amount);
 
         IERC20(_token).safeTransfer(to, amount);
+    }
+
+    /**
+     * @notice Allows owner to transfer assets to specified address
+     * @param to Address to transfer assets to
+     * @param amount Amount of assets to transfer
+     */
+    function transferAssetETH(
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
+
+        emit AssetTransferred(to, amount);
+
+        IWETH(WETH).withdraw(amount);
+        (bool success, ) = to.call{value: amount}("");
+        if (!success) revert TransferFailed();
     }
 
     // #############################################

@@ -21,7 +21,7 @@ contract SetLibraryBaseScript is Script {
 
         // Set send library on the endpoint
         endpoint.setSendLibrary(
-            0x6242EfAC2E1A85bB9ECFc10895da6e2928C89Fb1,  // StreamVault address on Base
+            0x212187708d01A63bcbE2F59553537de407a5621D,  // StreamVault address on Base
             30101,                                         // ETH EID
             0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2    // send library
         );

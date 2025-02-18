@@ -23,8 +23,8 @@ contract SetEnforcedOptionsArbitrumScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Call directly with the same struct type
-        StableWrapper(0x884d60A44F6c8483780C6C4f2636195366952E34).setEnforcedOptions(params);
-        StreamVault(0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3).setEnforcedOptions(params);
+        StableWrapper(0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C).setEnforcedOptions(params);
+        StreamVault(0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94).setEnforcedOptions(params);
 
         vm.stopBroadcast();
     }
