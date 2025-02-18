@@ -48,9 +48,6 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /// @notice The amount of assets that have been deposited
     uint256 public depositAmountForEpoch;
 
-    /// @notice Constant for ETH "address"
-    address constant ETH_ADDRESS = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
-
     // #############################################
     // STRUCTS
     // #############################################
@@ -169,7 +166,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
      * @param to Address to transfer assets to
      * @param amount Amount of assets to deposit
      */
-    function deposit(address to, uint256 amount) external payable nonReentrant {
+    function deposit(address to, uint256 amount) external nonReentrant {
         if (!allowIndependence) revert IndependenceNotAllowed();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
@@ -177,11 +174,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         depositAmountForEpoch += amount;
         emit Deposit(msg.sender, to, amount);
 
-        if (asset == ETH_ADDRESS) {
-            if (msg.value != amount) revert("Invalid ETH amount");
-        } else {
-            IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-        }
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     /**
@@ -191,7 +184,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function depositToVault(
         address from,
         uint256 amount
-    ) external payable nonReentrant onlyKeeper {
+    ) external nonReentrant onlyKeeper {
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         _mint(keeper, amount);
@@ -200,11 +193,8 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         emit DepositToVault(from, amount);
 
-        if (asset == ETH_ADDRESS) {
-            if (msg.value != amount) revert("Invalid ETH amount");
-        } else {
-            IERC20(asset).safeTransferFrom(from, address(this), amount);
-        }
+        IERC20(asset).safeTransferFrom(from, address(this), amount);
+
     }
 
     // #############################################
@@ -277,12 +267,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         emit Withdrawn(to, amountToTransfer);
 
-        if (asset == ETH_ADDRESS) {
-            (bool success, ) = to.call{value: amountToTransfer}("");
-            if (!success) revert("ETH transfer failed");
-        } else {
-            IERC20(asset).safeTransfer(to, amountToTransfer);
-        }
+        IERC20(asset).safeTransfer(to, amountToTransfer);
     }
 
     // #############################################
@@ -319,28 +304,18 @@ contract StableWrapper is OFT, ReentrancyGuard {
     /**
      * @notice Processes the withdrawal for the current epoch
      */
-    function processWithdrawals() external payable onlyOwner nonReentrant {
+    function processWithdrawals() external onlyOwner nonReentrant {
         if (withdrawalAmountForEpoch > depositAmountForEpoch) {
-            if (asset == ETH_ADDRESS) {
-                if (msg.value != withdrawalAmountForEpoch - depositAmountForEpoch) 
-                    revert("Invalid ETH amount");
-            } else {
-                IERC20(asset).safeTransferFrom(
-                    owner(),
-                    address(this),
-                    withdrawalAmountForEpoch - depositAmountForEpoch
-                );
-            }
+            IERC20(asset).safeTransferFrom(
+                owner(),
+                address(this),
+                withdrawalAmountForEpoch - depositAmountForEpoch
+            );
         } else if (withdrawalAmountForEpoch < depositAmountForEpoch) {
-            if (asset == ETH_ADDRESS) {
-                (bool success, ) = owner().call{value: depositAmountForEpoch - withdrawalAmountForEpoch}("");
-                if (!success) revert("ETH transfer failed");
-            } else {
-                IERC20(asset).safeTransfer(
-                    owner(),
-                    depositAmountForEpoch - withdrawalAmountForEpoch
-                );
-            }
+            IERC20(asset).safeTransfer(
+                owner(),
+                depositAmountForEpoch - withdrawalAmountForEpoch
+            );
         }
 
         emit WithdrawalsProcessed(
@@ -369,12 +344,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
 
         emit AssetTransferred(to, amount);
 
-        if (_token == ETH_ADDRESS) {
-            (bool success, ) = to.call{value: amount}("");
-            if (!success) revert("ETH transfer failed");
-        } else {
-            IERC20(_token).safeTransfer(to, amount);
-        }
+        IERC20(_token).safeTransfer(to, amount);
     }
 
     // #############################################
@@ -426,7 +396,4 @@ contract StableWrapper is OFT, ReentrancyGuard {
     function decimals() public view virtual override returns (uint8) {
         return underlyingDecimals;
     }
-
-    // Add this to receive ETH
-    receive() external payable {}
 }

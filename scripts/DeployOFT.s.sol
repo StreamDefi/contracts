@@ -13,10 +13,10 @@ contract DeployOFTScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy OFT for wrapped tokens (StableWrapper)
-        address lzEndpoint = 0x6EDCE65403992e310A62460808c4b910D972f10f; // Base Sepolia LZ Endpoint
+        address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Base LZ Endpoint
         MyOFT wrappedOFT = new MyOFT(
-            "Wrapped Test USD",
-            "wTESTUSD",
+            "xUSDC", 
+            "xUSDC",
             lzEndpoint,
             deployer, // delegate
             6 // decimals
@@ -25,8 +25,8 @@ contract DeployOFTScript is Script {
 
         // Deploy OFT for staked tokens (StreamVault)
         MyOFT stakedOFT = new MyOFT(
-            "Stream Vault Token",
-            "svToken",
+            "Staked xUSDC",
+            "sxUSDC",
             lzEndpoint,
             deployer, // delegate
             6 // decimals

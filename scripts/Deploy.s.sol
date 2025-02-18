@@ -60,8 +60,8 @@ contract DeployScript is Script {
         });
 
         StreamVault vault = new StreamVault(
-            "Stream Vault Token",
-            "svToken",
+            "Staked xUSDC",
+            "sxUSDC",
             address(wrapper), // stableWrapper
             lzEndpoint,
             deployer, // delegate

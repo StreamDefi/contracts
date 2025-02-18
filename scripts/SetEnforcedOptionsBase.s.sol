@@ -13,11 +13,11 @@ contract SetEnforcedOptionsBaseScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Chain IDs
-        uint32 ARB_SEPOLIA_EID = 40231;
+        uint32 ETHEREUM_EID = 30101;
 
         // Create array of enforced options
         EnforcedOptionParam[] memory params = new EnforcedOptionParam[](1);
-        params[0].eid = ARB_SEPOLIA_EID;
+        params[0].eid = ETHEREUM_EID;
         params[0].msgType = 1;  // SEND
         params[0].options = hex"0003010011010000000000000000000000000000ea60";  // 60k gas
 

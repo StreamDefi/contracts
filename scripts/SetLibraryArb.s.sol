@@ -14,16 +14,16 @@ contract SetLibraryArbScript is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Arbitrum Sepolia LayerZero Endpoint
+        // ETH LayerZero Endpoint
         IMessageLibManager endpoint = IMessageLibManager(0x1a44076050125825900e736c501f859c50fE728c);
 
         vm.startBroadcast(deployerPrivateKey);
 
         // Set send library on the endpoint
         endpoint.setSendLibrary(
-            0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3,  // StreamVault address on Arbitrum
-            40245,                                         // Base Sepolia EID
-            0x4f7cd4DA19ABB31b0eC98b9066B9e857B1bf9C0E    // send library
+            0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3,  // StreamVault address on ETH
+            30184,                                         // Base EID
+            0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1    // send library
         );
 
         vm.stopBroadcast();

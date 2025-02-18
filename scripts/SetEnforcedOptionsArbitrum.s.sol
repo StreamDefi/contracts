@@ -12,11 +12,11 @@ contract SetEnforcedOptionsArbitrumScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Chain IDs
-        uint32 BASE_SEPOLIA_EID = 40245;
+        uint32 BASE_EID = 30184;
 
         // Create array of enforced options
         EnforcedOptionParam[] memory params = new EnforcedOptionParam[](1);
-        params[0].eid = BASE_SEPOLIA_EID;
+        params[0].eid = BASE_EID;
         params[0].msgType = 1;
         params[0].options = hex"0003010011010000000000000000000000000000ea60";
 
