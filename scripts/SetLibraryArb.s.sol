@@ -21,7 +21,7 @@ contract SetLibraryArbScript is Script {
 
         // Set send library on the endpoint
         endpoint.setSendLibrary(
-            0x6FbB289DD177D3F23673B04ba29fe611ad6707dc,  // StreamVault address on ETH
+            0x12fd502e2052CaFB41eccC5B596023d9978057d6,  // StreamVault address on ETH
             30184,                                         // Base EID
             0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1    // send library
         );

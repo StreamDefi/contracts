@@ -112,6 +112,7 @@ contract StreamVault is ReentrancyGuard, OFT {
     error InsufficientWithdrawal();
 
     error TransferFailed();
+    
 
     // #############################################
     // CONSTRUCTOR & INITIALIZATION

@@ -39,10 +39,10 @@ contract DeployScript is Script {
 
         address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Eth LZ Endpoint
         StableWrapper wrapper = new StableWrapper(
-            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
-            "Stream ETH", 
-            "streamETH",
-            18, // decimals
+            0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599,
+            "Stream BTC", 
+            "streamBTC",
+            8, // decimals
             deployer, // keeper
             lzEndpoint,
             deployer // delegate
@@ -54,14 +54,14 @@ contract DeployScript is Script {
         // Deploy StreamVault
         //
         Vault.VaultParams memory vaultParams = Vault.VaultParams({
-            decimals: 18,
-            cap: 1000 * 10**18, // 1000 ETH cap
-            minimumSupply: 5 * 10**16 // 0.05 ETH minimum
+            decimals: 8,
+            cap: 100 * 10**8, // 100 BTC cap
+            minimumSupply: 1 * 10**4 // 0.05 BTC minimum
         });
 
         StreamVault vault = new StreamVault(
-            "Staked Stream ETH",
-            "xETH",
+            "Staked Stream BTC",
+            "xBTC",
             address(wrapper), // stableWrapper
             lzEndpoint,
             deployer, // delegate

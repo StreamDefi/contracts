@@ -15,20 +15,20 @@ contract SetPeersArbitrumScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Arbitrum contracts
-        address arbWrapper = 0x6FbB289DD177D3F23673B04ba29fe611ad6707dc;
-        address arbVault = 0x8A31D2D10f34aAF24A2c48713e213266bc01c68b;
+        address arbWrapper = 0x05F47d7CbB0F3d7f988E442E8C1401685D2CAbE0;
+        address arbVault = 0x12fd502e2052CaFB41eccC5B596023d9978057d6;
 
         // Base contracts
-        address baseWrappedOFT = 0xF8fD2b6226384f307E72f6Ac6A276D4A0549B5C6;
-        address baseStakedOFT = 0x308645E8f0F7345E3d60de29b2F74Fee92A387F6;
+        address baseWrappedOFT = 0x8A31D2D10f34aAF24A2c48713e213266bc01c68b;
+        address baseStakedOFT = 0x09Aed31D66903C8295129aebCBc45a32E9244a1f;
 
         // Base Sepolia EID
         uint32 baseSepolia = 30184;
 
         vm.startBroadcast(deployerPrivateKey);
 
-        StableWrapper wrapper = StableWrapper(arbWrapper);
-        StreamVault vault = StreamVault(arbVault);
+        StableWrapper wrapper = StableWrapper(payable(arbWrapper));
+        StreamVault vault = StreamVault(payable(arbVault));
 
         wrapper.setPeer(baseSepolia, addressToBytes32(baseWrappedOFT));
         vault.setPeer(baseSepolia, addressToBytes32(baseStakedOFT));
