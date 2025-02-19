@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract TimelockController is Ownable, ReentrancyGuard {
-    uint256 public minDelay = 2 days;
+    uint256 public minDelay;
     uint256 public queuedDelay;
     uint256 public delayChangeScheduledAt;
     
@@ -51,7 +51,13 @@ contract TimelockController is Ownable, ReentrancyGuard {
     error FunctionMustBeImmediate();
     error OperationFail();
     
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(
+        address initialOwner,
+        uint256 initialDelay
+    ) Ownable(initialOwner) {
+        if (initialDelay == 0) revert DelayMustBeGreaterThanZero();
+        minDelay = initialDelay;
+    }
     
     function executeImmediate(
         address target,
