@@ -7,30 +7,28 @@ import {StableWrapper} from "../src/StableWrapper.sol";
 import {StreamVault} from "../src/StreamVault.sol";
 import {EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 
-contract SetEnforcedOptionsBaseScript is Script {
+contract SetEnforcedOptionsSonicScript is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         // Chain IDs
         uint32 ETHEREUM_EID = 30101;
         uint32 BASE_EID = 30184;
+        uint32 SONIC_EID = 30332;
 
         // Create array of enforced options
-        EnforcedOptionParam[] memory params = new EnforcedOptionParam[](2);
-        params[0].eid = ETHEREUM_EID;
+        EnforcedOptionParam[] memory params = new EnforcedOptionParam[](1);
+        params[0].eid = SONIC_EID;
         params[0].msgType = 1; // SEND
         params[0].options = hex"0003010011010000000000000000000000000000ea60"; // 60k gas
-        params[1].eid = BASE_EID;
-        params[1].msgType = 1; // SEND
-        params[1].options = hex"0003010011010000000000000000000000000000ea60"; // 60k gas
 
         vm.startBroadcast(deployerPrivateKey);
 
         // Call directly with the same struct type
-        StableWrapper(payable(0x34F3D5120931CfAb0b3149858B8c17D51d68E0D6))
-            .setEnforcedOptions(params); // BASE_WRAPPER
-        StreamVault(payable(0x6202B9f02E30E5e1c62Cc01E4305450E5d83b926))
-            .setEnforcedOptions(params); // BASE_VAULT
+        StableWrapper(payable(0x8A31D2D10f34aAF24A2c48713e213266bc01c68b))
+            .setEnforcedOptions(params); // SONIC_WRAPPER
+        StreamVault(payable(0x09Aed31D66903C8295129aebCBc45a32E9244a1f))
+            .setEnforcedOptions(params); // SONIC_VAULT
 
         vm.stopBroadcast();
     }

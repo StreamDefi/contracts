@@ -14,20 +14,24 @@ contract TestBridgeScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
-        StreamVault vault = StreamVault(0x55b97D28E3df8d1879b581267dF0c2cEeE8505C3);
+        StreamVault vault = StreamVault(
+            payable(0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94)
+        );
 
         vm.startBroadcast(deployerPrivateKey);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(2000000, 0);
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(2000000, 0);
 
         SendParam memory sendParam = SendParam(
-            40245,                                      // BASE_SEPOLIA_EID
-            bytes32(uint256(uint160(deployer))),       // recipient as bytes32
-            20e6,                                      // amount
-            20e6,                                      // amount (no slippage)
-            options,                                   // options
-            "",                                        // no compose msg
-            ""                                         // no oft cmd
+            30332, // BASE_SEPOLIA_EID
+            bytes32(uint256(uint160(deployer))), // recipient as bytes32
+            1e6, // amount
+            1e6, // amount (no slippage)
+            options, // options
+            "", // no compose msg
+            "" // no oft cmd
         );
 
         // Skip quoteSend entirely and just try to send with hardcoded fee

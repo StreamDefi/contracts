@@ -11,33 +11,66 @@ contract DeployOFTScript is Script {
         address deployer = vm.addr(deployerPrivateKey);
 
         vm.startBroadcast(deployerPrivateKey);
+        address lzEndpoint = 0x6F475642a6e85809B1c36Fa62763669b1b48DD5B;
+        // MyOFT wrappedBTC = new MyOFT(
+        //     "Stream BTC",
+        //     "streamBTC",
+        //     lzEndpoint,
+        //     deployer,
+        //     8
+        // );
+        // MyOFT stakedBTC = new MyOFT(
+        //     "Staked Stream BTC",
+        //     "xBTC",
+        //     lzEndpoint,
+        //     deployer,
+        //     8
+        // );
 
-        // Deploy OFT for wrapped tokens (StableWrapper)
-        address lzEndpoint = 0x1a44076050125825900e736c501f859c50fE728c; // Base LZ Endpoint
-        MyOFT wrappedOFT = new MyOFT(
-            "Stream BTC", 
-            "streamBTC",
+        // Deploy USDC OFTs
+        MyOFT wrappedUSDC = new MyOFT(
+            "Stream USD",
+            "streamUSD",
             lzEndpoint,
-            deployer, // delegate
-            8 // decimals
+            deployer,
+            6
         );
-        console2.log("Wrapped OFT deployed to:", address(wrappedOFT));
+        MyOFT stakedUSDC = new MyOFT(
+            "Staked Stream USD",
+            "xUSD",
+            lzEndpoint,
+            deployer,
+            6
+        );
 
-        // Deploy OFT for staked tokens (StreamVault)
-        MyOFT stakedOFT = new MyOFT(
-            "Staked Stream BTC",
-            "xBTC",
+        // Deploy ETH OFTs
+        MyOFT wrappedETH = new MyOFT(
+            "Stream ETH",
+            "streamETH",
             lzEndpoint,
-            deployer, // delegate
-            8 // decimals
+            deployer,
+            18
         );
-        console2.log("Staked OFT deployed to:", address(stakedOFT));
+        MyOFT stakedETH = new MyOFT(
+            "Staked Stream ETH",
+            "xETH",
+            lzEndpoint,
+            deployer,
+            18
+        );
 
         vm.stopBroadcast();
 
         console2.log("\nDeployment Summary:");
         console2.log("-------------------");
-        console2.log("Wrapped OFT:", address(wrappedOFT));
-        console2.log("Staked OFT:", address(stakedOFT));
+        // console2.log("\nBTC Vault:");
+        // console2.log("Wrapped BTC:", address(wrappedBTC));
+        // console2.log("Staked BTC:", address(stakedBTC));
+        console2.log("\nUSDC Vault:");
+        console2.log("Wrapped USD:", address(wrappedUSDC));
+        console2.log("Staked USD:", address(stakedUSDC));
+        console2.log("\nETH Vault:");
+        console2.log("Wrapped ETH:", address(wrappedETH));
+        console2.log("Staked ETH:", address(stakedETH));
     }
 }
