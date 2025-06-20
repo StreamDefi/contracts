@@ -2,13 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "./lib/SyBase.sol";
-import "./interfaces/IPDecimalsWrapperFactory.sol";
-import "./interfaces/IPDecimalsWrapper.sol";
 import {IStreamVault} from "./interfaces/IStreamVault.sol";
 import {Vault} from "./lib/Vault.sol";
 
 contract Scaled18EthereumXUSDPendleSY is SYBase {
 
+    address public constant ETHEREUM_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant XUSD_ADDRESS = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
     uint8 public constant XUSD_DECIMALS = 6;
 
@@ -16,25 +15,22 @@ contract Scaled18EthereumXUSDPendleSY is SYBase {
         string memory _name,
         string memory _symbol,
         address _wrapperFactory
-    ) SYBase(_name, _symbol, IPDecimalsWrapperFactory(_wrapperFactory).getOrCreate(XUSD_ADDRESS, 18)) {
+    ) SYBase(_name, _symbol, XUSD_ADDRESS) {
     }
 
     /*///////////////////////////////////////////////////////////////
                     DEPOSIT/REDEEM USING BASE TOKENS
     //////////////////////////////////////////////////////////////*/
 
-    function _deposit(address tokenIn, uint256 amountDeposited)
+    function _deposit(address, uint256 amountDeposited)
         internal
+        pure
         override
         returns (
             uint256 /*amountSharesOut*/
         )
     {
-        if (tokenIn == yieldToken) {
-            return amountDeposited;
-        } else {
-            return IPDecimalsWrapper(yieldToken).wrap(amountDeposited);
-        }
+       return amountDeposited;
     }
 
     function _redeem(
@@ -48,14 +44,8 @@ contract Scaled18EthereumXUSDPendleSY is SYBase {
             uint256 /*amountTokenOut*/
         )
     {
-        if (tokenOut == yieldToken) {
-            _transferOut(tokenOut, receiver, amountSharesToRedeem);
-            return amountSharesToRedeem;
-        } else {
-            uint256 xUSDAmount = IPDecimalsWrapper(yieldToken).unwrap(amountSharesToRedeem);
-            _transferOut(tokenOut, receiver, xUSDAmount);
-            return xUSDAmount;
-        }
+        _transferOut(tokenOut, receiver, amountSharesToRedeem);
+        return amountSharesToRedeem;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -75,61 +65,55 @@ contract Scaled18EthereumXUSDPendleSY is SYBase {
                 MISC FUNCTIONS FOR METADATA
     //////////////////////////////////////////////////////////////*/
 
-    function _previewDeposit(address tokenIn, uint256 amountTokenToDeposit)
+    function _previewDeposit(address, uint256 amountTokenToDeposit)
         internal
-        view
+        pure
         override
         returns (
             uint256 /*amountSharesOut*/
         )
     {
-        if (tokenIn == yieldToken) {
-            return amountTokenToDeposit;
-        } else {
-            return IPDecimalsWrapper(yieldToken).rawToWrapped(amountTokenToDeposit);
-        }
+        return amountTokenToDeposit;
     }
 
-    function _previewRedeem(address tokenOut, uint256 amountSharesToRedeem)
+    function _previewRedeem(address, uint256 amountSharesToRedeem)
         internal
-        view
+        pure
         override
         returns (
             uint256 /*amountTokenOut*/
         )
     {
-        if (tokenOut == yieldToken) {
-            return amountSharesToRedeem;
-        } else {
-            return IPDecimalsWrapper(yieldToken).wrappedToRaw(amountSharesToRedeem);
-        }
+        return amountSharesToRedeem;
     }
 
     function getTokensIn() public view override returns (address[] memory res) {
-        return ArrayLib.create(XUSD_ADDRESS, yieldToken);
+        res = new address[](1);
+        res[0] = yieldToken;
     }
 
     function getTokensOut() public view override returns (address[] memory res) {
-        return ArrayLib.create(XUSD_ADDRESS, yieldToken);
+        res = new address[](1);
+        res[0] = yieldToken;
     }
 
     function isValidTokenIn(address token) public view override returns (bool) {
-        return token == XUSD_ADDRESS || token == yieldToken;
+        return token == yieldToken;
     }
 
     function isValidTokenOut(address token) public view override returns (bool) {
-        return token == XUSD_ADDRESS || token == yieldToken;
+        return token == yieldToken;
     }
 
     function assetInfo()
         external
-        view
+        pure
         returns (
             AssetType assetType,
             address assetAddress,
             uint8 assetDecimals
         )
     {
-        return (AssetType.TOKEN, yieldToken, 18);
+        return (AssetType.TOKEN, ETHEREUM_USDC_ADDRESS, 6);
     }
 }
