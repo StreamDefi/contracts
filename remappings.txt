@@ -1,0 +1,2 @@
+@openzeppelin/=node_modules/@openzeppelin/contracts/
+@layerzerolabs/=node_modules/@layerzerolabs/
