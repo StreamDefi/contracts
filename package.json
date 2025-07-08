@@ -44,12 +44,13 @@
     "@layerzerolabs/toolbox-hardhat": "~0.6.6",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts": "^4.6.0",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
     "@openzeppelin/hardhat-upgrades": "^3.9.0",
     "@types/node": "~18.18.14",
+    "chai": "^4.3.10",
     "ethers": "^5.7.2",
     "hardhat": "^2.22.10",
     "hardhat-contract-sizer": "^2.10.0",
@@ -75,5 +76,10 @@
     "ethers": "^5.7.2",
     "hardhat-deploy": "^0.12.4",
     "hardhat-gas-reporter": "^2.2.2"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.0.14",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "dotenv": "^17.0.1"
   }
 }

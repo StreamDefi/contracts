@@ -1,0 +1,3 @@
+[submodule "node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts"]
+	path = node_modules/@layerzerolabs/toolbox-foundry/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts

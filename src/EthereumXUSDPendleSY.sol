@@ -5,7 +5,7 @@ import "./lib/SyBase.sol";
 import {IStreamVault} from "./interfaces/IStreamVault.sol";
 import {Vault} from "./lib/Vault.sol";
 
-contract Scaled18EthereumXUSDPendleSY is SYBase {
+contract EthereumXUSDPendleSY is SYBase {
 
     address public constant ETHEREUM_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant XUSD_ADDRESS = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
@@ -13,8 +13,7 @@ contract Scaled18EthereumXUSDPendleSY is SYBase {
 
     constructor(
         string memory _name,
-        string memory _symbol,
-        address _wrapperFactory
+        string memory _symbol
     ) SYBase(_name, _symbol, XUSD_ADDRESS) {
     }
 
