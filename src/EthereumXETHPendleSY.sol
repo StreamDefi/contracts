@@ -5,16 +5,16 @@ import "./lib/SyBase.sol";
 import {IStreamVault} from "./interfaces/IStreamVault.sol";
 import {Vault} from "./lib/Vault.sol";
 
-contract EthereumXUSDPendleSY is SYBase {
+contract EthereumXETHPendleSY is SYBase {
 
-    address public constant ETHEREUM_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address public constant XUSD_ADDRESS = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    uint8 public constant XUSD_DECIMALS = 6;
+    address public constant ETHEREUM_WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant XETH_ADDRESS = 0x7E586fBaF3084C0be7aB5C82C04FfD7592723153;
+    uint8 public constant XETH_DECIMALS = 18;
 
     constructor(
         string memory _name,
         string memory _symbol
-    ) SYBase(_name, _symbol, XUSD_ADDRESS) {
+    ) SYBase(_name, _symbol, XETH_ADDRESS) {
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -53,11 +53,11 @@ contract EthereumXUSDPendleSY is SYBase {
 
     function exchangeRate() public view override returns (uint256) {
 
-        Vault.VaultState memory vaultState = IStreamVault(XUSD_ADDRESS).vaultState();
+        Vault.VaultState memory vaultState = IStreamVault(XETH_ADDRESS).vaultState();
 
         // round is already > 2
-        uint256 sharePrice = IStreamVault(XUSD_ADDRESS).roundPricePerShare(vaultState.round - 1);
-        return sharePrice * (10 ** (18-XUSD_DECIMALS));
+        uint256 sharePrice = IStreamVault(XETH_ADDRESS).roundPricePerShare(vaultState.round - 1);
+        return sharePrice;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -113,6 +113,6 @@ contract EthereumXUSDPendleSY is SYBase {
             uint8 assetDecimals
         )
     {
-        return (AssetType.TOKEN, ETHEREUM_USDC_ADDRESS, 6);
+        return (AssetType.TOKEN, ETHEREUM_WETH_ADDRESS, 18);
     }
 }
