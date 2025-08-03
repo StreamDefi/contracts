@@ -4,13 +4,13 @@
 pragma solidity ^0.8.0;
 
 import "./PendleERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts-v4/utils/Context.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts-v4/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-v4/utils/Counters.sol";
 
 /// @dev forked from OZ's ERC20Permit
 contract PendleERC20Permit is PendleERC20, IERC20Permit, EIP712 {
