@@ -6,17 +6,21 @@ import "./interfaces/IPDecimalsWrapper.sol";
 import {IStreamVault} from "./interfaces/IStreamVault.sol";
 import {Vault} from "./lib/Vault.sol";
 
-contract Scaled18EthereumXBTCPendleSY is SYBase {
+contract EthereumScaled18XBTCPendleSY is SYBase {
 
 
     address public constant XBTC_ADDRESS = 0x12fd502e2052CaFB41eccC5B596023d9978057d6;
+    address public constant WBTC_ADDRESS = 0x2260fac5e5542a773aa44fbcfedf7c193bc2c599;
     uint8 public constant XBTC_DECIMALS = 8;
+
+    address public immutable WBTCWrapper;
 
     constructor(
         string memory _name,
         string memory _symbol,
         address _wrapperFactory
     ) SYBase(_name, _symbol, IPDecimalsWrapperFactory(_wrapperFactory).getOrCreate(XBTC_ADDRESS, 18)) {
+        WBTCWrapper = IPDecimalsWrapperFactory(_wrapperFactory).getOrCreate(WBTC_ADDRESS, 18);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -133,6 +137,6 @@ contract Scaled18EthereumXBTCPendleSY is SYBase {
             uint8 assetDecimals
         )
     {
-        return (AssetType.TOKEN, yieldToken, 18);
+        return (AssetType.TOKEN, WBTCWrapper, 18);
     }
 }
