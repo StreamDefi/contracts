@@ -11,7 +11,7 @@ contract DeployEthereumScaled18XBTCPendleSYScript is Script {
         vm.startBroadcast(deployerPrivateKey);
         
         EthereumScaled18XBTCPendleSY instance = new EthereumScaled18XBTCPendleSY(
-            "SY-xBTC-scaled18", 
+            "SY Staked Stream BTC scaled18", 
             "SY-xBTC-scaled18",
             0x992EC6A490A4B7f256bd59E63746951D98B29Be9
         );

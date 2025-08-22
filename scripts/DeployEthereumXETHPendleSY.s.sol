@@ -11,7 +11,7 @@ contract DeployEthereumXETHPendleSYScript is Script {
         vm.startBroadcast(deployerPrivateKey);
         
         EthereumXETHPendleSY instance = new EthereumXETHPendleSY(
-            "SY-xETH", 
+            "SY Staked Stream ETH", 
             "SY-xETH"
         );
         
