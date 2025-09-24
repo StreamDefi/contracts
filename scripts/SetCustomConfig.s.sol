@@ -28,89 +28,32 @@ contract SetCustomConfigScript is Script {
         address[] optionalDVNs; // no duplicates. sorted an an ascending order. allowed overlap with requiredDVNs
     }
 
-    // AVAX Contracts
-    address constant AVAX_BTC_WRAPPED =
-        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
-    address constant AVAX_BTC_STAKED =
-        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
-    address constant AVAX_USD_WRAPPED =
-        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    address constant AVAX_USD_STAKED =
-        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
-    address constant AVAX_ETH_WRAPPED =
-        0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
-    address constant AVAX_ETH_STAKED =
-        0x413bF752b33e76562dc876182141e2329716f250;
+ // LZ Endpoints
+    address constant ETH_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+    address constant HYPEREVM_ENDPOINT = 0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9;
+    address constant LINEA_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+    address constant PLUME_ENDPOINT = 0xC1b15d3B262bEeC0e3565C11C9e0F6134BdaCB36;
+    address constant KATANA_ENDPOINT = 0x6F475642a6e85809B1c36Fa62763669b1b48DD5B;
+    address constant POLYGON_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
+    address constant PLASMA_ENDPOINT = 0x6F475642a6e85809B1c36Fa62763669b1b48DD5B;
 
-    // BSC Contracts
-    address constant BSC_BTC_WRAPPED =
-        0x212187708d01A63bcbE2F59553537de407a5621D;
-    address constant BSC_BTC_STAKED =
-        0xa791082be08B890792c558F1292Ac4a2Dad21920;
-    address constant BSC_USD_WRAPPED =
-        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
-    address constant BSC_USD_STAKED =
-        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
-    address constant BSC_ETH_WRAPPED =
-        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    address constant BSC_ETH_STAKED =
-        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
 
-    // ARB Contracts
-    address constant ARB_BTC_WRAPPED =
-        0x212187708d01A63bcbE2F59553537de407a5621D;
-    address constant ARB_BTC_STAKED =
-        0xa791082be08B890792c558F1292Ac4a2Dad21920;
-    address constant ARB_USD_WRAPPED =
-        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
-    address constant ARB_USD_STAKED =
-        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
-    address constant ARB_ETH_WRAPPED =
-        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    address constant ARB_ETH_STAKED =
-        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant ETH_SEND_LIB = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
+    address constant ETH_RECEIVE_LIB = 0xc02Ab410f0734EFa3F14628780e6e695156024C2;
+    address constant HYPEREVM_SEND_LIB = 0xfd76d9CB0Bac839725aB79127E7411fe71b1e3CA;
+    address constant HYPEREVM_RECEIVE_LIB = 0x7cacBe439EaD55fa1c22790330b12835c6884a91;
+    address constant LINEA_SEND_LIB = 0x32042142DD551b4EbE17B6FEd53131dd4b4eEa06;
+    address constant LINEA_RECEIVE_LIB = 0xE22ED54177CE1148C557de74E4873619e6c6b205;
+    address constant PLUME_SEND_LIB = 0xFe7C30860D01e28371D40434806F4A8fcDD3A098;
+    address constant PLUME_RECEIVE_LIB = 0x5B19bd330A84c049b62D5B0FC2bA120217a18C1C;
+    address constant KATANA_SEND_LIB = 0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7;
+    address constant KATANA_RECEIVE_LIB = 0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043;
+    address constant POLYGON_SEND_LIB = 0x6c26c61a97006888ea9E4FA36584c7df57Cd9dA3;
+    address constant POLYGON_RECEIVE_LIB = 0x1322871e4ab09Bc7f5717189434f97bBD9546e95;
+    address constant PLASMA_SEND_LIB = 0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7;
+    address constant PLASMA_RECEIVE_LIB = 0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043;
 
-    // BERA Contracts
-    address constant BERA_BTC_WRAPPED =
-        0x212187708d01A63bcbE2F59553537de407a5621D;
-    address constant BERA_BTC_STAKED =
-        0xa791082be08B890792c558F1292Ac4a2Dad21920;
-    address constant BERA_USD_WRAPPED =
-        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
-    address constant BERA_USD_STAKED =
-        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
-    address constant BERA_ETH_WRAPPED =
-        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    address constant BERA_ETH_STAKED =
-        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
 
-    // OPTIMISM Contracts
-    address constant OPTIMISM_BTC_WRAPPED =
-        0x212187708d01A63bcbE2F59553537de407a5621D;
-    address constant OPTIMISM_BTC_STAKED =
-        0xa791082be08B890792c558F1292Ac4a2Dad21920;
-    address constant OPTIMISM_USD_WRAPPED =
-        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
-    address constant OPTIMISM_USD_STAKED =
-        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
-    address constant OPTIMISM_ETH_WRAPPED =
-        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
-    address constant OPTIMISM_ETH_STAKED =
-        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
-
-    // BASE Contracts
-    address constant BASE_BTC_WRAPPED =
-        0x8A31D2D10f34aAF24A2c48713e213266bc01c68b;
-    address constant BASE_BTC_STAKED =
-        0x09Aed31D66903C8295129aebCBc45a32E9244a1f;
-    address constant BASE_USD_WRAPPED =
-        0x212187708d01A63bcbE2F59553537de407a5621D;
-    address constant BASE_USD_STAKED =
-        0xa791082be08B890792c558F1292Ac4a2Dad21920;
-    address constant BASE_ETH_WRAPPED =
-        0xc5332A5A8cBbB651A427F2cec9F779797311B839;
-    address constant BASE_ETH_STAKED =
-        0x6202B9f02E30E5e1c62Cc01E4305450E5d83b926;
 
     // ETHEREUM Contracts
     address constant ETH_BTC_WRAPPED =
@@ -125,104 +68,126 @@ contract SetCustomConfigScript is Script {
         0xF70f54cEFdCd3C8f011865685FF49FB80A386a34;
     address constant ETH_ETH_STAKED =
         0x7E586fBaF3084C0be7aB5C82C04FfD7592723153;
+    address constant ETH_EURC_WRAPPED =
+        0xDCFd98A5681722DF0d93fc11b9205f757576a427;
+    address constant ETH_EURC_STAKED =
+        0xc15697f61170Fc3Bb4e99Eb7913b4C7893F64F13;
 
-    // SONIC Contracts
-    address constant SONIC_BTC_WRAPPED =
-        0xAA9bB583B25B9368AC711b57e7D5722444fb032d;
-    address constant SONIC_BTC_STAKED =
-        0xB88fF15ae5f82c791e637b27337909BcF8065270;
-    address constant SONIC_USD_WRAPPED =
-        0xc5332A5A8cBbB651A427F2cec9F779797311B839;
-    address constant SONIC_USD_STAKED =
-        0x6202B9f02E30E5e1c62Cc01E4305450E5d83b926;
-    address constant SONIC_ETH_WRAPPED =
-        0x34F3D5120931CfAb0b3149858B8c17D51d68E0D6;
-    address constant SONIC_ETH_STAKED =
-        0x16af6b1315471Dc306D47e9CcEfEd6e5996285B6;
+    // HYPEREVM Contracts
+    address constant HYPEREVM_BTC_WRAPPED =
+        0x212187708d01A63bcbE2F59553537de407a5621D;
+    address constant HYPEREVM_BTC_STAKED =
+        0xa791082be08B890792c558F1292Ac4a2Dad21920;
+    address constant HYPEREVM_USD_WRAPPED =
+        0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
+    address constant HYPEREVM_USD_STAKED =
+        0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
+    address constant HYPEREVM_ETH_WRAPPED =
+        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant HYPEREVM_ETH_STAKED =
+        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant HYPEREVM_EURC_WRAPPED =
+        0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant HYPEREVM_EURC_STAKED =
+        0x413bF752b33e76562dc876182141e2329716f250;
 
-    // Send Libraries
-    address constant AVAX_SEND_LIB = 0x197D1333DEA5Fe0D6600E9b396c7f1B1cFCc558a;
-    address constant BSC_SEND_LIB = 0x9F8C645f2D0b2159767Bd6E0839DE4BE49e823DE;
-    address constant ARB_SEND_LIB = 0x975bcD720be66659e3EB3C0e4F1866a3020E493A;
-    address constant BERA_SEND_LIB = 0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7;
-    address constant OPTIMISM_SEND_LIB =
-        0x1322871e4ab09Bc7f5717189434f97bBD9546e95;
-    address constant BASE_SEND_LIB = 0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2;
-    address constant ETH_SEND_LIB = 0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1;
-    address constant SONIC_SEND_LIB =
-        0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7;
+    // LINEA Contracts
+    address constant LINEA_BTC_WRAPPED =
+        0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant LINEA_BTC_STAKED =
+        0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant LINEA_USD_WRAPPED =
+        0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant LINEA_USD_STAKED =
+        0x413bF752b33e76562dc876182141e2329716f250;
+    address constant LINEA_ETH_WRAPPED =
+        0x6F950EDd4f23bef6923DF96E6B3872eE60a982cd;
+    address constant LINEA_ETH_STAKED =
+        0x1e39413d695a9EEF1fB6dBe298D9ce0b7A9a065a;
+    address constant LINEA_EURC_WRAPPED =
+        0x308645E8f0F7345E3d60de29b2F74Fee92A387F6;
+    address constant LINEA_EURC_STAKED =
+        0xB4329eeE0cEa38d83817034621109C87a0a6eECb;
 
-    address constant AVAX_RECEIVE_LIB =
-        0xbf3521d309642FA9B1c91A08609505BA09752c61; // To be filled in later
-    address constant BSC_RECEIVE_LIB =
-        0xB217266c3A98C8B2709Ee26836C98cf12f6cCEC1;
-    address constant ARB_RECEIVE_LIB =
-        0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6;
-    address constant BERA_RECEIVE_LIB =
-        0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043;
-    address constant OPTIMISM_RECEIVE_LIB =
-        0x3c4962Ff6258dcfCafD23a814237B7d6Eb712063;
-    address constant BASE_RECEIVE_LIB =
-        0xc70AB6f32772f59fBfc23889Caf4Ba3376C84bAf;
-    address constant ETH_RECEIVE_LIB =
-        0xc02Ab410f0734EFa3F14628780e6e695156024C2;
-    address constant SONIC_RECEIVE_LIB =
-        0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043;
+        
+    // PLUME Contracts
+    address constant PLUME_BTC_WRAPPED = 0x212187708d01A63bcbE2F59553537de407a5621D;
+    address constant PLUME_BTC_STAKED = 0xa791082be08B890792c558F1292Ac4a2Dad21920;
+    address constant PLUME_USD_WRAPPED = 0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
+    address constant PLUME_USD_STAKED = 0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
+    address constant PLUME_ETH_WRAPPED = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant PLUME_ETH_STAKED = 0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant PLUME_EURC_WRAPPED = 0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant PLUME_EURC_STAKED = 0x413bF752b33e76562dc876182141e2329716f250;
 
-    // LZ Endpoints
-    address constant AVAX_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant BSC_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant ARB_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant BERA_ENDPOINT = 0x6F475642a6e85809B1c36Fa62763669b1b48DD5B;
-    address constant OPTIMISM_ENDPOINT =
-        0x1a44076050125825900e736c501f859c50fE728c;
-    address constant BASE_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant ETH_ENDPOINT = 0x1a44076050125825900e736c501f859c50fE728c;
-    address constant SONIC_ENDPOINT =
-        0x6F475642a6e85809B1c36Fa62763669b1b48DD5B;
+    //KATANA Contracts
+    address constant KATANA_BTC_WRAPPED = 0x212187708d01A63bcbE2F59553537de407a5621D;
+    address constant KATANA_BTC_STAKED = 0xa791082be08B890792c558F1292Ac4a2Dad21920;
+    address constant KATANA_USD_WRAPPED = 0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
+    address constant KATANA_USD_STAKED = 0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
+    address constant KATANA_ETH_WRAPPED = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant KATANA_ETH_STAKED = 0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant KATANA_EURC_WRAPPED = 0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant KATANA_EURC_STAKED = 0x413bF752b33e76562dc876182141e2329716f250;
+
+    //POLYGON Contracts
+    address constant POLYGON_BTC_WRAPPED = 0x212187708d01A63bcbE2F59553537de407a5621D;
+    address constant POLYGON_BTC_STAKED = 0xa791082be08B890792c558F1292Ac4a2Dad21920;
+    address constant POLYGON_USD_WRAPPED = 0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
+    address constant POLYGON_USD_STAKED = 0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
+    address constant POLYGON_ETH_WRAPPED = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant POLYGON_ETH_STAKED = 0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant POLYGON_EURC_WRAPPED = 0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant POLYGON_EURC_STAKED = 0x413bF752b33e76562dc876182141e2329716f250;
+
+    //PLASMA Contracts
+    address constant PLASMA_BTC_WRAPPED = 0x212187708d01A63bcbE2F59553537de407a5621D;
+    address constant PLASMA_BTC_STAKED = 0xa791082be08B890792c558F1292Ac4a2Dad21920;
+    address constant PLASMA_USD_WRAPPED = 0x60E26068c264F13Ba87F67d33A9a3bd7763d5151;
+    address constant PLASMA_USD_STAKED = 0x6eAf19b2FC24552925dB245F9Ff613157a7dbb4C;
+    address constant PLASMA_ETH_WRAPPED = 0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94;
+    address constant PLASMA_ETH_STAKED = 0x94f9bB5c972285728DCee7EAece48BeC2fF341ce;
+    address constant PLASMA_EURC_WRAPPED = 0xedcF5a7cf1228f5275d86449DDa30d29F36e40cF;
+    address constant PLASMA_EURC_STAKED = 0x413bF752b33e76562dc876182141e2329716f250;
+    
+    
+
+    // Chain IDs
+    uint32 constant ETH_CHAIN_ID = 30101;
+    uint32 constant HYPEREVM_CHAIN_ID = 30367;
+    uint32 constant LINEA_CHAIN_ID = 30183;
+    uint32 constant PLUME_CHAIN_ID = 30370;
+    uint32 constant KATANA_CHAIN_ID = 30375;
+    uint32 constant POLYGON_CHAIN_ID = 30109;
+    uint32 constant PLASMA_CHAIN_ID = 30383;
 
     address constant LZ_ETH_DVN = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b;
     address constant NETHERMIND_ETH_DVN =
         0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5;
 
-    address constant LZ_SONIC_DVN = 0x282b3386571f7f794450d5789911a9804FA346b4;
-    address constant NETHERMIND_SONIC_DVN =
-        0x05AaEfDf9dB6E0f7d27FA3b6EE099EDB33dA029E;
+    address constant LZ_HYPEREVM_DVN = 0xc097ab8CD7b053326DFe9fB3E3a31a0CCe3B526f;
+    address constant NETHERMIND_HYPEREVM_DVN =
+        0x8E49eF1DfAe17e547CA0E7526FfDA81FbaCA810A;
 
-    address constant LZ_BASE_DVN = 0x9e059a54699a285714207b43B055483E78FAac25;
-    address constant NETHERMIND_BASE_DVN =
-        0xcd37CA043f8479064e10635020c65FfC005d36f6;
-
-    address constant LZ_OPTIMISM_DVN =
-        0x6A02D83e8d433304bba74EF1c427913958187142;
-    address constant NETHERMIND_OPTIMISM_DVN =
-        0xa7b5189bcA84Cd304D8553977c7C614329750d99;
-
-    address constant LZ_BERA_DVN = 0x282b3386571f7f794450d5789911a9804FA346b4;
-    address constant NETHERMIND_BERA_DVN =
+    address constant LZ_LINEA_DVN = 0x129Ee430Cb2Ff2708CCADDBDb408a88Fe4FFd480;
+    address constant NETHERMIND_LINEA_DVN =
         0xDd7B5E1dB4AaFd5C8EC3b764eFB8ed265Aa5445B;
+    
+    address constant LZ_PLUME_DVN = 0x4208D6E27538189bB48E603D6123A94b8Abe0A0b;
+    address constant NETHERMIND_PLUME_DVN =
+        0x882a1EE8891c7d22310dedf032eF9653785532B8;
 
-    address constant LZ_ARB_DVN = 0x2f55C492897526677C5B68fb199ea31E2c126416;
-    address constant NETHERMIND_ARB_DVN =
-        0xa7b5189bcA84Cd304D8553977c7C614329750d99;
+    address constant LZ_KATANA_DVN = 0x282b3386571f7f794450d5789911a9804FA346b4;
+    address constant NETHERMIND_KATANA_DVN =
+        0xaCDe1f22EEAb249d3ca6Ba8805C8fEe9f52a16e7;
 
-    address constant LZ_BSC_DVN = 0xfD6865c841c2d64565562fCc7e05e619A30615f0;
-    address constant NETHERMIND_BSC_DVN =
+    address constant LZ_POLYGON_DVN = 0x23DE2FE932d9043291f870324B74F820e11dc81A;
+    address constant NETHERMIND_POLYGON_DVN =
         0x31F748a368a893Bdb5aBB67ec95F232507601A73;
 
-    address constant LZ_AVAX_DVN = 0x962F502A63F5FBeB44DC9ab932122648E8352959;
-    address constant NETHERMIND_AVAX_DVN =
-        0xa59BA433ac34D2927232918Ef5B2eaAfcF130BA5;
-
-    // Chain IDs
-    uint32 constant AVAX_CHAIN_ID = 30106;
-    uint32 constant BSC_CHAIN_ID = 30102;
-    uint32 constant ARB_CHAIN_ID = 30110;
-    uint32 constant BERA_CHAIN_ID = 30362;
-    uint32 constant OP_CHAIN_ID = 30111;
-    uint32 constant BASE_CHAIN_ID = 30184;
-    uint32 constant ETH_CHAIN_ID = 30101;
-    uint32 constant SONIC_CHAIN_ID = 30332;
+    address constant LZ_PLASMA_DVN = 0x282b3386571f7f794450d5789911a9804FA346b4;
+    address constant NETHERMIND_PLASMA_DVN =
+        0xa51cE237FaFA3052D5d3308Df38A024724Bb1274;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -240,6 +205,8 @@ contract SetCustomConfigScript is Script {
             address stakedUSD,
             address wrappedETH,
             address stakedETH,
+            address wrappedEURC,
+            address stakedEURC,
             address[] memory chainDVNs
         ) = getChainInfo(currentChain);
 
@@ -257,6 +224,8 @@ contract SetCustomConfigScript is Script {
         console2.log("USD Staked:", stakedUSD);
         console2.log("ETH Wrapped:", wrappedETH);
         console2.log("ETH Staked:", stakedETH);
+        console2.log("EURC Wrapped:", wrappedEURC);
+        console2.log("EURC Staked:", stakedEURC);
 
         vm.startBroadcast(deployerPrivateKey);
 
@@ -274,7 +243,7 @@ contract SetCustomConfigScript is Script {
         IMessageLibManager.SetConfigParam[]
             memory params = new IMessageLibManager.SetConfigParam[](1);
         params[0] = IMessageLibManager.SetConfigParam({
-            eid: AVAX_CHAIN_ID,
+            eid: PLASMA_CHAIN_ID,
             configType: 2,
             config: abi.encode(ulnConfig)
         });
@@ -287,6 +256,8 @@ contract SetCustomConfigScript is Script {
         endpointManager.setConfig(stakedUSD, sendLib, params);
         endpointManager.setConfig(wrappedETH, sendLib, params);
         endpointManager.setConfig(stakedETH, sendLib, params);
+        endpointManager.setConfig(wrappedEURC, sendLib, params);
+        endpointManager.setConfig(stakedEURC, sendLib, params);
 
         // Set config for receive library
         console2.log("\nSetting Receive Library configs...");
@@ -296,6 +267,8 @@ contract SetCustomConfigScript is Script {
         endpointManager.setConfig(stakedUSD, receiveLib, params);
         endpointManager.setConfig(wrappedETH, receiveLib, params);
         endpointManager.setConfig(stakedETH, receiveLib, params);
+        endpointManager.setConfig(wrappedEURC, receiveLib, params);
+        endpointManager.setConfig(stakedEURC, receiveLib, params);
 
         vm.stopBroadcast();
 
@@ -318,6 +291,8 @@ contract SetCustomConfigScript is Script {
             address stakedUSD,
             address wrappedETH,
             address stakedETH,
+            address wrappedEURC,
+            address stakedEURC,
             address[] memory chainDVNs
         )
     {
@@ -340,122 +315,119 @@ contract SetCustomConfigScript is Script {
                 ETH_USD_STAKED,
                 ETH_ETH_WRAPPED,
                 ETH_ETH_STAKED,
+                ETH_EURC_WRAPPED,
+                ETH_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("AVAX"))) {
-            dvns[0] = LZ_AVAX_DVN;
-            dvns[1] = NETHERMIND_AVAX_DVN;
+        } else if (chainHash == keccak256(bytes("HYPEREVM"))) {
+            dvns[1] = LZ_HYPEREVM_DVN;
+            dvns[0] = NETHERMIND_HYPEREVM_DVN;
             return (
-                AVAX_ENDPOINT,
-                AVAX_SEND_LIB,
-                AVAX_RECEIVE_LIB,
-                AVAX_CHAIN_ID,
-                AVAX_BTC_WRAPPED,
-                AVAX_BTC_STAKED,
-                AVAX_USD_WRAPPED,
-                AVAX_USD_STAKED,
-                AVAX_ETH_WRAPPED,
-                AVAX_ETH_STAKED,
+                HYPEREVM_ENDPOINT,
+                HYPEREVM_SEND_LIB,
+                HYPEREVM_RECEIVE_LIB,
+                HYPEREVM_CHAIN_ID,
+                HYPEREVM_BTC_WRAPPED,
+                HYPEREVM_BTC_STAKED,
+                HYPEREVM_USD_WRAPPED,
+                HYPEREVM_USD_STAKED,
+                HYPEREVM_ETH_WRAPPED,
+                HYPEREVM_ETH_STAKED,
+                HYPEREVM_EURC_WRAPPED,
+                HYPEREVM_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("BSC"))) {
-            dvns[0] = LZ_BSC_DVN;
-            dvns[1] = NETHERMIND_BSC_DVN;
+        } else if (chainHash == keccak256(bytes("LINEA"))) {
+            dvns[0] = LZ_LINEA_DVN;
+            dvns[1] = NETHERMIND_LINEA_DVN;
             return (
-                BSC_ENDPOINT,
-                BSC_SEND_LIB,
-                BSC_RECEIVE_LIB,
-                BSC_CHAIN_ID,
-                BSC_BTC_WRAPPED,
-                BSC_BTC_STAKED,
-                BSC_USD_WRAPPED,
-                BSC_USD_STAKED,
-                BSC_ETH_WRAPPED,
-                BSC_ETH_STAKED,
+                LINEA_ENDPOINT,
+                LINEA_SEND_LIB,
+                LINEA_RECEIVE_LIB,
+                LINEA_CHAIN_ID,
+                LINEA_BTC_WRAPPED,
+                LINEA_BTC_STAKED,
+                LINEA_USD_WRAPPED,
+                LINEA_USD_STAKED,
+                LINEA_ETH_WRAPPED,
+                LINEA_ETH_STAKED,
+                LINEA_EURC_WRAPPED,
+                LINEA_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("ARB"))) {
-            dvns[0] = LZ_ARB_DVN;
-            dvns[1] = NETHERMIND_ARB_DVN;
+        } else if (chainHash == keccak256(bytes("PLUME"))) {
+            dvns[0] = LZ_PLUME_DVN;
+            dvns[1] = NETHERMIND_PLUME_DVN;
             return (
-                ARB_ENDPOINT,
-                ARB_SEND_LIB,
-                ARB_RECEIVE_LIB,
-                ARB_CHAIN_ID,
-                ARB_BTC_WRAPPED,
-                ARB_BTC_STAKED,
-                ARB_USD_WRAPPED,
-                ARB_USD_STAKED,
-                ARB_ETH_WRAPPED,
-                ARB_ETH_STAKED,
+                PLUME_ENDPOINT,
+                PLUME_SEND_LIB,
+                PLUME_RECEIVE_LIB,
+                PLUME_CHAIN_ID,
+                PLUME_BTC_WRAPPED,
+                PLUME_BTC_STAKED,
+                PLUME_USD_WRAPPED,
+                PLUME_USD_STAKED,
+                PLUME_ETH_WRAPPED,
+                PLUME_ETH_STAKED,
+                PLUME_EURC_WRAPPED,
+                PLUME_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("BERA"))) {
-            dvns[0] = LZ_BERA_DVN;
-            dvns[1] = NETHERMIND_BERA_DVN;
+        } else if (chainHash == keccak256(bytes("KATANA"))) {
+            dvns[0] = LZ_KATANA_DVN;
+            dvns[1] = NETHERMIND_KATANA_DVN;
             return (
-                BERA_ENDPOINT,
-                BERA_SEND_LIB,
-                BERA_RECEIVE_LIB,
-                BERA_CHAIN_ID,
-                BERA_BTC_WRAPPED,
-                BERA_BTC_STAKED,
-                BERA_USD_WRAPPED,
-                BERA_USD_STAKED,
-                BERA_ETH_WRAPPED,
-                BERA_ETH_STAKED,
+                KATANA_ENDPOINT,
+                KATANA_SEND_LIB,
+                KATANA_RECEIVE_LIB,
+                KATANA_CHAIN_ID,
+                KATANA_BTC_WRAPPED,
+                KATANA_BTC_STAKED,
+                KATANA_USD_WRAPPED,
+                KATANA_USD_STAKED,
+                KATANA_ETH_WRAPPED,
+                KATANA_ETH_STAKED,
+                KATANA_EURC_WRAPPED,
+                KATANA_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("OPTIMISM"))) {
-            dvns[0] = LZ_OPTIMISM_DVN;
-            dvns[1] = NETHERMIND_OPTIMISM_DVN;
+        } else if (chainHash == keccak256(bytes("POLYGON"))) {
+            dvns[0] = LZ_POLYGON_DVN;
+            dvns[1] = NETHERMIND_POLYGON_DVN;
             return (
-                OPTIMISM_ENDPOINT,
-                OPTIMISM_SEND_LIB,
-                OPTIMISM_RECEIVE_LIB,
-                OP_CHAIN_ID,
-                OPTIMISM_BTC_WRAPPED,
-                OPTIMISM_BTC_STAKED,
-                OPTIMISM_USD_WRAPPED,
-                OPTIMISM_USD_STAKED,
-                OPTIMISM_ETH_WRAPPED,
-                OPTIMISM_ETH_STAKED,
+                POLYGON_ENDPOINT,
+                POLYGON_SEND_LIB,
+                POLYGON_RECEIVE_LIB,
+                POLYGON_CHAIN_ID,
+                POLYGON_BTC_WRAPPED,
+                POLYGON_BTC_STAKED,
+                POLYGON_USD_WRAPPED,
+                POLYGON_USD_STAKED,
+                POLYGON_ETH_WRAPPED,
+                POLYGON_ETH_STAKED,
+                POLYGON_EURC_WRAPPED,
+                POLYGON_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("BASE"))) {
-            dvns[0] = LZ_BASE_DVN;
-            dvns[1] = NETHERMIND_BASE_DVN;
+        } else if (chainHash == keccak256(bytes("PLASMA"))) {
+            dvns[0] = LZ_PLASMA_DVN;
+            dvns[1] = NETHERMIND_PLASMA_DVN;
             return (
-                BASE_ENDPOINT,
-                BASE_SEND_LIB,
-                BASE_RECEIVE_LIB,
-                BASE_CHAIN_ID,
-                BASE_BTC_WRAPPED,
-                BASE_BTC_STAKED,
-                BASE_USD_WRAPPED,
-                BASE_USD_STAKED,
-                BASE_ETH_WRAPPED,
-                BASE_ETH_STAKED,
+                PLASMA_ENDPOINT,
+                PLASMA_SEND_LIB,
+                PLASMA_RECEIVE_LIB,
+                PLASMA_CHAIN_ID,
+                PLASMA_BTC_WRAPPED,
+                PLASMA_BTC_STAKED,
+                PLASMA_USD_WRAPPED,
+                PLASMA_USD_STAKED,
+                PLASMA_ETH_WRAPPED,
+                PLASMA_ETH_STAKED,
+                PLASMA_EURC_WRAPPED,
+                PLASMA_EURC_STAKED,
                 dvns
             );
-        } else if (chainHash == keccak256(bytes("SONIC"))) {
-            dvns[1] = LZ_SONIC_DVN;
-            dvns[0] = NETHERMIND_SONIC_DVN;
-            return (
-                SONIC_ENDPOINT,
-                SONIC_SEND_LIB,
-                SONIC_RECEIVE_LIB,
-                SONIC_CHAIN_ID,
-                SONIC_BTC_WRAPPED,
-                SONIC_BTC_STAKED,
-                SONIC_USD_WRAPPED,
-                SONIC_USD_STAKED,
-                SONIC_ETH_WRAPPED,
-                SONIC_ETH_STAKED,
-                dvns
-            );
-        }
+        } else revert("Invalid chain");
 
-        revert("Invalid chain");
     }
 }

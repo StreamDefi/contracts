@@ -135,7 +135,6 @@ contract StreamVault is ReentrancyGuard, OFT {
         address _delegate,
         Vault.VaultParams memory _vaultParams
     )
-        ReentrancyGuard()
         OFT(
             _tokenName,
             _tokenSymbol,
@@ -143,6 +142,7 @@ contract StreamVault is ReentrancyGuard, OFT {
             _lzEndpoint,
             _delegate
         )
+        Ownable(_delegate)
     {
         if (_vaultParams.cap == 0) revert CapMustBeGreaterThanZero();
         if (_stableWrapper == address(0)) revert AddressMustBeNonZero();
