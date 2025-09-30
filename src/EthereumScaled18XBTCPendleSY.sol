@@ -38,6 +38,7 @@ contract EthereumScaled18XBTCPendleSY is SYBase {
         if (tokenIn == yieldToken) {
             return amountDeposited;
         } else {
+            _safeApprove(tokenIn, yieldToken, amountDeposited);
             return IPDecimalsWrapper(yieldToken).wrap(amountDeposited);
         }
     }
