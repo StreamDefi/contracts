@@ -5,11 +5,12 @@ import {Base} from "./Base.t.sol";
 import {StreamVaultERCWrapper} from "../../src/ERC4626Wrapper.sol";
 import {IStreamVault} from "../../src/interfaces/IStreamVault.sol";
 import {Vault} from "../../src/lib/Vault.sol";
+import {ShareMath} from "../../src/lib/ShareMath.sol";
 
 contract StreamVaultERCWrapperTest is Base {
     StreamVaultERCWrapper public wrapper;
 
-    function setUp() public {
+    function setUp() public override {
         wrapper = new StreamVaultERCWrapper(address(streamVault));
     }
 
@@ -68,9 +69,19 @@ contract StreamVaultERCWrapperTest is Base {
      ***********************************************/
 
     function getVaultData() internal view returns (Vault.VaultParams memory, Vault.VaultState memory) {
+        (uint8 decimals, uint56 minimumSupply, uint104 cap) = streamVault.vaultParams();
+        (uint16 round, uint128 totalPending) = streamVault.vaultState();
+        
         return (
-            streamVault.vaultParams(),
-            streamVault.vaultState()
+            Vault.VaultParams({
+                decimals: decimals,
+                minimumSupply: minimumSupply,
+                cap: cap
+            }),
+            Vault.VaultState({
+                round: round,
+                totalPending: totalPending
+            })
         );
     }
 }

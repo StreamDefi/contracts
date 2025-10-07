@@ -153,6 +153,7 @@ contract StableWrapper is OFT, ReentrancyGuard {
         address _lzEndpoint,
         address _delegate
     )
+        Ownable(_delegate)
         OFT(_name, _symbol, _underlyingDecimals, _lzEndpoint, _delegate)
     {
         if (_asset == address(0)) revert AddressMustBeNonZero();

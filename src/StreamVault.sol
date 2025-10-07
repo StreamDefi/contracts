@@ -135,7 +135,7 @@ contract StreamVault is ReentrancyGuard, OFT {
         address _delegate,
         Vault.VaultParams memory _vaultParams
     )
-        ReentrancyGuard()
+        Ownable(_delegate)
         OFT(
             _tokenName,
             _tokenSymbol,

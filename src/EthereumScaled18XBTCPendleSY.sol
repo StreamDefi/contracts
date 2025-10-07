@@ -10,7 +10,7 @@ contract EthereumScaled18XBTCPendleSY is SYBase {
 
 
     address public constant XBTC_ADDRESS = 0x12fd502e2052CaFB41eccC5B596023d9978057d6;
-    address public constant WBTC_ADDRESS = 0x2260fac5e5542a773aa44fbcfedf7c193bc2c599;
+    address public constant WBTC_ADDRESS = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     uint8 public constant XBTC_DECIMALS = 8;
 
     address public immutable WBTCWrapper;
